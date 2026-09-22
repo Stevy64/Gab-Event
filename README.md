@@ -17,7 +17,23 @@ Parcours terrain : **Accueil flyer → Scanner QR → Confirmer les places → S
 | Admin | Dashboard type Zanalyze (cartes, graphiques, popups) |
 | Invitations | Cartes PNG + ZIP + QR seuls |
 | Import / Export | Excel openpyxl |
-| PWA | Manifest + service worker (validation **online**) |
+| PWA | Installable iPhone / Android (manifest + service worker) |
+
+---
+
+## Application installable (PWA)
+
+L’app est une **Progressive Web App** : icône sur l’écran d’accueil, mode plein écran (`standalone`).  
+La **validation des invitations reste online** (pas de file d’attente hors-ligne).
+
+| Plateforme | Comment installer |
+|------------|-------------------|
+| **Android** (Chrome / Edge) | Bannière *Installer*, ou menu ⋮ → **Installer l’application** / **Ajouter à l’écran d’accueil** |
+| **iPhone / iPad** (Safari) | Bouton **Partager** → **Sur l’écran d’accueil** → Ajouter |
+
+Prérequis : site servi en **HTTPS** (ou `localhost` en démo). Sur iOS, utiliser **Safari** (pas Chrome).
+
+Fichiers clés : `static/manifest.json`, `static/sw.js` (exposé en `/sw.js`), `static/icons/*`, `static/js/pwa.js`.
 
 ---
 
@@ -33,8 +49,8 @@ Parcours terrain : **Accueil flyer → Scanner QR → Confirmer les places → S
 ## Installation locale
 
 ```bash
-git clone https://github.com/VOTRE_COMPTE/ATC_Ceremony.git
-cd ATC_Ceremony
+git clone https://github.com/Stevy64/Gab-Event.git
+cd Gab-Event
 python -m venv venv
 ```
 
