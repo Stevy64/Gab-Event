@@ -17,18 +17,33 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 # --- Sécurité ---------------------------------------------------------------
-SECRET_KEY = os.environ.get(
+def _env(*names: str, default: str = "") -> str:
+    """Lit la première variable non vide (aliases Django / DJANGO_* / PA)."""
+    for name in names:
+        value = os.environ.get(name)
+        if value is not None and str(value).strip() != "":
+            return str(value)
+    return default
+
+
+SECRET_KEY = _env(
     "SECRET_KEY",
-    "django-insecure-dev-only-change-in-production",
+    "DJANGO_SECRET_KEY",
+    default="django-insecure-dev-only-change-in-production",
 )
 
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes")
+DEBUG = _env("DEBUG", "DJANGO_DEBUG", default="True").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get(
+    for h in _env(
         "ALLOWED_HOSTS",
-        "localhost,127.0.0.1,steevy64.pythonanywhere.com,.pythonanywhere.com",
+        "DJANGO_ALLOWED_HOSTS",
+        default="localhost,127.0.0.1,steevy64.pythonanywhere.com,.pythonanywhere.com",
     ).split(",")
     if h.strip()
 ]
@@ -45,9 +60,10 @@ for _host in (
 # Origines HTTPS de confiance pour CSRF (obligatoire derrière PythonAnywhere)
 CSRF_TRUSTED_ORIGINS = [
     o.strip()
-    for o in os.environ.get(
+    for o in _env(
         "CSRF_TRUSTED_ORIGINS",
-        "https://steevy64.pythonanywhere.com",
+        "DJANGO_CSRF_TRUSTED_ORIGINS",
+        default="https://steevy64.pythonanywhere.com",
     ).split(",")
     if o.strip()
 ]

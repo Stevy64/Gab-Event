@@ -126,7 +126,17 @@ Chemin typique :
 
 Sans ça, le HTML charge mais CSS/JS/images renvoient du HTML (`MIME type text/html`) → page blanche.
 
-1. Dans une **Bash console** :
+**Option A — la plus simple (recommandée sur PA)**  
+Onglet **Web** → **Static files** → une seule ligne :
+
+| URL | Directory |
+|-----|-----------|
+| `/static/` | `/home/steevy64/Gab-Event/static` |
+
+> Chemin en **minuscules** : `steevy64`, pas `Steevy64`.  
+> Pointez vers le dossier **`static`** (sources), pas un dossier vide.
+
+**Option B — avec collectstatic + WhiteNoise**
 
 ```bash
 workon atc-ceremony
@@ -135,17 +145,13 @@ pip install -r requirements.txt
 python manage.py collectstatic --noinput
 ```
 
-2. Onglet **Web** → section **Static files** → une ligne :
-
 | URL | Directory |
 |-----|-----------|
 | `/static/` | `/home/steevy64/Gab-Event/staticfiles` |
 
-(Adapter le chemin si le repo n’est pas dans `~/Gab-Event`.)
+Puis **Reload**.
 
-3. **Reload** l’appli web.
-
-WhiteNoise est aussi activé : après `collectstatic` + Reload, les assets passent même si le mapping PA est incomplet. Refaites quand même le mapping ci-dessus (plus rapide / recommandé par PA).
+Si une ancienne ligne Static files pointe vers un mauvais chemin : **supprimez-la** puis ajoutez la bonne.
 
 ### WSGI
 
