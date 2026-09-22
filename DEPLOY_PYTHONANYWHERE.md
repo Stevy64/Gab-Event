@@ -2,9 +2,6 @@
 
 Guide pour livrer **ATC Graduation Check** en production (compte gratuit ou payant).
 
-Remplacez partout `VOTRE_USER` par votre identifiant PythonAnywhere  
-(ex. si l’URL est `https://steevi.pythonanywhere.com` → `VOTRE_USER=steevi`).
-
 ---
 
 ## 1. Prérequis
@@ -27,15 +24,15 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 
 ```bash
 cd ~
-git clone https://github.com/VOTRE_COMPTE/ATC_Ceremony.git
-cd ATC_Ceremony
+git clone https://github.com/Stevy64/Gab-Event.git
+cd Gab-Event
 ```
 
 Mises à jour ultérieures :
 
 ```bash
-cd ~/ATC_Ceremony
-git pull
+cd ~/Gab-Event
+git pull origin main
 ```
 
 ---
@@ -63,7 +60,7 @@ pip install -r requirements.txt
 ## 4. Fichier `.env` (recommandé)
 
 ```bash
-cd ~/ATC_Ceremony
+cd ~/Gab-Event
 nano .env
 ```
 
@@ -72,8 +69,8 @@ Exemple :
 ```env
 SECRET_KEY=collez-ici-la-cle-generee
 DEBUG=False
-ALLOWED_HOSTS=VOTRE_USER.pythonanywhere.com
-CSRF_TRUSTED_ORIGINS=https://VOTRE_USER.pythonanywhere.com
+ALLOWED_HOSTS=steevy64.pythonanywhere.com,.pythonanywhere.com
+CSRF_TRUSTED_ORIGINS=https://steevy64.pythonanywhere.com
 CEREMONY_TITLE=Cérémonie de remise des diplômes
 CEREMONY_SUBTITLE=Contrôleurs Aériens
 CEREMONY_DATE=Samedi 20 Décembre
@@ -82,7 +79,9 @@ CEREMONY_VENUE=Grande salle de cérémonie
 CEREMONY_ORGANIZER=ATC
 ```
 
-`python-dotenv` charge ce fichier au démarrage (`config/settings.py`).
+`python-dotenv` charge **`/home/steevy64/Gab-Event/.env`** au démarrage (chemin absolu du projet, pas le cwd WSGI).
+
+Sans `.env`, Django autorise quand même `*.pythonanywhere.com`, mais **créez quand même un `.env`** pour `SECRET_KEY` et `DEBUG=False`.
 
 ---
 
@@ -90,7 +89,7 @@ CEREMONY_ORGANIZER=ATC
 
 ```bash
 workon atc-ceremony
-cd ~/ATC_Ceremony
+cd ~/Gab-Event
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py collectstatic --noinput
@@ -114,20 +113,20 @@ Onglet **Web** → **Add a new web app** → **Manual configuration** → Python
 Chemin typique :
 
 ```text
-/home/VOTRE_USER/.virtualenvs/atc-ceremony
+/home/steevy64/.virtualenvs/atc-ceremony
 ```
 
 ### Source code
 
 ```text
-/home/VOTRE_USER/ATC_Ceremony
+/home/steevy64/Gab-Event
 ```
 
 ### Fichiers statiques
 
 | URL | Directory |
 |-----|-----------|
-| `/static/` | `/home/VOTRE_USER/ATC_Ceremony/staticfiles` |
+| `/static/` | `/home/steevy64/Gab-Event/staticfiles` |
 
 Puis `python manage.py collectstatic --noinput` après chaque changement CSS/JS.
 
@@ -135,7 +134,7 @@ Puis `python manage.py collectstatic --noinput` après chaque changement CSS/JS.
 
 Ouvrez le **WSGI configuration file** et remplacez-le par le contenu de  
 [`deploy/pythonanywhere_wsgi.py`](deploy/pythonanywhere_wsgi.py)  
-(en adaptant `VOTRE_USER` et, si besoin, les `os.environ[...]`).
+(en adaptant `steevy64` et, si besoin, les `os.environ[...]`).
 
 Cliquez **Reload** sur l’onglet Web.
 
@@ -143,7 +142,7 @@ Cliquez **Reload** sur l’onglet Web.
 
 ## 7. Vérifications
 
-1. `https://VOTRE_USER.pythonanywhere.com/` → flyer d’accueil  
+1. `https://steevy64.pythonanywhere.com/` → flyer d’accueil  
 2. Connexion admin → dashboard  
 3. Sur **smartphone en HTTPS** : Scanner → autoriser la caméra  
 4. Sans caméra : saisie manuelle d’un code `ATC24-…` ou `VIP-…`

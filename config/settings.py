@@ -11,9 +11,10 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Charger depuis le dossier projet (sur PythonAnywhere, le cwd WSGI ≠ projet)
+load_dotenv(BASE_DIR / ".env")
 
 # --- Sécurité ---------------------------------------------------------------
 SECRET_KEY = os.environ.get(
@@ -25,9 +26,15 @@ DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = [
     h.strip()
-    for h in os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    for h in os.environ.get(
+        "ALLOWED_HOSTS",
+        "localhost,127.0.0.1,.pythonanywhere.com",
+    ).split(",")
     if h.strip()
 ]
+# Wildcard Django : tout sous-domaine *.pythonanywhere.com
+if ".pythonanywhere.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".pythonanywhere.com")
 
 # Origines HTTPS de confiance pour CSRF (obligatoire derrière PythonAnywhere)
 CSRF_TRUSTED_ORIGINS = [
@@ -35,6 +42,10 @@ CSRF_TRUSTED_ORIGINS = [
     for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
     if o.strip()
 ]
+# Autoriser tous les sous-domaines PA en HTTPS (Django 4+)
+_pa_csrf = "https://*.pythonanywhere.com"
+if _pa_csrf not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append(_pa_csrf)
 
 # --- Applications -----------------------------------------------------------
 INSTALLED_APPS = [
