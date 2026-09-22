@@ -1,14 +1,11 @@
 /**
- * Scanner terrain (accueil).
+ * Scanner terrain (accueil) — réservé aux agents connectés.
  *
  * Flux :
- *  1. Bottom sheet → caméra (html5-qrcode) ou saisie manuelle
+ *  1. Bottom sheet → caméra ou saisie manuelle
  *  2. POST /api/validate/  → recognized | already_used | invalid
- *  3. Si recognized → choix du nb de personnes → POST /api/admit/
- *
- * Notes prod :
- *  - HTTPS requis pour la caméra (PythonAnywhere OK)
- *  - Classe CSS .camera-live retire le transform du sheet (sinon getUserMedia échoue)
+ *  3. Si recognized → Valider l'entrée (1 personne) → POST /api/admit/
+ *  4. Message de bienvenue + Scanner le suivant / Fermer
  */
 (function () {
   "use strict";
@@ -33,8 +30,12 @@
   const errorMsg = document.getElementById("error-msg");
   const netDot = document.getElementById("net-dot");
   const btnNext = document.getElementById("btn-next");
+  const btnDismiss = document.getElementById("btn-dismiss-result");
+  const btnCloseResult = document.getElementById("btn-close-result");
   const loader = document.getElementById("app-loader");
   const homeScreen = document.getElementById("home-screen");
+
+  if (!sheet) return;
 
   const ICONS = {
     valid:
@@ -45,6 +46,8 @@
       '<svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#DC3B3B"/><path d="M17 17l14 14M31 17L17 31" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>',
     vip:
       '<svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#D4AF37"/><path d="M14 30l4-12 6 8 6-8 4 12H14z" fill="#0F1A2A"/></svg>',
+    welcome:
+      '<svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#1F9D57"/><path d="M16 24c2 4 6 8 8 8s6-4 8-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="18" cy="20" r="2" fill="#fff"/><circle cx="30" cy="20" r="2" fill="#fff"/></svg>',
   };
 
   let html5QrCode = null;
@@ -143,6 +146,8 @@
     if (!sheet || !backdrop) return;
     await stopCamera();
     closeResultModal(false);
+    locked = false;
+    pendingGuest = null;
     sheetOpen = false;
     sheet.classList.remove("is-open");
     backdrop.classList.remove("is-open");
@@ -160,18 +165,17 @@
     if (window.history) window.history.replaceState({}, "", "/");
   }
 
-  function personsButtons(remaining) {
-    let html = '<div class="persons-picker"><p class="persons-label">Combien de personnes entrent ?</p><div class="persons-btns">';
-    for (let i = 1; i <= remaining; i++) {
-      html +=
-        '<button type="button" class="btn-person" data-persons="' +
-        i +
-        '">' +
-        i +
-        "</button>";
+  function setResultActions(showNext, nextLabel, dismissLabel) {
+    if (btnNext) {
+      btnNext.hidden = !showNext;
+      btnNext.classList.toggle("is-hidden", !showNext);
+      if (nextLabel) btnNext.textContent = nextLabel;
     }
-    html += "</div></div>";
-    return html;
+    if (btnDismiss) {
+      btnDismiss.hidden = false;
+      btnDismiss.classList.remove("is-hidden");
+      btnDismiss.textContent = dismissLabel || "Fermer";
+    }
   }
 
   function openResultModal(data) {
@@ -179,6 +183,7 @@
     pendingGuest = data.guest || null;
     const g = pendingGuest || {};
     const isVip = !!g.is_vip || g.participant_type === "VIP";
+    const fullName = ((g.first_name || "") + " " + (g.last_name || "")).trim();
     resultCard.className = "result-popup " + data.status + (isVip ? " vip" : "");
     if (resultIconWrap) {
       resultIconWrap.className =
@@ -188,11 +193,10 @@
     if (data.status === "recognized") {
       resultIcon.innerHTML = isVip ? ICONS.vip : ICONS.valid;
       resultTitle.textContent = isVip ? "Invitation VIP" : "Invitation reconnue";
-      const remaining = g.places_remaining || 0;
       resultBody.innerHTML =
         '<div class="guest-hero">' +
         '<strong class="guest-name">' +
-        escapeHtml((g.first_name || "") + " " + (g.last_name || "")) +
+        escapeHtml(fullName) +
         "</strong>" +
         (isVip ? '<span class="vip-badge">VIP</span>' : "") +
         '<span class="guest-cat">' +
@@ -201,57 +205,53 @@
         "<code>" +
         escapeHtml(g.code || "") +
         "</code></div>" +
-        '<div class="places-grid">' +
-        "<div><span>Autorisées</span><strong>" +
-        (g.places_allowed || g.places || 1) +
-        "</strong></div>" +
-        "<div><span>Utilisées</span><strong>" +
-        (g.places_used || 0) +
-        "</strong></div>" +
-        "<div><span>Restantes</span><strong>" +
-        remaining +
-        "</strong></div></div>" +
-        personsButtons(remaining) +
-        '<button type="button" id="btn-admit" class="btn btn-primary btn-xl btn-block" disabled>Valider l\'entrée</button>';
-      btnNext.classList.add("is-hidden");
-      btnNext.hidden = true;
-      bindAdmitUI(g.code, remaining);
+        '<p class="result-msg">Billet individuel — 1 personne.</p>' +
+        '<button type="button" id="btn-admit" class="btn btn-primary btn-xl btn-block">Valider l\'entrée</button>';
+      setResultActions(false, "", "Annuler");
+      document.getElementById("btn-admit")?.addEventListener("click", () => {
+        confirmAdmit(g.code);
+      });
     } else if (data.status === "already_used") {
       resultIcon.innerHTML = ICONS.already_used;
-      resultTitle.textContent = "Places épuisées";
+      resultTitle.textContent = "Déjà utilisée";
       resultBody.innerHTML =
         '<div class="guest-hero"><strong class="guest-name">' +
-        escapeHtml((g.first_name || "") + " " + (g.last_name || "")) +
+        escapeHtml(fullName) +
         '</strong><span class="guest-cat">' +
         escapeHtml(g.category || "") +
         "</span><code>" +
         escapeHtml(g.code || "") +
-        '</code></div><p class="result-msg">Toutes les places de cette invitation ont déjà été utilisées.</p>';
-      btnNext.hidden = false;
-      btnNext.classList.remove("is-hidden");
-      btnNext.textContent = "Scanner le suivant";
+        '</code></div><p class="result-msg">Cette invitation a déjà été scannée et validée.</p>';
+      setResultActions(true, "Scanner le suivant", "Fermer");
+      locked = false;
     } else if (data.status === "admitted") {
-      resultIcon.innerHTML = ICONS.valid;
+      resultIcon.innerHTML = ICONS.welcome;
       resultTitle.textContent = "Entrée validée";
+      const welcome =
+        data.welcome ||
+        data.message ||
+        (fullName ? "Bienvenue, " + fullName + " !" : "Bienvenue !");
       resultBody.innerHTML =
+        '<p class="welcome-message">' +
+        escapeHtml(welcome) +
+        "</p>" +
         '<div class="guest-hero"><strong class="guest-name">' +
-        escapeHtml((g.first_name || "") + " " + (g.last_name || "")) +
-        '</strong></div><p class="result-msg"><strong>' +
-        (data.persons || 0) +
-        "</strong> personne(s) enregistrée(s).<br>Places restantes : <strong>" +
-        (g.places_remaining || 0) +
-        "</strong></p>";
-      btnNext.hidden = false;
-      btnNext.classList.remove("is-hidden");
-      btnNext.textContent = "Scanner le suivant";
+        escapeHtml(fullName) +
+        "</strong>" +
+        (isVip ? '<span class="vip-badge">VIP</span>' : "") +
+        "<code>" +
+        escapeHtml(g.code || "") +
+        "</code></div>" +
+        '<p class="result-msg">Invitation enregistrée. Bonne cérémonie.</p>';
+      setResultActions(true, "Scanner le suivant", "Fermer");
+      locked = false;
     } else {
       resultIcon.innerHTML = ICONS.invalid;
       resultTitle.textContent = "Invitation non reconnue";
       resultBody.innerHTML =
         '<p class="result-msg">Ce QR Code ne correspond à aucune invitation valide.</p>';
-      btnNext.hidden = false;
-      btnNext.classList.remove("is-hidden");
-      btnNext.textContent = "Scanner à nouveau";
+      setResultActions(true, "Scanner à nouveau", "Fermer");
+      locked = false;
     }
 
     setHidden(resultBackdrop, false);
@@ -263,30 +263,7 @@
     });
   }
 
-  function bindAdmitUI(code, remaining) {
-    let selected = remaining === 1 ? 1 : 0;
-    const admitBtn = document.getElementById("btn-admit");
-    const picker = resultBody.querySelector(".persons-picker");
-    if (remaining === 1 && admitBtn) {
-      admitBtn.disabled = false;
-      selected = 1;
-      picker?.querySelector('[data-persons="1"]')?.classList.add("is-selected");
-    }
-    resultBody.querySelectorAll(".btn-person").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        resultBody.querySelectorAll(".btn-person").forEach((b) => b.classList.remove("is-selected"));
-        btn.classList.add("is-selected");
-        selected = parseInt(btn.getAttribute("data-persons"), 10);
-        if (admitBtn) admitBtn.disabled = false;
-      });
-    });
-    admitBtn?.addEventListener("click", async () => {
-      if (!selected) return;
-      await confirmAdmit(code, selected);
-    });
-  }
-
-  async function confirmAdmit(code, persons) {
+  async function confirmAdmit(code) {
     showLoader("Enregistrement de l'entrée…");
     try {
       const response = await fetch(ADMIT_URL, {
@@ -295,14 +272,18 @@
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken(),
         },
-        body: JSON.stringify({ code, persons }),
+        body: JSON.stringify({ code, persons: 1 }),
         credentials: "same-origin",
       });
       const data = await response.json();
       hideLoader();
-      if (data.status === "admitted") {
-        openResultModal(data);
-      } else if (data.status === "already_used") {
+      if (response.status === 401) {
+        showError(data.message || "Session expirée. Reconnectez-vous.");
+        closeResultModal(true);
+        locked = false;
+        return;
+      }
+      if (data.status === "admitted" || data.status === "already_used") {
         openResultModal(data);
       } else {
         showError(data.message || "Impossible d'enregistrer l'entrée.");
@@ -337,9 +318,13 @@
       return;
     }
     if (scanning) {
-      try { await html5QrCode.stop(); } catch (_) {}
+      try {
+        await html5QrCode.stop();
+      } catch (_) {}
     }
-    try { await html5QrCode.clear(); } catch (_) {}
+    try {
+      await html5QrCode.clear();
+    } catch (_) {}
     scanning = false;
   }
 
@@ -372,7 +357,9 @@
       try {
         if (html5QrCode.isScanning) await html5QrCode.stop();
       } catch (_) {}
-      try { await html5QrCode.clear(); } catch (_) {}
+      try {
+        await html5QrCode.clear();
+      } catch (_) {}
       html5QrCode = null;
     }
     el.innerHTML = "";
@@ -395,7 +382,11 @@
       showError("Bibliothèque de scan indisponible. Utilisez la saisie manuelle.");
       return;
     }
-    if (!window.isSecureContext && location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+    if (
+      !window.isSecureContext &&
+      location.hostname !== "localhost" &&
+      location.hostname !== "127.0.0.1"
+    ) {
       showError("La caméra nécessite HTTPS. Utilisez la saisie manuelle.");
       return;
     }
@@ -439,11 +430,15 @@
       const msg = String((err && (err.message || err.name)) || err || "");
       console.warn("[scanner] camera start failed:", err);
       if (/NotAllowedError|Permission|denied|NotAllowed/i.test(msg)) {
-        showError("Permission caméra refusée. Autorisez-la dans le navigateur ou saisissez le code.");
+        showError(
+          "Permission caméra refusée. Autorisez-la dans le navigateur ou saisissez le code."
+        );
       } else if (/NotFoundError|Requested device not found|DevicesNotFound/i.test(msg)) {
         showError("Aucune caméra détectée. Utilisez la saisie manuelle.");
       } else if (/NotReadableError|TrackStartError|Could not start/i.test(msg)) {
-        showError("Caméra déjà utilisée par une autre application. Fermez-la puis réessayez.");
+        showError(
+          "Caméra déjà utilisée par une autre application. Fermez-la puis réessayez."
+        );
       } else {
         showError("Impossible d'ouvrir la caméra. Essayez la saisie manuelle.");
       }
@@ -495,6 +490,13 @@
       }
       hideLoader();
       showPanel(idlePanel);
+      if (response.status === 401) {
+        showError(
+          (data && data.message) || "Connectez-vous pour scanner les invitations."
+        );
+        locked = false;
+        return;
+      }
       if (!data || !data.status) {
         showError(
           response.status === 403
@@ -510,7 +512,6 @@
         data.status === "invalid"
       ) {
         openResultModal(data);
-        if (data.status !== "recognized") locked = false;
       } else {
         showError(data.message || "Réponse inattendue du serveur.");
         locked = false;
@@ -531,12 +532,20 @@
 
   async function resetAfterResult(restartCamera) {
     locked = false;
+    pendingGuest = null;
     clearError();
     closeResultModal(true);
     await stopCamera();
     if (!sheetOpen) return;
     if (restartCamera) setTimeout(() => startCamera(), 320);
     else showPanel(idlePanel);
+  }
+
+  async function dismissAndClose() {
+    locked = false;
+    pendingGuest = null;
+    closeResultModal(true);
+    await closeSheet();
   }
 
   function onDragStart(clientY) {
@@ -553,7 +562,8 @@
     sheet.style.transform = desk
       ? "translate(-50%, " + dragCurrentY + "px)"
       : "translateY(" + dragCurrentY + "px)";
-    if (backdrop) backdrop.style.opacity = String(Math.max(0.15, 1 - dragCurrentY / 400));
+    if (backdrop)
+      backdrop.style.opacity = String(Math.max(0.15, 1 - dragCurrentY / 400));
   }
 
   async function onDragEnd() {
@@ -592,10 +602,15 @@
   document.getElementById("btn-open-scanner")?.addEventListener("click", openSheet);
   document.getElementById("btn-close-sheet")?.addEventListener("click", closeSheet);
   backdrop?.addEventListener("click", closeSheet);
-  resultBackdrop?.addEventListener("click", () => {
-    if (pendingGuest && resultCard?.classList.contains("recognized")) return;
-    resetAfterResult(false);
+
+  // Toujours pouvoir fermer le popup (plus de blocage)
+  resultBackdrop?.addEventListener("click", () => resetAfterResult(false));
+  btnCloseResult?.addEventListener("click", () => resetAfterResult(false));
+  btnDismiss?.addEventListener("click", () => {
+    if (btnDismiss.textContent === "Annuler") resetAfterResult(false);
+    else dismissAndClose();
   });
+  btnNext?.addEventListener("click", () => resetAfterResult(true));
 
   document.getElementById("btn-start-scan")?.addEventListener("click", startCamera);
   document.getElementById("btn-stop-scan")?.addEventListener("click", async () => {
@@ -611,7 +626,6 @@
   document.getElementById("btn-close-manual")?.addEventListener("click", () => {
     showPanel(idlePanel);
   });
-  btnNext?.addEventListener("click", () => resetAfterResult(true));
 
   document.getElementById("manual-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();

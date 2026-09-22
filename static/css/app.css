@@ -499,6 +499,14 @@ code {
   color: #E8D6A8;
   border-color: #E8D6A8;
 }
+.flyer-scan-lock {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  opacity: 0.75;
+  max-width: 16rem;
+  margin-inline: auto;
+  color: rgba(247, 241, 228, 0.72);
+}
 
 .home-screen.sheet-active {
   filter: blur(2px);
@@ -800,6 +808,33 @@ body.no-scroll { overflow: hidden; touch-action: none; }
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
   border: 1px solid var(--line);
   transform: scale(0.92);
+  position: relative;
+}
+.result-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.75rem;
+  border: 0;
+  background: transparent;
+  font-size: 1.6rem;
+  line-height: 1;
+  color: var(--muted, #6b7280);
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  z-index: 2;
+}
+.result-actions {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+.welcome-message {
+  margin: 0 0 0.85rem;
+  font-family: "Cormorant Garamond", "Playfair Display", serif;
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: #1F9D57;
+  line-height: 1.25;
 }
 .result-popup.pop-in { animation: popIn 0.42s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .result-popup.valid { border-color: rgba(31, 157, 87, 0.35); }

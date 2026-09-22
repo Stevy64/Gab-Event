@@ -53,13 +53,29 @@ def _agent(request) -> str:
     return ""
 
 
+def _require_scanner_user(request):
+    """Seuls les comptes connectés (contrôleurs / admin) peuvent scanner."""
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Connectez-vous pour scanner les invitations.",
+            },
+            status=401,
+        )
+    return None
+
+
 @ensure_csrf_cookie
 def home(request):
+    can_scan = request.user.is_authenticated
+    open_scanner = can_scan and request.GET.get("scan") == "1"
     return render(
         request,
         "home.html",
         {
-            "open_scanner": request.GET.get("scan") == "1",
+            "open_scanner": open_scanner,
+            "can_scan": can_scan,
             "ceremony": ceremony_settings(),
         },
     )
@@ -74,6 +90,7 @@ def service_worker(request):
     return response
 
 
+@login_required
 @ensure_csrf_cookie
 def scanner(request):
     return redirect("/?scan=1")
@@ -81,7 +98,10 @@ def scanner(request):
 
 @require_POST
 def api_validate(request):
-    """Lookup invitation — does NOT consume places."""
+    """Lookup invitation — does NOT consume places. Auth required."""
+    denied = _require_scanner_user(request)
+    if denied:
+        return denied
     content_type = request.content_type or ""
     if "application/json" in content_type:
         payload = _parse_json(request)
@@ -98,7 +118,10 @@ def api_validate(request):
 
 @require_POST
 def api_admit(request):
-    """Confirm entrance and consume N places atomically."""
+    """Confirm entrance (1 personne). Auth required."""
+    denied = _require_scanner_user(request)
+    if denied:
+        return denied
     payload = _parse_json(request) if "application/json" in (request.content_type or "") else None
     if payload is None and "application/json" in (request.content_type or ""):
         return JsonResponse({"status": "error", "message": "JSON invalide."}, status=400)
@@ -110,7 +133,7 @@ def api_admit(request):
 
     result = admit_persons(
         payload.get("code", ""),
-        payload.get("persons", 1),
+        1,
         agent=_agent(request),
     )
     http = 200

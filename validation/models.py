@@ -47,7 +47,11 @@ class Invitation(models.Model):
         db_index=True,
     )
     category = models.CharField("Catégorie", max_length=80, blank=True, default="")
-    places = models.PositiveIntegerField("Places autorisées", default=1)
+    places = models.PositiveIntegerField(
+        "Places autorisées",
+        default=1,
+        help_text="Toujours 1 : une invitation = une personne.",
+    )
     places_used = models.PositiveIntegerField("Places utilisées", default=0)
     status = models.CharField(
         "Statut",

@@ -34,7 +34,7 @@
         </svg>
       </div>
       <h3 class="scan-title">Scanner une invitation</h3>
-      <p class="scan-help">Placez le QR Code dans le cadre. Autorisez la caméra si demandé.</p>
+      <p class="scan-help">1 billet = 1 personne. Placez le QR Code dans le cadre.</p>
       <button type="button" id="btn-start-scan" class="btn btn-primary btn-xl btn-block">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
           <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
@@ -87,14 +87,20 @@
 <div id="result-modal" class="result-modal is-hidden" role="dialog" aria-modal="true"
      aria-labelledby="result-title" hidden>
   <div id="result-card" class="result-popup">
+    <button type="button" id="btn-close-result" class="result-close" aria-label="Fermer">×</button>
     <div class="result-icon-wrap" id="result-icon-wrap">
       <div class="result-icon" id="result-icon" aria-hidden="true"></div>
     </div>
     <h2 id="result-title"></h2>
     <div id="result-body" class="result-body"></div>
-    <button type="button" id="btn-next" class="btn btn-primary btn-xl btn-block">
-      Scanner le suivant
-    </button>
+    <div class="result-actions">
+      <button type="button" id="btn-next" class="btn btn-primary btn-xl btn-block">
+        Scanner le suivant
+      </button>
+      <button type="button" id="btn-dismiss-result" class="btn btn-soft btn-block">
+        Fermer
+      </button>
+    </div>
   </div>
 </div>
 

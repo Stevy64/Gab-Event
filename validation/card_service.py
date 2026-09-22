@@ -118,7 +118,7 @@ def render_invitation_card(invitation: Invitation) -> Image.Image:
         center(f"{label}  ·  {value}", meta_y, small_font, NAVY_2)
         meta_y += 48
 
-    center(f"Nombre de places : {invitation.places}", meta_y + 20, sub_font, ORANGE)
+    center("Invitation nominative · 1 personne", meta_y + 20, sub_font, ORANGE)
 
     # QR
     qr = build_qr_image(invitation.code, box_size=10, border=2)

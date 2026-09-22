@@ -154,7 +154,10 @@ def import_invitations_from_workbook(workbook) -> ImportResult:
             continue
 
         try:
-            places = max(1, int(float(places_raw)))
+            # Une invitation = une personne (places Excel ignorées si > 1)
+            places = 1
+            if places_raw not in ("", None):
+                int(float(places_raw))  # valide le format si fourni
         except (TypeError, ValueError):
             result.errors.append(f"Ligne {line_no} : places invalides ({places_raw!r}).")
             continue
@@ -351,6 +354,9 @@ class AdmitResult:
         payload = {"status": self.status, "persons": self.persons}
         if self.guest is not None:
             payload["guest"] = self.guest
+            name = f"{self.guest.get('first_name', '')} {self.guest.get('last_name', '')}".strip()
+            if self.status == "admitted" and name:
+                payload["welcome"] = self.message or f"Bienvenue, {name} !"
         if self.admitted_at is not None:
             payload["admitted_at"] = self.admitted_at.isoformat()
         if self.message:
@@ -358,16 +364,13 @@ class AdmitResult:
         return payload
 
 
-def admit_persons(code: str, persons: int, agent: str = "") -> AdmitResult:
-    """Atomically consume N places after operator confirmation."""
+def admit_persons(code: str, persons: int = 1, agent: str = "") -> AdmitResult:
+    """
+    Enregistre l'entrée d'une seule personne (1 invitation = 1 billet = 1 entrée).
+    Le paramètre ``persons`` est ignoré (toujours 1) pour compatibilité API.
+    """
     normalized = normalize_code(code)
-    try:
-        persons = int(persons)
-    except (TypeError, ValueError):
-        return AdmitResult(status="error", message="Nombre de personnes invalide.")
-
-    if persons < 1:
-        return AdmitResult(status="error", message="Au moins une personne est requise.")
+    persons = 1
 
     if not normalized:
         return AdmitResult(status="invalid")
@@ -384,22 +387,20 @@ def admit_persons(code: str, persons: int, agent: str = "") -> AdmitResult:
         if not invitation.is_active_ticket:
             return AdmitResult(status="invalid", message="Invitation désactivée.")
 
-        remaining = invitation.places_remaining
-        if remaining <= 0:
+        # Normaliser : une seule place par billet
+        if invitation.places != 1:
+            invitation.places = 1
+            invitation.save(update_fields=["places"])
+
+        if invitation.places_used >= 1 or invitation.is_exhausted:
             return AdmitResult(
                 status="already_used",
                 guest=guest_payload(invitation),
-                message="Plus de places restantes.",
-            )
-        if persons > remaining:
-            return AdmitResult(
-                status="error",
-                guest=guest_payload(invitation),
-                message=f"Seulement {remaining} place(s) restante(s).",
+                message="Cette invitation a déjà été utilisée.",
             )
 
         now = timezone.now()
-        invitation.places_used += persons
+        invitation.places_used = 1
         invitation.sync_presence_flags()
         invitation.save(
             update_fields=[
@@ -411,7 +412,7 @@ def admit_persons(code: str, persons: int, agent: str = "") -> AdmitResult:
 
         Admission.objects.create(
             invitation=invitation,
-            persons=persons,
+            persons=1,
             admitted_at=now,
             agent=agent,
         )
@@ -420,14 +421,17 @@ def admit_persons(code: str, persons: int, agent: str = "") -> AdmitResult:
             code_scanned=normalized,
             result=ScanLog.RESULT_ADMITTED,
             agent=agent,
-            persons=persons,
+            persons=1,
         )
 
+        guest = guest_payload(invitation)
+        welcome = f"Bienvenue, {invitation.full_name} !"
         return AdmitResult(
             status="admitted",
-            guest=guest_payload(invitation),
+            guest=guest,
             admitted_at=now,
-            persons=persons,
+            persons=1,
+            message=welcome,
         )
 
 

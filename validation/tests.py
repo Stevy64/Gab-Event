@@ -109,7 +109,7 @@ class ImportPhase2Tests(TestCase):
             )
             import_invitations_from_path(path)
             inv = Invitation.objects.get(code="ATC24-KEEPME")
-            self.assertEqual(inv.places, 3)
+            self.assertEqual(inv.places, 1)
             self.assertEqual(Invitation.objects.filter(first_name="Abdou").count(), 1)
 
 
@@ -154,7 +154,7 @@ class LookupAdmitTests(TransactionTestCase):
             last_name="ISSA",
             participant_type=PARTICIPANT_RECIPIENT,
             category="Récipiendaire",
-            places=3,
+            places=1,
         )
         self.vip = Invitation.objects.create(
             code="VIP-H8K2M4",
@@ -164,11 +164,12 @@ class LookupAdmitTests(TransactionTestCase):
             category="Instructrice",
             places=1,
         )
+        self.user = User.objects.create_user("agent", password="secret123")
 
     def test_scan_atc24_recognized(self):
         result = lookup_invitation("atc24-a7k9p2")
         self.assertEqual(result.status, "recognized")
-        self.assertEqual(result.guest["places_remaining"], 3)
+        self.assertEqual(result.guest["places_remaining"], 1)
         self.recipient.refresh_from_db()
         self.assertEqual(self.recipient.places_used, 0)
 
@@ -183,28 +184,38 @@ class LookupAdmitTests(TransactionTestCase):
     def test_fake_vip(self):
         self.assertEqual(lookup_invitation("VIP-AAAAAA").status, "invalid")
 
-    def test_partial_then_full(self):
-        r1 = admit_persons("ATC24-A7K9P2", 2)
+    def test_single_admit_then_already_used(self):
+        r1 = admit_persons("ATC24-A7K9P2", 99)
         self.assertEqual(r1.status, "admitted")
+        self.assertEqual(r1.persons, 1)
+        self.assertIn("Bienvenue", r1.message)
         self.recipient.refresh_from_db()
-        self.assertEqual(self.recipient.places_used, 2)
-        self.assertEqual(self.recipient.places_remaining, 1)
-        look = lookup_invitation("ATC24-A7K9P2")
-        self.assertEqual(look.status, "recognized")
-        r2 = admit_persons("ATC24-A7K9P2", 1)
-        self.assertEqual(r2.status, "admitted")
-        self.recipient.refresh_from_db()
-        self.assertEqual(self.recipient.places_used, 3)
+        self.assertEqual(self.recipient.places_used, 1)
+        self.assertEqual(self.recipient.places, 1)
         self.assertEqual(lookup_invitation("ATC24-A7K9P2").status, "already_used")
 
-    def test_overflow_forbidden(self):
+    def test_overflow_becomes_single_admit(self):
+        """persons>1 is ignored — always admits exactly one."""
         result = admit_persons("VIP-H8K2M4", 2)
-        self.assertEqual(result.status, "error")
+        self.assertEqual(result.status, "admitted")
         self.vip.refresh_from_db()
-        self.assertEqual(self.vip.places_used, 0)
+        self.assertEqual(self.vip.places_used, 1)
+
+    def test_api_requires_auth(self):
+        client = Client(enforce_csrf_checks=True)
+        client.get(reverse("home"))
+        token = client.cookies["csrftoken"].value
+        r = client.post(
+            reverse("api_validate"),
+            data=json.dumps({"code": "ATC24-A7K9P2"}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+        )
+        self.assertEqual(r.status_code, 401)
 
     def test_api_flow(self):
         client = Client(enforce_csrf_checks=True)
+        client.login(username="agent", password="secret123")
         client.get(reverse("home"))
         token = client.cookies["csrftoken"].value
         headers = {"HTTP_X_CSRFTOKEN": token}
@@ -218,12 +229,14 @@ class LookupAdmitTests(TransactionTestCase):
         self.assertEqual(r.json()["status"], "recognized")
         r2 = client.post(
             reverse("api_admit"),
-            data=json.dumps({"code": "ATC24-A7K9P2", "persons": 2}),
+            data=json.dumps({"code": "ATC24-A7K9P2", "persons": 1}),
             content_type="application/json",
             **headers,
         )
         self.assertEqual(r2.status_code, 200)
-        self.assertEqual(r2.json()["status"], "admitted")
+        body = r2.json()
+        self.assertEqual(body["status"], "admitted")
+        self.assertIn("Bienvenue", body.get("welcome", body.get("message", "")))
         self.assertEqual(Admission.objects.count(), 1)
 
 
