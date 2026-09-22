@@ -1,0 +1,38 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Environment & secrets
+.env
+*.local
+
+# Django
+*.log
+db.sqlite3
+staticfiles/
+media/
+
+# Generated artefacts
+generated_qr/*.png
+!generated_qr/.gitkeep
+generated_invitations/*
+!generated_invitations/.gitkeep
+invitations_ceremonie.zip
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Distribution
+dist/
+build/
+*.egg-info/

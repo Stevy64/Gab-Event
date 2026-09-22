@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ invitation.full_name }}{% endblock %}
+{% block body_class %}page-admin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="zyz-shell">
+  <header class="zyz-top">
+    <div>
+      <p class="zyz-kicker">{{ invitation.get_participant_type_display }}{% if invitation.is_vip %} · VIP{% endif %}</p>
+      <h1>{{ invitation.full_name }}</h1>
+      <p class="zyz-lead">Fiche invitation — actions et historique d’entrée.</p>
+    </div>
+    <div class="zyz-top-cta">
+      <a class="zyz-btn zyz-btn-primary" href="{% url 'invitation_preview' invitation.pk %}">Voir invitation</a>
+      <a class="zyz-btn zyz-btn-ghost" href="{% url 'dashboard' %}">Tableau</a>
+    </div>
+  </header>
+
+  <section class="zyz-card">
+    <ul class="zyz-modal-fields" style="margin:0">
+      <li><span class="zyz-modal-ico">▢</span><div><em>Catégorie</em><strong>{{ invitation.category|default:"—" }}</strong></div></li>
+      <li><span class="zyz-modal-ico">★</span><div><em>Places</em><strong>{{ invitation.places_used }} / {{ invitation.places }} (reste {{ invitation.places_remaining }})</strong></div></li>
+      <li><span class="zyz-modal-ico">◆</span><div><em>Code</em><strong><code>{{ invitation.code }}</code></strong></div></li>
+      <li><span class="zyz-modal-ico">◎</span><div><em>Statut billet</em><strong>{{ invitation.get_status_display }}</strong></div></li>
+      <li><span class="zyz-modal-ico">✉</span><div><em>Invitation</em><strong>{% if invitation.invitation_sent %}Envoyée{% elif invitation.invitation_generated %}Générée{% else %}À générer{% endif %}</strong></div></li>
+      <li><span class="zyz-modal-ico">✓</span><div><em>Présence</em><strong>{% if invitation.places_used > 0 %}Entré{% if invitation.validated_at %} · {{ invitation.validated_at|date:"d/m/Y H:i" }}{% endif %}{% else %}En attente{% endif %}</strong></div></li>
+    </ul>
+    <div class="zyz-modal-actions" style="margin-top:1rem">
+      <a class="zyz-btn zyz-btn-primary" href="{% url 'invitation_download' invitation.pk %}">PNG</a>
+      <a class="zyz-btn zyz-btn-dark" href="{% url 'invitation_qr' invitation.pk %}">QR seul</a>
+    </div>
+    <form method="post" style="margin-top:1rem">
+      {% csrf_token %}
+      {% if invitation.invitation_sent %}
+        <input type="hidden" name="action" value="unmark_sent">
+        <button type="submit" class="zyz-btn zyz-btn-ghost zyz-btn-block">Annuler « envoyée »</button>
+      {% else %}
+        <input type="hidden" name="action" value="mark_sent">
+        <button type="submit" class="zyz-btn zyz-btn-primary zyz-btn-block">Marquer comme envoyée</button>
+      {% endif %}
+    </form>
+  </section>
+
+  {% if invitation.places_used > 0 %}
+  <section class="zyz-card">
+    <div class="zyz-card-head"><h3>Annuler les entrées</h3></div>
+    <p class="zyz-lead" style="max-width:none">Remet les places à zéro en cas d'erreur humaine.</p>
+    <form method="post" onsubmit="return confirm('Confirmer l\'annulation des entrées ?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="cancel">
+      {{ form.as_p }}
+      <button type="submit" class="zyz-btn zyz-btn-ghost zyz-btn-block">Annuler les validations</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="zyz-card">
+    <div class="zyz-card-head"><h3>Admissions</h3></div>
+    <ul class="zyz-feed">
+      {% for adm in admissions %}
+      <li class="zyz-feed-item">
+        <span class="zyz-feed-dot"></span>
+        <div><strong>{{ adm.persons }} personne{{ adm.persons|pluralize }}</strong></div>
+        <time class="zyz-meta">{{ adm.admitted_at|date:"d/m H:i:s" }}</time>
+      </li>
+      {% empty %}
+      <li class="zyz-empty-row">Aucune admission.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Import Excel{% endblock %}
+{% block body_class %}page-admin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="zyz-shell">
+  <header class="zyz-top">
+    <div>
+      <p class="zyz-kicker">Administration</p>
+      <h1>Importer les invitations</h1>
+      <p class="zyz-lead">Mise à jour de la liste sans effacer les validations déjà faites.</p>
+    </div>
+    <div class="zyz-top-cta">
+      <a class="zyz-btn zyz-btn-primary" href="{% url 'dashboard' %}">Tableau</a>
+      <a class="zyz-btn zyz-btn-ghost" href="{% url 'home' %}">Accueil</a>
+    </div>
+  </header>
+
+  <section class="zyz-card">
+    <p class="zyz-lead" style="max-width:none;margin-bottom:1rem">
+      Colonnes attendues : <code>Code</code>, <code>Nom</code>, <code>Prenom</code>,
+      <code>Categorie</code>, <code>Places</code>, <code>Statut</code>.
+    </p>
+    <form method="post" enctype="multipart/form-data" class="import-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="zyz-btn zyz-btn-primary zyz-btn-block">Importer</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

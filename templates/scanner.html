@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% comment %}Legacy URL — redirects to home with sheet open via JS fallback page.{% endcomment %}
+{% load static %}
+
+{% block title %}Scanner — ATC Graduation{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block content %}
+<main class="home-screen">
+  <div class="home-inner" style="opacity:0.4">
+    <p class="home-kicker">Ouverture du scanner…</p>
+  </div>
+</main>
+<script>
+  window.location.replace("/?scan=1");
+</script>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Recherche{% endblock %}
+{% block body_class %}page-admin{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=1">
+{% endblock %}
+
+{% block content %}
+<div class="zyz-shell">
+  <header class="zyz-top">
+    <div>
+      <p class="zyz-kicker">Administration</p>
+      <h1>Rechercher une invitation</h1>
+      <p class="zyz-lead">Retrouvez un invité et ouvrez sa fiche en un tap.</p>
+    </div>
+    <div class="zyz-top-cta">
+      <a class="zyz-btn zyz-btn-primary" href="{% url 'dashboard' %}">Tableau</a>
+      <a class="zyz-btn zyz-btn-dark" href="{% url 'home' %}?scan=1">Scanner</a>
+    </div>
+  </header>
+
+  <section class="zyz-card">
+    <form method="get" class="zyz-filters">
+      {{ form.q }}
+      <button type="submit" class="zyz-btn zyz-btn-primary">Rechercher</button>
+    </form>
+
+    {% if query %}
+      {% if results %}
+      <ul class="zyz-list">
+        {% for inv in results %}
+        <li>
+          <button type="button" class="zyz-list-item js-guest-open"
+                  data-href="{% url 'invitation_detail' inv.pk %}"
+                  data-name="{{ inv.full_name }}"
+                  data-initials="{{ inv.first_name|slice:':1'|upper }}{{ inv.last_name|slice:':1'|upper }}"
+                  data-type="{{ inv.get_participant_type_display }}"
+                  data-category="{{ inv.category|default:'—' }}"
+                  data-code="{{ inv.code }}"
+                  data-places="{{ inv.places_used }} / {{ inv.places }}"
+                  data-invite="{% if inv.invitation_sent %}Envoyée{% elif inv.invitation_generated %}Générée{% else %}À générer{% endif %}"
+                  data-presence="{% if inv.places_used > 0 %}Présent{% else %}En attente{% endif %}"
+                  data-vip="{% if inv.is_vip %}1{% else %}0{% endif %}">
+            <span class="zyz-list-avatar {% if inv.is_vip %}vip{% endif %}">{{ inv.first_name|slice:":1"|upper }}{{ inv.last_name|slice:":1"|upper }}</span>
+            <span class="zyz-list-copy">
+              <span class="zyz-list-title">{{ inv.full_name }}</span>
+              <span class="zyz-list-sub">{{ inv.category }} · {{ inv.places }} place{{ inv.places|pluralize }}</span>
+              <span class="zyz-list-chips">
+                <span class="zyz-list-chip"><em>Code</em> <strong>{{ inv.code }}</strong></span>
+              </span>
+            </span>
+            <span class="zyz-list-chevron">›</span>
+          </button>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="zyz-empty-row">Aucun résultat.</p>
+      {% endif %}
+    {% endif %}
+  </section>
+</div>
+{% include "partials/admin_modal.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/admin.js' %}?v=1"></script>
+{% endblock %}

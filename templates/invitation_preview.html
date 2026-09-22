@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Invitation — {{ invitation.full_name }}{% endblock %}
+{% block body_class %}page-admin{% endblock %}
+
+{% block content %}
+<main class="admin-shell">
+  {% include "partials/admin_nav.html" with admin_kicker=invitation.get_participant_type_display admin_title=invitation.full_name nav_active="dash" %}
+
+  <section class="admin-card" style="text-align:center">
+    <p class="admin-kicker">{{ ceremony.title }}</p>
+    <h2 class="admin-detail-name" style="margin:0.35rem 0 0.75rem">{{ ceremony.subtitle }}</h2>
+    {% if invitation.is_vip %}<span class="admin-badge is-warn">VIP</span>{% endif %}
+    <p class="admin-help">{{ invitation.category }} · {{ invitation.places }} place{{ invitation.places|pluralize }}</p>
+    <p><code>{{ invitation.code }}</code></p>
+    <p class="admin-help">{{ ceremony.date }} · {{ ceremony.time }} · {{ ceremony.venue }}</p>
+    <img src="{% url 'invitation_download' invitation.pk %}?inline=1"
+         alt="Invitation {{ invitation.code }}"
+         style="width:min(100%,360px);margin:1rem auto;border-radius:16px;box-shadow:var(--shadow)">
+    <div class="admin-actions" style="justify-content:center;margin-top:1rem">
+      <a class="btn btn-primary" id="btn-download" href="{% url 'invitation_download' invitation.pk %}">Télécharger</a>
+      <button type="button" class="btn btn-soft" id="btn-share">Partager</button>
+      <button type="button" class="btn btn-soft" onclick="window.print()">Imprimer</button>
+    </div>
+  </section>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const btn = document.getElementById("btn-share");
+  if (!btn || !navigator.share) {
+    if (btn) btn.hidden = true;
+    return;
+  }
+  btn.addEventListener("click", async () => {
+    try {
+      const url = document.getElementById("btn-download").href;
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const file = new File([blob], "invitation.png", { type: "image/png" });
+      await navigator.share({
+        title: "Invitation",
+        text: "Invitation cérémonie",
+        files: [file],
+      });
+    } catch (e) {
+      console.warn(e);
+    }
+  });
+})();
+</script>
+{% endblock %}

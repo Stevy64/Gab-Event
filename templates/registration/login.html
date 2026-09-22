@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Connexion{% endblock %}
+{% block body_class %}page-login{% endblock %}
+
+{% block content %}
+<main class="login-screen">
+  <div class="login-bg" aria-hidden="true">
+    <img src="{% static 'img/ceremony-bg.jpg' %}" alt="" class="home-bg-img" width="1080" height="1920" decoding="async">
+    <div class="home-bg-veil"></div>
+  </div>
+  <div class="flyer-frame login-frame" aria-hidden="true"></div>
+
+  <div class="login-card">
+    <p class="flyer-invite">Espace administration</p>
+    <div class="flyer-ornament flyer-ornament-sm" aria-hidden="true">
+      <span class="flyer-line"></span>
+      <span class="flyer-diamond"></span>
+      <span class="flyer-line"></span>
+    </div>
+    <h1 class="login-title">Connexion</h1>
+    <p class="login-sub">Accès réservé aux agents de la cérémonie</p>
+    <form method="post" class="login-form">
+      {% csrf_token %}
+      {% if form.errors %}
+      <p class="error-banner">Identifiants incorrects.</p>
+      {% endif %}
+      <label for="id_username">Nom d'utilisateur</label>
+      <input type="text" name="username" id="id_username" class="input-lg" autofocus required autocomplete="username">
+      <label for="id_password">Mot de passe</label>
+      <input type="password" name="password" id="id_password" class="input-lg" required autocomplete="current-password">
+      <button type="submit" class="btn-flyer btn-block">Se connecter</button>
+    </form>
+    <a href="{% url 'home' %}" class="flyer-admin">Retour à l'accueil</a>
+  </div>
+</main>
+{% endblock %}

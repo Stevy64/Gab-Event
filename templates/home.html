@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ ceremony.title }} — {{ ceremony.subtitle }}{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block content %}
+<main class="home-screen" id="home-screen">
+  <div class="home-bg" aria-hidden="true">
+    <img src="{% static 'img/ceremony-bg.jpg' %}" alt="" class="home-bg-img" width="1080" height="1920" decoding="async">
+    <div class="home-bg-veil"></div>
+  </div>
+
+  <div class="flyer-frame" aria-hidden="true"></div>
+  <div class="flyer-sparkles" aria-hidden="true">
+    <span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+
+  <div class="flyer">
+    <p class="flyer-invite">Vous êtes cordialement invité(e)</p>
+
+    <div class="flyer-ornament" aria-hidden="true">
+      <span class="flyer-line"></span>
+      <span class="flyer-diamond"></span>
+      <span class="flyer-line"></span>
+    </div>
+
+    <p class="flyer-kicker">{{ ceremony.organizer }} · Fin de formation</p>
+    <h1 class="flyer-title">
+      <span class="flyer-title-main">Graduation</span>
+      <span class="flyer-title-serif">{{ ceremony.subtitle }}</span>
+    </h1>
+
+    <div class="flyer-ornament flyer-ornament-sm" aria-hidden="true">
+      <span class="flyer-line"></span>
+      <span class="flyer-diamond"></span>
+      <span class="flyer-line"></span>
+    </div>
+
+    <p class="flyer-lede">{{ ceremony.title }}</p>
+
+    <ul class="flyer-meta">
+      <li>
+        <span class="flyer-meta-label">Date</span>
+        <span class="flyer-meta-value">{{ ceremony.date }}</span>
+      </li>
+      <li>
+        <span class="flyer-meta-label">Heure</span>
+        <span class="flyer-meta-value">{{ ceremony.time }}</span>
+      </li>
+      <li>
+        <span class="flyer-meta-label">Lieu</span>
+        <span class="flyer-meta-value">{{ ceremony.venue }}</span>
+      </li>
+    </ul>
+
+    <p class="flyer-note">Présentez votre invitation à l’entrée</p>
+
+    <div class="flyer-cta">
+      <button type="button" id="btn-open-scanner" class="btn-flyer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+          <path d="M7 12h10"/>
+        </svg>
+        Scanner l’invitation
+      </button>
+      {% if user.is_authenticated %}
+      <a href="{% url 'dashboard' %}" class="flyer-admin">Tableau de bord</a>
+      {% else %}
+      <a href="{% url 'login' %}" class="flyer-admin">Administration</a>
+      {% endif %}
+    </div>
+  </div>
+</main>
+
+{% include "partials/scanner_sheet.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>window.__OPEN_SCANNER__ = {{ open_scanner|yesno:"true,false" }};</script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="{% static 'js/scanner.js' %}?v=13"></script>
+{% endblock %}

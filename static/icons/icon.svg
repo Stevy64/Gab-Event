@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ATC Graduation">
+  <rect width="512" height="512" rx="112" fill="#FF6B3D"/>
+  <polygon points="256,120 400,190 256,260 112,190" fill="#121212"/>
+  <rect x="236" y="190" width="40" height="70" fill="#FFD85C"/>
+  <path d="M276 195 Q360 210 368 280" stroke="#FFD85C" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <circle cx="368" cy="286" r="16" fill="#FFD85C"/>
+  <ellipse cx="256" cy="275" rx="70" ry="28" fill="#2A2A2A"/>
+</svg>

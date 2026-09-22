@@ -1,0 +1,107 @@
+{# Bottom sheet scanner + result modal + loader #}
+<div id="sheet-backdrop" class="sheet-backdrop" hidden></div>
+
+<aside id="scanner-sheet" class="bottom-sheet" role="dialog" aria-modal="true"
+       aria-labelledby="sheet-title" aria-hidden="true" hidden>
+  <div class="sheet-grab" id="sheet-grab" aria-label="Glisser pour fermer">
+    <div class="sheet-handle"></div>
+    <p class="sheet-grab-hint">Glissez vers le bas pour fermer</p>
+  </div>
+
+  <header class="scanner-head">
+    <button type="button" id="btn-close-sheet" class="icon-btn" aria-label="Fermer">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+        <path d="M6 6l12 12M18 6L6 18"/>
+      </svg>
+    </button>
+    <h2 id="sheet-title" class="sheet-title">Scanner</h2>
+    <span class="status-dot" id="net-dot" title="État réseau"></span>
+  </header>
+
+  <div class="sheet-body">
+    <section id="idle-panel" class="panel panel-idle">
+      <div class="welcome-blob" aria-hidden="true">
+        <svg class="scan-icon" viewBox="0 0 80 80" width="64" height="64">
+          <rect x="14" y="14" width="18" height="6" rx="2" fill="#C9A24A"/>
+          <rect x="14" y="14" width="6" height="18" rx="2" fill="#C9A24A"/>
+          <rect x="48" y="14" width="18" height="6" rx="2" fill="#C9A24A"/>
+          <rect x="60" y="14" width="6" height="18" rx="2" fill="#C9A24A"/>
+          <rect x="14" y="60" width="18" height="6" rx="2" fill="#C9A24A"/>
+          <rect x="14" y="48" width="6" height="18" rx="2" fill="#C9A24A"/>
+          <rect x="48" y="60" width="18" height="6" rx="2" fill="#C9A24A"/>
+          <rect x="60" y="48" width="6" height="18" rx="2" fill="#C9A24A"/>
+          <rect x="22" y="38" width="36" height="4" rx="2" fill="#C9A24A"/>
+        </svg>
+      </div>
+      <h3 class="scan-title">Scanner une invitation</h3>
+      <p class="scan-help">Placez le QR Code dans le cadre. Autorisez la caméra si demandé.</p>
+      <button type="button" id="btn-start-scan" class="btn btn-primary btn-xl btn-block">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/>
+          <path d="M7 12h10"/>
+        </svg>
+        Lancer le scan
+      </button>
+      <button type="button" id="btn-toggle-manual" class="link-quiet">
+        Saisir le code manuellement
+      </button>
+    </section>
+
+    <section id="camera-panel" class="panel panel-camera is-hidden" hidden>
+      <h3 class="scan-title">Scan QR code</h3>
+      <p class="scan-help">Placez le QR code dans le cadre et évitez de bouger.</p>
+      <div class="viewfinder">
+        <div id="qr-reader" class="qr-reader"></div>
+        <div class="vf-corners" aria-hidden="true">
+          <span class="c tl"></span><span class="c tr"></span>
+          <span class="c bl"></span><span class="c br"></span>
+        </div>
+        <div class="vf-laser" aria-hidden="true"></div>
+      </div>
+      <p class="hint" id="camera-hint">Scanning Code…</p>
+      <button type="button" id="btn-stop-scan" class="btn btn-soft btn-block">
+        Fermer la caméra
+      </button>
+    </section>
+
+    <section id="manual-panel" class="panel panel-manual is-hidden" hidden>
+      <h3 class="scan-title">Saisie manuelle</h3>
+      <p class="scan-help">Entrez le code unique figurant sur l’invitation.</p>
+      <form id="manual-form" class="manual-form">
+        {% csrf_token %}
+        <label for="id_code">Code d'invitation</label>
+        <input type="text" name="code" id="id_code" maxlength="64"
+               placeholder="ATC24-A7K9P2" autocomplete="off" autocapitalize="characters"
+               class="input-lg" required>
+        <button type="submit" class="btn btn-primary btn-block">Vérifier</button>
+      </form>
+      <button type="button" id="btn-close-manual" class="link-quiet">Retour</button>
+    </section>
+
+    <p id="error-msg" class="error-banner is-hidden" hidden></p>
+  </div>
+</aside>
+
+{# Result popup #}
+<div id="result-backdrop" class="result-backdrop is-hidden" hidden></div>
+<div id="result-modal" class="result-modal is-hidden" role="dialog" aria-modal="true"
+     aria-labelledby="result-title" hidden>
+  <div id="result-card" class="result-popup">
+    <div class="result-icon-wrap" id="result-icon-wrap">
+      <div class="result-icon" id="result-icon" aria-hidden="true"></div>
+    </div>
+    <h2 id="result-title"></h2>
+    <div id="result-body" class="result-body"></div>
+    <button type="button" id="btn-next" class="btn btn-primary btn-xl btn-block">
+      Scanner le suivant
+    </button>
+  </div>
+</div>
+
+{# Loader #}
+<div id="app-loader" class="app-loader is-hidden" hidden aria-live="polite" aria-busy="true">
+  <div class="loader-card">
+    <div class="loader-ring" aria-hidden="true"></div>
+    <p class="loader-text">Vérification en cours…</p>
+  </div>
+</div>
