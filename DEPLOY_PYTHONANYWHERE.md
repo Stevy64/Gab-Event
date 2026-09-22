@@ -122,13 +122,30 @@ Chemin typique :
 /home/steevy64/Gab-Event
 ```
 
-### Fichiers statiques
+### Fichiers statiques (obligatoire — sinon page blanche)
+
+Sans ça, le HTML charge mais CSS/JS/images renvoient du HTML (`MIME type text/html`) → page blanche.
+
+1. Dans une **Bash console** :
+
+```bash
+workon atc-ceremony
+cd ~/Gab-Event
+pip install -r requirements.txt
+python manage.py collectstatic --noinput
+```
+
+2. Onglet **Web** → section **Static files** → une ligne :
 
 | URL | Directory |
 |-----|-----------|
 | `/static/` | `/home/steevy64/Gab-Event/staticfiles` |
 
-Puis `python manage.py collectstatic --noinput` après chaque changement CSS/JS.
+(Adapter le chemin si le repo n’est pas dans `~/Gab-Event`.)
+
+3. **Reload** l’appli web.
+
+WhiteNoise est aussi activé : après `collectstatic` + Reload, les assets passent même si le mapping PA est incomplet. Refaites quand même le mapping ci-dessus (plus rapide / recommandé par PA).
 
 ### WSGI
 
