@@ -43,7 +43,7 @@ git pull origin main
 # Adapter la version Python proposée dans l’onglet Web / Account
 mkvirtualenv --python=/usr/bin/python3.10 atc-ceremony
 workon atc-ceremony
-cd ~/ATC_Ceremony
+cd ~/Gab-Event
 pip install -r requirements.txt
 ```
 
@@ -154,8 +154,8 @@ Cliquez **Reload** sur l’onglet Web.
 ## 8. Mise à jour en prod
 
 ```bash
-cd ~/ATC_Ceremony
-git pull
+cd ~/Gab-Event
+git pull origin main
 workon atc-ceremony
 pip install -r requirements.txt
 python manage.py migrate
