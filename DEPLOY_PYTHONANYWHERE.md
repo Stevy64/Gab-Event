@@ -79,7 +79,7 @@ CEREMONY_VENUE=Grande salle de cérémonie
 CEREMONY_ORGANIZER=ATC
 ```
 
-`python-dotenv` charge **`/home/steevy64/Gab-Event/.env`** au démarrage (chemin absolu du projet, pas le cwd WSGI).
+`python-dotenv` charge **`/home/Steevy64/Gab-Event/.env`** au démarrage (chemin absolu du projet, pas le cwd WSGI).
 
 Sans `.env`, Django autorise quand même `*.pythonanywhere.com`, mais **créez quand même un `.env`** pour `SECRET_KEY` et `DEBUG=False`.
 
@@ -110,16 +110,45 @@ Onglet **Web** → **Add a new web app** → **Manual configuration** → Python
 
 ### Virtualenv
 
-Chemin typique :
+**La version Python du venv DOIT être identique à celle de l’appli Web.**
+
+Exemple d’erreur PA : *« wrong Python version (3.13 instead of 3.10) »*  
+→ recréer le venv en **3.10** (voir ci-dessous) **ou** changer la version Web en 3.13.
+
+Chemin typique (venv dans le projet) :
 
 ```text
-/home/steevy64/.virtualenvs/atc-ceremony
+/home/Steevy64/Gab-Event/.venv
 ```
+
+Recréer un venv **Python 3.10** (recommandé si l’appli Web est en 3.10) :
+
+```bash
+cd /home/Steevy64/Gab-Event
+rm -rf .venv
+python3.10 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py collectstatic --noinput
+```
+
+Dans l’onglet **Web** :
+
+| Champ | Valeur |
+|-------|--------|
+| Python version | **3.10** (même que le venv) |
+| Virtualenv | `/home/Steevy64/Gab-Event/.venv` |
+| Source code | `/home/Steevy64/Gab-Event` |
+| Working directory | `/home/Steevy64/Gab-Event` |
+
+Puis **Reload**.
 
 ### Source code
 
 ```text
-/home/steevy64/Gab-Event
+/home/Steevy64/Gab-Event
 ```
 
 ### Fichiers statiques (obligatoire — sinon page blanche)
@@ -131,9 +160,9 @@ Onglet **Web** → **Static files** → une seule ligne :
 
 | URL | Directory |
 |-----|-----------|
-| `/static/` | `/home/steevy64/Gab-Event/static` |
+| `/static/` | `/home/Steevy64/Gab-Event/static` |
 
-> Chemin en **minuscules** : `steevy64`, pas `Steevy64`.  
+> Utilisez la **casse exacte** du home (`Steevy64` ou `steevy64` selon `echo $HOME`).  
 > Pointez vers le dossier **`static`** (sources), pas un dossier vide.
 
 **Option B — avec collectstatic + WhiteNoise**
@@ -147,7 +176,7 @@ python manage.py collectstatic --noinput
 
 | URL | Directory |
 |-----|-----------|
-| `/static/` | `/home/steevy64/Gab-Event/staticfiles` |
+| `/static/` | `/home/Steevy64/Gab-Event/staticfiles` |
 
 Puis **Reload**.
 
