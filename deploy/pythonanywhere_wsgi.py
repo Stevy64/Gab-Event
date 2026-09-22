@@ -1,34 +1,42 @@
-# WSGI — modèle pour PythonAnywhere (compte steevy64 / dépôt Gab-Event)
+# WSGI — PythonAnywhere (steevy64 / Gab-Event)
 #
-# Copiez ce fichier dans l’éditeur « WSGI configuration file » de l’onglet Web,
-# ou adaptez le fichier généré par PythonAnywhere.
-#
-# Si votre chemin local diffère, changez project_home.
+# Collez ce fichier ENTIER dans : Web → WSGI configuration file → Save → Reload
 
 import os
 import sys
+from pathlib import Path
 
-# --- Chemins projet ---------------------------------------------------------
-# Cloné depuis https://github.com/Stevy64/Gab-Event.git → souvent ~/Gab-Event
-project_home = "/home/steevy64/Gab-Event"
-# Variante si vous avez cloné sous un autre nom :
-# project_home = "/home/steevy64/ATC_Ceremony"
+# --- Chemins possibles du projet --------------------------------------------
+candidates = [
+    Path("/home/steevy64/Gab-Event"),
+    Path("/home/steevy64/ATC_Ceremony"),
+    Path("/home/steevy64/gab-event"),
+]
+project_home = None
+for path in candidates:
+    if (path / "manage.py").exists() and (path / "config" / "settings.py").exists():
+        project_home = path
+        break
 
-if project_home not in sys.path:
-    sys.path.insert(0, project_home)
+if project_home is None:
+    raise RuntimeError(
+        "Projet Django introuvable. Attendu : /home/steevy64/Gab-Event "
+        "(avec manage.py). Adaptez 'candidates' dans ce fichier WSGI."
+    )
 
-# S’assurer que le cwd pointe sur le projet (utile pour chemins relatifs)
-os.chdir(project_home)
+project_home_str = str(project_home)
+if project_home_str not in sys.path:
+    sys.path.insert(0, project_home_str)
+os.chdir(project_home_str)
 
-# --- Variables d'environnement ---------------------------------------------
-# Préférez un fichier .env dans project_home (chargé par config/settings.py).
-# Décommentez seulement si vous n’utilisez pas de .env :
-#
-# os.environ["SECRET_KEY"] = "remplacez-par-une-cle-longue"
-# os.environ["DEBUG"] = "False"
-# os.environ["ALLOWED_HOSTS"] = "steevy64.pythonanywhere.com,.pythonanywhere.com"
-# os.environ["CSRF_TRUSTED_ORIGINS"] = "https://steevy64.pythonanywhere.com"
-
+# Forcer les hôtes PA AVANT le chargement de Django (évite DisallowedHost)
+os.environ["ALLOWED_HOSTS"] = (
+    "steevy64.pythonanywhere.com,.pythonanywhere.com,localhost,127.0.0.1"
+)
+os.environ.setdefault(
+    "CSRF_TRUSTED_ORIGINS",
+    "https://steevy64.pythonanywhere.com,https://*.pythonanywhere.com",
+)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
 from django.core.wsgi import get_wsgi_application

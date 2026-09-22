@@ -28,24 +28,35 @@ ALLOWED_HOSTS = [
     h.strip()
     for h in os.environ.get(
         "ALLOWED_HOSTS",
-        "localhost,127.0.0.1,.pythonanywhere.com",
+        "localhost,127.0.0.1,steevy64.pythonanywhere.com,.pythonanywhere.com",
     ).split(",")
     if h.strip()
 ]
-# Wildcard Django : tout sous-domaine *.pythonanywhere.com
-if ".pythonanywhere.com" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(".pythonanywhere.com")
+# Toujours autoriser ce compte PA + wildcard (évite DisallowedHost même si .env est incomplet)
+for _host in (
+    "steevy64.pythonanywhere.com",
+    ".pythonanywhere.com",
+    "localhost",
+    "127.0.0.1",
+):
+    if _host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_host)
 
 # Origines HTTPS de confiance pour CSRF (obligatoire derrière PythonAnywhere)
 CSRF_TRUSTED_ORIGINS = [
     o.strip()
-    for o in os.environ.get("CSRF_TRUSTED_ORIGINS", "").split(",")
+    for o in os.environ.get(
+        "CSRF_TRUSTED_ORIGINS",
+        "https://steevy64.pythonanywhere.com",
+    ).split(",")
     if o.strip()
 ]
-# Autoriser tous les sous-domaines PA en HTTPS (Django 4+)
-_pa_csrf = "https://*.pythonanywhere.com"
-if _pa_csrf not in CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS.append(_pa_csrf)
+for _origin in (
+    "https://steevy64.pythonanywhere.com",
+    "https://*.pythonanywhere.com",
+):
+    if _origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_origin)
 
 # --- Applications -----------------------------------------------------------
 INSTALLED_APPS = [
@@ -60,8 +71,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    # Sert /static/ même si le mapping PythonAnywhere est absent / incorrect
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -69,6 +78,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# WhiteNoise optionnel : si le paquet n'est pas installé dans le venv PA, ne pas planter (500)
+try:
+    import whitenoise  # noqa: F401
+
+    MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
+    _STATICFILES_BACKEND = "whitenoise.storage.CompressedStaticFilesStorage"
+except ImportError:
+    _STATICFILES_BACKEND = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
 ROOT_URLCONF = "config.urls"
 
@@ -114,13 +132,12 @@ STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 # collectstatic → ce dossier ; pointer /static/ dessus dans PythonAnywhere
 STATIC_ROOT = BASE_DIR / "staticfiles"
-# WhiteNoise : compression légère (évite Manifest qui casse si un fichier manque)
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
     },
     "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
+        "BACKEND": _STATICFILES_BACKEND,
     },
 }
 
