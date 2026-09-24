@@ -1,0 +1,710 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gab Event — Gérez vos invitations simplement{% endblock %}
+{% block body_class %}page-landing{% endblock %}
+
+
+{% block content %}
+<div class="ok-landing">
+  <header class="ok-nav" id="ok-nav">
+    <a class="ok-logo" href="{% url 'landing' %}#accueil">
+      {% include "partials/brand_mark.html" %}
+      <span class="ok-logo-text">Gab Event</span>
+    </a>
+
+    <nav class="ok-nav-center" aria-label="Navigation">
+      <a href="#accueil" class="is-active" data-nav-section="accueil">Accueil</a>
+      <a href="#fonctionnalites" data-nav-section="fonctionnalites">Fonctionnalités</a>
+      <a href="#offres" data-nav-section="offres">Offres</a>
+      <a href="{% url 'faq' %}">FAQ</a>
+      {% if user.is_authenticated %}
+      <a href="{% url 'my_events' %}">Mon espace</a>
+      {% endif %}
+    </nav>
+
+    <div class="ok-nav-actions">
+      <button type="button" class="ok-icon-btn" id="ok-search-open" aria-label="Ouvrir la recherche" aria-expanded="false" aria-controls="ok-search-panel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+      </button>
+      {% if user.is_authenticated %}
+      <a class="ok-icon-btn" href="{% url 'my_events' %}" aria-label="Mon espace">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+      {% else %}
+      <a class="ok-icon-btn" href="{% url 'login' %}?next={% url 'my_events' %}" aria-label="Connexion">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+      {% endif %}
+      <button type="button" class="ok-burger" id="ok-burger" aria-label="Menu" aria-expanded="false" aria-controls="ok-drawer">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <div class="ok-overlay" id="ok-overlay" hidden></div>
+
+  <div class="ok-search-float" id="ok-search-panel" hidden>
+    <form method="get" action="{% url 'landing' %}" role="search" class="ok-search-pill">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+      <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un événement…" autocomplete="off" aria-label="Rechercher un événement">
+      <button type="submit" class="ok-search-go" aria-label="Lancer la recherche">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <button type="button" class="ok-search-x" id="ok-search-close" aria-label="Fermer">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <div class="ok-sheet ok-menu-sheet" id="ok-drawer" hidden>
+    <div class="ok-sheet-head">
+      <p class="ok-sheet-title">Menu</p>
+      <button type="button" class="ok-sheet-close" id="ok-drawer-close" aria-label="Fermer">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <nav class="ok-menu-list" aria-label="Menu mobile">
+      <a href="#accueil" data-nav-section="accueil">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1v-9.5z"/></svg>
+        Accueil
+      </a>
+      <a href="#fonctionnalites" data-nav-section="fonctionnalites">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        Fonctionnalités
+      </a>
+      <a href="#offres" data-nav-section="offres">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.8 5.7 20.7 8 13.6 2 9.2h7.6L12 2z"/></svg>
+        Offres
+      </a>
+      <a href="{% url 'faq' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M9.4 9.2a2.6 2.6 0 015.1.8c0 1.6-2.5 1.9-2.5 3.4"/><circle cx="12" cy="17" r="0.7" fill="currentColor" stroke="none"/></svg>
+        FAQ
+      </a>
+      {% if user.is_authenticated %}
+      <a href="{% url 'my_events' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5a1 1 0 011-1h7l2 2h5a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1z"/></svg>
+        Mon espace
+      </a>
+      <a class="ok-menu-cta" href="{% url 'event_create' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Créer un événement
+      </a>
+      {% else %}
+      <a href="{% url 'login' %}?next={% url 'my_events' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+        Connexion
+      </a>
+      <a class="ok-menu-cta" href="{% url 'signup' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>
+        Créer un compte
+      </a>
+      {% endif %}
+    </nav>
+  </div>
+
+  <section class="ok-hero" id="accueil">
+    <div class="ok-carousel" id="ok-carousel" aria-hidden="true">
+      {% for slide in carousel %}
+      <div class="ok-carousel-slide{% if forloop.first %} is-active{% endif %}" data-index="{{ forloop.counter0 }}">
+        <img src="{{ slide.url }}" alt="" {% if forloop.first %}fetchpriority="high"{% else %}loading="lazy"{% endif %} decoding="async">
+      </div>
+      {% empty %}
+      <div class="ok-carousel-slide is-active">
+        <img src="{% static 'img/ceremony-bg.jpg' %}" alt="" fetchpriority="high" decoding="async">
+      </div>
+      {% endfor %}
+      <div class="ok-hero-veil"></div>
+    </div>
+
+    {% if carousel|length > 1 %}
+    <div class="ok-carousel-meta">
+      <p class="ok-carousel-caption" id="ok-carousel-caption">
+        <strong data-label>{{ carousel.0.label }}</strong>
+        <span data-cap>{{ carousel.0.caption }}</span>
+      </p>
+      <div class="ok-carousel-dots" id="ok-carousel-dots" aria-label="Diapositives">
+        {% for slide in carousel %}
+        <button type="button" class="ok-dot{% if forloop.first %} is-active{% endif %}" data-index="{{ forloop.counter0 }}" aria-label="Image {{ forloop.counter }}"></button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="ok-hero-body">
+      <div class="ok-hero-copy">
+        <h1>
+          <span class="ok-hero-line">Vos invitations <em>électroniques</em></span>
+          <span class="ok-hero-line">en une minute</span>
+        </h1>
+        <p class="ok-lead">
+          <span>Créez votre événement, envoyez vos billets électroniques</span>
+          <span>et gérez vos invités depuis votre smartphone.</span>
+        </p>
+        <div class="ok-cta-row">
+          {% if user.is_authenticated %}
+          <a class="ok-btn-light" href="{% url 'event_create' %}">Créer un événement</a>
+          {% else %}
+          <a class="ok-btn-light" href="{% url 'signup' %}">Commencer gratuitement</a>
+          {% endif %}
+        </div>
+      </div>
+      <aside class="ok-hero-scan" aria-hidden="true">
+        <div class="ok-scan-frame">
+          <span class="ok-scan-corner ok-scan-tl"></span>
+          <span class="ok-scan-corner ok-scan-tr"></span>
+          <span class="ok-scan-corner ok-scan-bl"></span>
+          <span class="ok-scan-corner ok-scan-br"></span>
+          <span class="ok-scan-beam"></span>
+          <svg viewBox="0 0 88 88" width="148" height="148">
+            <rect x="8" y="8" width="28" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="4"/>
+            <rect x="14" y="14" width="16" height="16" fill="currentColor"/>
+            <rect x="52" y="8" width="28" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="4"/>
+            <rect x="58" y="14" width="16" height="16" fill="currentColor"/>
+            <rect x="8" y="52" width="28" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="4"/>
+            <rect x="14" y="58" width="16" height="16" fill="currentColor"/>
+            <rect x="52" y="52" width="8" height="8" fill="currentColor"/>
+            <rect x="64" y="52" width="16" height="8" fill="currentColor"/>
+            <rect x="52" y="64" width="8" height="16" fill="currentColor"/>
+            <rect x="72" y="64" width="8" height="16" fill="currentColor"/>
+            <rect x="64" y="72" width="8" height="8" fill="currentColor"/>
+          </svg>
+        </div>
+        <p>Scan QR</p>
+      </aside>
+    </div>
+
+    <aside class="ok-stats" aria-label="Chiffres clés">
+      <div class="ok-stat">
+        <strong data-count="{{ hero_stats.events }}">0</strong>
+        <span>Événements</span>
+      </div>
+      <div class="ok-stat">
+        <strong data-count="{{ hero_stats.invitations }}">0</strong>
+        <span>Invitations</span>
+      </div>
+      <div class="ok-stat">
+        <strong data-count="{{ hero_stats.organizers }}">0</strong>
+        <span>Organisateurs</span>
+      </div>
+    </aside>
+  </section>
+
+  {% if q %}
+  <section class="ok-band ok-results" id="ok-results" aria-label="Résultats">
+    <div class="ok-wrap">
+      <p class="ok-kicker">Recherche</p>
+      <h2 class="ok-display">« {{ q }} »</h2>
+      {% if search_results %}
+      <p class="ok-intro ok-results-count">{% if search_results|length == 1 %}1 événement trouvé{% else %}{{ search_results|length }} événements trouvés{% endif %}</p>
+      <div class="ok-hits">
+        {% for e in search_results %}
+        <button type="button" class="ok-hit" data-event-open="{{ e.id }}" data-no-loader style="--hit-color: {{ e.display_primary_color }}">
+          <span class="ok-hit-cover has-img" aria-hidden="true">
+            <img src="{{ e.cover_url }}" alt="">
+          </span>
+          <span class="ok-hit-body">
+            <span class="ok-hit-type">{{ e.type_label }}</span>
+            <strong>{{ e.name }}</strong>
+            <span class="ok-hit-meta">
+              {{ e.date|date:"d/m/Y"|default:"Date à confirmer" }}
+              {% if e.city or e.venue %} · {{ e.city|default:e.venue }}{% endif %}
+            </span>
+          </span>
+          <span class="ok-hit-go" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M9 6l6 6-6 6"/></svg>
+          </span>
+        </button>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="ok-hits-empty">
+        <span class="ok-hit-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+        </span>
+        <p>Aucun événement trouvé pour « {{ q }} ».</p>
+        {% if not user.is_authenticated %}
+        <p class="ok-muted"><a href="{% url 'login' %}">Connectez-vous</a> pour voir vos événements privés.</p>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% endif %}
+
+  {{ search_payload|json_script:"ok-search-json" }}
+
+  <div class="ok-event-sheet" id="ok-event-sheet" role="dialog" aria-modal="true" aria-labelledby="ok-event-title" hidden>
+    <div class="ok-event-sheet-handle" aria-hidden="true"></div>
+    <button type="button" class="ok-event-sheet-x" id="ok-event-close" aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <div class="ok-event-hero" id="ok-event-hero" aria-hidden="true">
+      <img id="ok-event-flyer" alt="">
+      <div class="ok-event-hero-veil"></div>
+      <span class="ok-event-logo" id="ok-event-logo-wrap" hidden>
+        <img id="ok-event-logo" alt="">
+      </span>
+    </div>
+    <div class="ok-event-sheet-body">
+      <p class="ok-event-type" id="ok-event-type"></p>
+      <h2 id="ok-event-title"></h2>
+      <ul class="ok-event-facts">
+        <li id="ok-event-date" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-time" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-place" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-org" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          <span></span>
+        </li>
+      </ul>
+      <p class="ok-event-desc" id="ok-event-desc" hidden></p>
+      <a class="ok-btn-dark ok-event-cta" id="ok-event-cta" hidden>Ouvrir l’événement</a>
+    </div>
+  </div>
+
+  <section class="ok-band ok-essentials" id="fonctionnalites">
+    <div class="ok-essentials-glow" aria-hidden="true"></div>
+    <div class="ok-wrap">
+      <header class="ok-essentials-head">
+        <p class="ok-kicker">L’essentiel</p>
+        <h2 class="ok-display">Tout pour vos <em>invitations</em>.</h2>
+        <p class="ok-intro">Du billet à l’entrée, quatre gestes simples — avec la chaleur d’un vrai événement.</p>
+      </header>
+      <div class="ok-features">
+        <article class="ok-feature">
+          <span class="ok-feature-num" aria-hidden="true">01</span>
+          <span class="ok-feature-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg>
+          </span>
+          <h3>QR Codes uniques</h3>
+          <p>Chaque invitation est unique et vérifiée avec rigueur, pas d’entrée fantôme.</p>
+        </article>
+        <article class="ok-feature">
+          <span class="ok-feature-num" aria-hidden="true">02</span>
+          <span class="ok-feature-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16v12H4z"/><path d="M4 9l8 5 8-5"/></svg>
+          </span>
+          <h3>Invitations soignées</h3>
+          <p>Flyer, message et identité visuelle — le ton exact de votre événement.</p>
+        </article>
+        <article class="ok-feature">
+          <span class="ok-feature-num" aria-hidden="true">03</span>
+          <span class="ok-feature-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="17" r="1"/></svg>
+          </span>
+          <h3>Scan smartphone</h3>
+          <p>Un contrôle d’accès fluide depuis votre téléphone.</p>
+        </article>
+        <article class="ok-feature">
+          <span class="ok-feature-num" aria-hidden="true">04</span>
+          <span class="ok-feature-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+          </span>
+          <h3>Présences en direct</h3>
+          <p>Suivez les entrées au fil de la soirée en temps réel.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="ok-band ok-plans" id="offres">
+    <div class="ok-plans-glow" aria-hidden="true"></div>
+    <div class="ok-wrap">
+      <header class="ok-plans-head">
+        <p class="ok-kicker">Formules</p>
+        <h2 class="ok-display">Choisissez votre <em>échelle</em>.</h2>
+        <p class="ok-intro">Démarrez gratuitement. Augmentez la capacité quand vous êtes prêt.</p>
+      </header>
+      <div class="ok-plan-grid">
+        {% for plan in plans %}
+        <article class="ok-plan {% if plan.is_recommended or plan.slug == 'moyen' %}is-featured{% endif %} {% if plan.is_popular %}is-popular{% endif %} {% if plan.is_free %}is-free{% endif %}">
+          {% if plan.is_recommended or plan.slug == 'moyen' %}
+          <span class="ok-plan-badge">Recommandé</span>
+          {% elif plan.is_popular %}
+          <span class="ok-plan-badge is-popular">Populaire</span>
+          {% endif %}
+          <h3>{{ plan.name }}</h3>
+          {% if plan.is_custom %}
+          <p class="ok-plan-amount">
+            <em>{{ plan.price_per_regular|floatformat:0 }}</em>
+            <small>FCFA / std</small>
+          </p>
+          <p class="ok-plan-cap">{{ plan.price_per_vip|floatformat:0 }} FCFA / VIP</p>
+          <p class="ok-plan-desc">Au choix — facturé selon le type d’invité (VIP/standard). {{ plan.lifetime_label }}.</p>
+          {% else %}
+          <p class="ok-plan-amount">
+            {% if plan.is_free or plan.price == 0 %}
+            <em>Gratuit</em>
+            {% else %}
+            <em>{{ plan.price|floatformat:"0g" }}</em>
+            <small>FCFA</small>
+            {% endif %}
+          </p>
+          {% if plan.total_invitation_limit %}
+          <p class="ok-plan-cap">Jusqu’à {{ plan.total_invitation_limit }} personnes</p>
+          {% else %}
+          <p class="ok-plan-cap">{{ plan.regular_invitation_limit }} · {{ plan.vip_invitation_limit }} VIP</p>
+          {% endif %}
+          <p class="ok-plan-desc">{{ plan.description }} {{ plan.lifetime_label }}.</p>
+          {% endif %}
+          <a class="ok-btn-dark ok-btn-sm ok-plan-cta" href="{% if user.is_authenticated %}{% url 'event_create' %}{% else %}{% url 'signup' %}{% endif %}">
+            {% if plan.is_free %}Commencer{% else %}Choisir{% endif %}
+          </a>
+        </article>
+        {% empty %}
+        <p>Les formules seront bientôt disponibles.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="ok-band ok-close">
+    <div class="ok-close-glow" aria-hidden="true"></div>
+    <div class="ok-wrap">
+      <article class="ok-close-card">
+        <span class="ok-close-ornament" aria-hidden="true"></span>
+        <p class="ok-kicker">Rendez-vous</p>
+        <h2 class="ok-display">Prêt à accueillir vos <em>invités</em>&nbsp;?</h2>
+        <p class="ok-intro">Créez votre espace en quelques minutes. Gratuit pour démarrer.</p>
+        {% if user.is_authenticated %}
+        <a class="ok-btn-light" href="{% url 'event_create' %}">Créer un événement</a>
+        {% else %}
+        <a class="ok-btn-light" href="{% url 'signup' %}">Créer mon compte</a>
+        {% endif %}
+      </article>
+    </div>
+  </section>
+
+  <footer class="ok-footer">
+    <div class="ok-footer-inner">
+      <div class="ok-footer-brand">
+        <a class="ok-logo ok-logo-dark" href="{% url 'landing' %}">
+          {% include "partials/brand_mark.html" %}
+          <span class="ok-logo-text">Gab Event</span>
+        </a>
+        <p class="ok-footer-tag">Invitations électroniques, avec élégance.</p>
+      </div>
+      <nav class="ok-footer-links" aria-label="Pied de page">
+        <a href="#accueil">Accueil</a>
+        <a href="#fonctionnalites">Fonctionnalités</a>
+        <a href="#offres">Offres</a>
+        <a href="{% url 'faq' %}">FAQ</a>
+        <a href="{% url 'terms' %}" title="Conditions générales d’utilisation">CGU</a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'my_events' %}">Mon espace</a>
+        <a href="{% url 'event_create' %}">Créer</a>
+        {% else %}
+        <a href="{% url 'login' %}">Connexion</a>
+        <a href="{% url 'signup' %}">Créer un compte</a>
+        {% endif %}
+      </nav>
+      <p class="ok-footer-copy">© 2026 Gab Event</p>
+    </div>
+  </footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var burger = document.getElementById('ok-burger');
+  var drawer = document.getElementById('ok-drawer');
+  var searchOpen = document.getElementById('ok-search-open');
+  var searchPanel = document.getElementById('ok-search-panel');
+  var overlay = document.getElementById('ok-overlay');
+  var searchClose = document.getElementById('ok-search-close');
+  var drawerClose = document.getElementById('ok-drawer-close');
+  var nav = document.getElementById('ok-nav');
+  var navLinks = Array.prototype.slice.call(document.querySelectorAll('[data-nav-section]'));
+  var sections = ['accueil', 'fonctionnalites', 'offres']
+    .map(function (id) { return document.getElementById(id); })
+    .filter(Boolean);
+
+  function headerOffset() {
+    return (nav ? nav.offsetHeight : 72) + 10;
+  }
+
+  function setOpen(el, open) {
+    if (!el) return;
+    el.hidden = !open;
+    if (open) {
+      requestAnimationFrame(function () { el.classList.add('is-open'); });
+    } else {
+      el.classList.remove('is-open');
+    }
+  }
+
+  var eventSheet = document.getElementById('ok-event-sheet');
+  var eventClose = document.getElementById('ok-event-close');
+  var searchData = {};
+  try {
+    var raw = document.getElementById('ok-search-json');
+    if (raw && raw.textContent) {
+      JSON.parse(raw.textContent).forEach(function (ev) {
+        searchData[String(ev.id)] = ev;
+      });
+    }
+  } catch (err) {}
+
+  function closeAll() {
+    if (eventSheet) {
+      eventSheet.style.transform = '';
+      eventSheet.classList.remove('is-dragging');
+    }
+    if (overlay) overlay.style.opacity = '';
+    setOpen(drawer, false);
+    setOpen(searchPanel, false);
+    setOpen(eventSheet, false);
+    setOpen(overlay, false);
+    if (burger) burger.setAttribute('aria-expanded', 'false');
+    if (searchOpen) searchOpen.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('ok-sheet-open');
+  }
+
+  function openSheet(sheet, trigger) {
+    var opening = sheet.hidden;
+    closeAll();
+    if (!opening) return;
+    setOpen(overlay, true);
+    setOpen(sheet, true);
+    document.body.classList.add('ok-sheet-open');
+    if (trigger) trigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function setScrolled() {
+    if (!nav) return;
+    nav.classList.toggle('is-scrolled', window.scrollY > 18);
+  }
+
+  function setActive(id) {
+    navLinks.forEach(function (a) {
+      a.classList.toggle('is-active', a.getAttribute('data-nav-section') === id);
+    });
+  }
+
+  function scrollToSection(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var top = el.getBoundingClientRect().top + window.scrollY - headerOffset();
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+    setActive(id);
+    if (history.replaceState) history.replaceState(null, '', '#' + id);
+  }
+
+  function syncActiveFromScroll() {
+    var marker = window.scrollY + headerOffset() + 24;
+    var current = 'accueil';
+    sections.forEach(function (sec) {
+      if (sec.offsetTop <= marker) current = sec.id;
+    });
+    setActive(current);
+  }
+
+  function animateCount(el) {
+    var target = parseInt(el.getAttribute('data-count'), 10);
+    if (!target && target !== 0) return;
+    var start = 0;
+    var duration = 1100;
+    var t0 = null;
+    function tick(now) {
+      if (!t0) t0 = now;
+      var p = Math.min(1, (now - t0) / duration);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = String(Math.round(start + (target - start) * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  if (burger && drawer) {
+    burger.addEventListener('click', function () { openSheet(drawer, burger); });
+  }
+  if (searchOpen && searchPanel) {
+    searchOpen.addEventListener('click', function () {
+      openSheet(searchPanel, searchOpen);
+      var input = searchPanel.querySelector('input');
+      if (input) setTimeout(function () { input.focus(); }, 180);
+    });
+  }
+  function setFact(id, value) {
+    var row = document.getElementById(id);
+    if (!row) return;
+    var span = row.querySelector('span');
+    if (!value) {
+      row.hidden = true;
+      return;
+    }
+    if (span) span.textContent = value;
+    row.hidden = false;
+  }
+
+  function fillEventSheet(ev) {
+    var title = document.getElementById('ok-event-title');
+    var type = document.getElementById('ok-event-type');
+    var hero = document.getElementById('ok-event-hero');
+    var flyer = document.getElementById('ok-event-flyer');
+    var logoWrap = document.getElementById('ok-event-logo-wrap');
+    var logo = document.getElementById('ok-event-logo');
+    var desc = document.getElementById('ok-event-desc');
+    var cta = document.getElementById('ok-event-cta');
+    if (title) title.textContent = ev.name || '';
+    if (type) type.textContent = ev.type || '';
+    if (hero) hero.style.setProperty('--hit-color', ev.color || '#1A2744');
+    if (flyer && hero) {
+      if (ev.flyer) {
+        flyer.src = ev.flyer;
+        flyer.hidden = false;
+        hero.classList.add('has-img');
+      } else {
+        flyer.removeAttribute('src');
+        flyer.hidden = true;
+        hero.classList.remove('has-img');
+      }
+    }
+    if (logoWrap && logo) {
+      if (ev.logo) {
+        logo.src = ev.logo;
+        logoWrap.hidden = false;
+      } else {
+        logo.removeAttribute('src');
+        logoWrap.hidden = true;
+      }
+    }
+    var place = [ev.venue, ev.address, ev.city].filter(Boolean).join(' · ');
+    setFact('ok-event-date', ev.date || '');
+    setFact('ok-event-time', ev.time || '');
+    setFact('ok-event-place', place);
+    setFact('ok-event-org', ev.organizer || '');
+    if (desc) {
+      desc.textContent = ev.description || '';
+      desc.hidden = !ev.description;
+    }
+    if (cta) {
+      if (ev.own && ev.href) {
+        cta.href = ev.href;
+        cta.hidden = false;
+      } else {
+        cta.removeAttribute('href');
+        cta.hidden = true;
+      }
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-event-open]');
+    if (!btn) return;
+    var ev = searchData[btn.getAttribute('data-event-open')];
+    if (!ev || !eventSheet) return;
+    fillEventSheet(ev);
+    closeAll();
+    setOpen(overlay, true);
+    setOpen(eventSheet, true);
+    document.body.classList.add('ok-sheet-open');
+  });
+
+  if (overlay) overlay.addEventListener('click', closeAll);
+  if (searchClose) searchClose.addEventListener('click', closeAll);
+  if (drawerClose) drawerClose.addEventListener('click', closeAll);
+  if (eventClose) eventClose.addEventListener('click', closeAll);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeAll();
+  });
+
+  if (document.getElementById('ok-results')) {
+    window.setTimeout(function () {
+      document.getElementById('ok-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }
+
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest('a[href^="#"]');
+    if (!link) return;
+    var id = (link.getAttribute('href') || '').slice(1);
+    if (!id || !document.getElementById(id)) return;
+    e.preventDefault();
+    closeAll();
+    setTimeout(function () { scrollToSection(id); }, 40);
+  });
+
+  window.addEventListener('scroll', function () {
+    setScrolled();
+    syncActiveFromScroll();
+  }, { passive: true });
+  setScrolled();
+  syncActiveFromScroll();
+
+  var counters = Array.prototype.slice.call(document.querySelectorAll('[data-count]'));
+  if (counters.length && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        animateCount(entry.target);
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.5 });
+    counters.forEach(function (el) { io.observe(el); });
+  } else {
+    counters.forEach(animateCount);
+  }
+
+  /* Carousel */
+  var root = document.getElementById('ok-carousel');
+  if (!root) return;
+  var slides = Array.prototype.slice.call(root.querySelectorAll('.ok-carousel-slide'));
+  var dots = Array.prototype.slice.call(document.querySelectorAll('#ok-carousel-dots .ok-dot'));
+  var caption = document.getElementById('ok-carousel-caption');
+  var meta = {{ carousel_json|safe }};
+  var i = 0;
+  var timer = null;
+
+  function show(n) {
+    if (!slides.length) return;
+    i = (n + slides.length) % slides.length;
+    slides.forEach(function (s, idx) { s.classList.toggle('is-active', idx === i); });
+    dots.forEach(function (d, idx) { d.classList.toggle('is-active', idx === i); });
+    if (caption && meta[i]) {
+      var lab = caption.querySelector('[data-label]');
+      var cap = caption.querySelector('[data-cap]');
+      if (lab) lab.textContent = meta[i].label || '';
+      if (cap) cap.textContent = meta[i].caption || '';
+    }
+  }
+  function next() { show(i + 1); }
+  function start() {
+    stop();
+    if (slides.length > 1) timer = setInterval(next, 5500);
+  }
+  function stop() { if (timer) clearInterval(timer); timer = null; }
+
+  dots.forEach(function (d) {
+    d.addEventListener('click', function () {
+      show(parseInt(d.getAttribute('data-index'), 10) || 0);
+      start();
+    });
+  });
+
+  var startX = 0;
+  root.addEventListener('touchstart', function (e) {
+    startX = e.changedTouches[0].screenX;
+    stop();
+  }, { passive: true });
+  root.addEventListener('touchend', function (e) {
+    var dx = e.changedTouches[0].screenX - startX;
+    if (Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1));
+    start();
+  }, { passive: true });
+
+  start();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Événements — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Pilotage</p>
+    <h1>Événements</h1>
+    <p class="cx-lead">Tous les événements de la plateforme.</p>
+  </div>
+</header>
+<form method="get" class="cx-filters">
+  <input type="search" name="q" value="{{ filters.q }}" placeholder="Nom, organisateur…">
+  <select name="status">
+    <option value="">Tous les statuts</option>
+    <option value="active" {% if filters.status == 'active' %}selected{% endif %}>Actif</option>
+    <option value="pending_payment" {% if filters.status == 'pending_payment' %}selected{% endif %}>Paiement</option>
+    <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Terminé</option>
+    <option value="archived" {% if filters.status == 'archived' %}selected{% endif %}>Archivé</option>
+  </select>
+  <select name="plan">
+    <option value="">Toutes les formules</option>
+    {% for p in plans %}<option value="{{ p.slug }}" {% if filters.plan == p.slug %}selected{% endif %}>{{ p.name }}</option>{% endfor %}
+  </select>
+  <select name="free">
+    <option value="">Gratuit / payant</option>
+    <option value="1" {% if filters.free == '1' %}selected{% endif %}>Gratuit</option>
+    <option value="0" {% if filters.free == '0' %}selected{% endif %}>Payant</option>
+  </select>
+  <button class="cx-btn" type="submit">Filtrer</button>
+</form>
+<section class="cx-card">
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Événement">
+    <thead><tr><th>Événement</th><th>Organisateur</th><th>Type</th><th>Formule</th><th>Date</th><th>Invitations</th><th>Statut</th></tr></thead>
+    <tbody>
+    {% for e in events %}
+      <tr>
+        <td>
+          <a class="cx-idcell" href="{% url 'platform_admin_event' e.id %}">
+            <span class="cx-avatar" aria-hidden="true">{{ e.name|slice:":1"|upper }}</span>
+            <span>{{ e.name }}</span>
+          </a>
+        </td>
+        <td>{{ e.owner.get_full_name|default:e.owner.username }}</td>
+        <td>{{ e.type_label }}</td>
+        <td>{% if e.plan_name_snapshot %}{{ e.plan_name_snapshot }}{% elif e.plan_id %}{{ e.plan.name }}{% else %}—{% endif %}</td>
+        <td>{{ e.date|date:"d/m/Y"|default:"—" }}</td>
+        <td>{{ e.inv_count }}</td>
+        <td><span class="cx-pill {% if e.status == 'active' %}is-ok{% elif e.status == 'pending_payment' %}is-warn{% else %}is-muted{% endif %}">{{ e.get_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7">Aucun événement.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

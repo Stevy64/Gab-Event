@@ -28,7 +28,12 @@
     return /android/i.test(window.navigator.userAgent);
   }
 
+  function isInstallSurface() {
+    return document.body.classList.contains("page-landing");
+  }
+
   function showBanner() {
+    if (!isInstallSurface()) return;
     if (isStandalone()) return;
     if (sessionStorage.getItem(storageKey) === "1") return;
     banner.hidden = false;
@@ -83,25 +88,19 @@
       btnInstall.hidden = false;
     }
     if (hint) {
-      hint.innerHTML =
-        "Sur iPhone / iPad : touchez <strong>Partager</strong> " +
-        "puis <strong>Sur l’écran d’accueil</strong>.";
+      hint.hidden = false;
+      hint.textContent = "Partager, puis Sur l’écran d’accueil.";
     }
     showBanner();
   } else if (isAndroid() && !isStandalone()) {
-    // Si le navigateur ne déclenche pas beforeinstallprompt tout de suite,
-    // on affiche quand même une aide discrète après un délai.
     setTimeout(function () {
-      if (!deferredPrompt && !isStandalone()) {
-        if (btnInstall) btnInstall.hidden = true;
-        if (hint) {
+      if (!isStandalone()) {
+        if (hint && hint.hidden) {
           hint.hidden = false;
-          hint.innerHTML =
-            "Sur Android : menu du navigateur → <strong>Installer l’application</strong> " +
-            "ou <strong>Ajouter à l’écran d’accueil</strong>.";
+          hint.textContent = "Menu du navigateur → Ajouter à l’écran d’accueil.";
         }
         showBanner();
       }
-    }, 2500);
+    }, 4000);
   }
 })();

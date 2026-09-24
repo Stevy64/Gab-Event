@@ -1,0 +1,42 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Site — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Système</p>
+    <h1>Identité du site</h1>
+    <p class="cx-lead">Logo, nom, visuel par défaut, et commissions prélevées sur les invitations payantes.</p>
+  </div>
+</header>
+<div class="cx-grid-2">
+  <section class="cx-card">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="cx-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <button class="cx-btn" type="submit">Enregistrer</button>
+    </form>
+  </section>
+  <section class="cx-card">
+    <h2>Aperçu actuel</h2>
+    <div class="cx-preview">
+      {% if site.logo %}
+      <p><strong>Logo</strong></p>
+      <img class="cx-preview-logo" src="{{ site.logo.url }}" alt="{{ site.site_name }}">
+      {% endif %}
+      {% if site.default_cover %}
+      <p><strong>Couverture par défaut</strong></p>
+      <img class="cx-preview-cover" src="{{ site.default_cover.url }}" alt="">
+      {% endif %}
+      <p><strong>{{ site.site_name }}</strong></p>
+      <small>{{ site.tagline }}</small>
+    </div>
+  </section>
+</div>
+{% endblock %}

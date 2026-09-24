@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gab Event">
-  <rect width="512" height="512" rx="112" fill="#0B1220"/>
-  <rect x="96" y="96" width="120" height="28" rx="6" fill="#E8D6A8"/>
-  <rect x="96" y="96" width="28" height="120" rx="6" fill="#E8D6A8"/>
-  <rect x="296" y="96" width="120" height="28" rx="6" fill="#E8D6A8"/>
-  <rect x="388" y="96" width="28" height="120" rx="6" fill="#E8D6A8"/>
-  <rect x="96" y="388" width="120" height="28" rx="6" fill="#E8D6A8"/>
-  <rect x="96" y="296" width="28" height="120" rx="6" fill="#E8D6A8"/>
-  <polygon points="256,180 320,256 256,332 192,256" fill="#C9A24A"/>
+  <rect width="512" height="512" rx="96" fill="#0B1220"/>
+  <rect x="28" y="28" width="456" height="456" rx="80" fill="none" stroke="#E8C547" stroke-width="12"/>
+  <path fill="none" stroke="#E8C547" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"
+        d="M236 168a92 92 0 1 0 2 176"/>
+  <path fill="none" stroke="#E8C547" stroke-width="36" stroke-linecap="round"
+        d="M154 256h86"/>
+  <path fill="none" stroke="#E8C547" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"
+        d="M368 176c-54 0-78 28-78 56 0 24 18 40 56 48 40 8 58 22 58 48 0 32-28 56-82 56"/>
 </svg>

@@ -11,7 +11,6 @@
     <a href="{% url 'dashboard' %}" class="{% if nav_active == 'dash' %}is-active{% endif %}">Tableau</a>
     <a href="{% url 'home' %}?scan=1">Scanner</a>
     <a href="{% url 'search' %}" class="{% if nav_active == 'search' %}is-active{% endif %}">Recherche</a>
-    <a href="{% url 'import_excel' %}" class="{% if nav_active == 'import' %}is-active{% endif %}">Import</a>
     <a href="{% url 'export_report' %}">Export</a>
     <a href="{% url 'home' %}">Accueil</a>
     <form method="post" action="{% url 'logout' %}" class="inline-form">

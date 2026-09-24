@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Mon profil — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui{% endblock %}
+
+{% block content %}
+{% include "partials/user_nav.html" with nav_active="profile" admin_title="Mon profil" %}
+<main class="ge-app ge-sheet-page ge-studio ge-profile">
+  <section class="ge-sheet-hero">
+    <div class="ge-blob{% if profile.avatar %} ge-blob-avatar{% endif %}" aria-hidden="true">
+      {% if profile.avatar %}
+      <img src="{{ profile.avatar.url }}" alt="">
+      {% else %}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      {% endif %}
+    </div>
+    <p class="ge-kicker">Compte</p>
+    <h1>{{ profile.display_name|default:user.get_full_name|default:user.email }}</h1>
+    <p class="ge-sheet-help">Mettez à jour vos informations et votre photo.</p>
+  </section>
+
+  <div class="ge-dash-cards ge-hub-stats">
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      </span>
+      <strong data-ge-count="{{ events_count }}">0</strong>
+      <span>Événements</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      </span>
+      <strong data-ge-count="{{ active_events }}">0</strong>
+      <span>Actifs</span>
+    </article>
+    <article class="ge-dash-card ge-dash-card-date">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+      </span>
+      <strong>{{ user.date_joined|date:"d/m/Y" }}</strong>
+      <span>Inscription</span>
+    </article>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="ge-studio-form">
+    {% csrf_token %}
+    <section class="ge-form-card ge-studio-card">
+      <header class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+        <div>
+          <h2>Identité</h2>
+          <p>Nom, contact et organisation</p>
+        </div>
+      </header>
+      <div class="ge-studio-split">
+        <div class="ge-field">
+          <label for="{{ form.first_name.id_for_label }}">Prénom</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+            {{ form.first_name }}
+          </div>
+        </div>
+        <div class="ge-field">
+          <label for="{{ form.last_name.id_for_label }}">Nom</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20v-1a7 7 0 0114 0v1"/><circle cx="12" cy="7" r="3.4"/></svg>
+            {{ form.last_name }}
+          </div>
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.display_name.id_for_label }}">Nom affiché</label>
+        <div class="ge-field-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20h16M8 4h8l-1 10H9L8 4z"/></svg>
+          {{ form.display_name }}
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.organization_name.id_for_label }}">Organisation</label>
+        <div class="ge-field-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="8" width="18" height="12" rx="2"/><path d="M8 8V6a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+          {{ form.organization_name }}
+        </div>
+      </div>
+    </section>
+
+    <section class="ge-form-card ge-studio-card">
+      <header class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+        </span>
+        <div>
+          <h2>Contact</h2>
+          <p>E-mail et téléphone du compte</p>
+        </div>
+      </header>
+      <div class="ge-field">
+        <label for="{{ form.email.id_for_label }}">E-mail</label>
+        <div class="ge-field-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+          {{ form.email }}
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.phone.id_for_label }}">Téléphone</label>
+        <div class="ge-field-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+          {{ form.phone }}
+        </div>
+      </div>
+    </section>
+
+    <section class="ge-form-card ge-studio-card">
+      <header class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 12h10"/></svg>
+        </span>
+        <div>
+          <h2>Mobile Money</h2>
+          <p>Numéro Airtel Money ou Moov Money pour recevoir vos reversements. Confirmation obligatoire.</p>
+        </div>
+      </header>
+      {% if profile.momo_ready %}
+      <p class="ge-muted">Compte confirmé : {{ profile.momo_label }}</p>
+      {% else %}
+      <p class="ge-muted">Sans ce numéro confirmé, Gab Event ne peut pas vous reverser les invitations payantes.</p>
+      {% endif %}
+      <div class="ge-field">
+        <label for="{{ form.momo_operator.id_for_label }}">Opérateur</label>
+        {{ form.momo_operator }}
+        {% if form.momo_operator.errors %}<span class="ge-field-err">{{ form.momo_operator.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-studio-split">
+        <div class="ge-field">
+          <label for="{{ form.momo_phone.id_for_label }}">Numéro Mobile Money</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
+            {{ form.momo_phone }}
+          </div>
+          {% if form.momo_phone.errors %}<span class="ge-field-err">{{ form.momo_phone.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="ge-field">
+          <label for="{{ form.momo_phone_confirm.id_for_label }}">Confirmer le numéro</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+            {{ form.momo_phone_confirm }}
+          </div>
+          {% if form.momo_phone_confirm.errors %}<span class="ge-field-err">{{ form.momo_phone_confirm.errors.0 }}</span>{% elif form.momo_phone_confirm.help_text %}<span class="ge-field-hint">{{ form.momo_phone_confirm.help_text }}</span>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <section class="ge-form-card ge-studio-card">
+      <header class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="12" r="2.2"/><path d="M14 17l2.2-2.6 2.8 3.2"/></svg>
+        </span>
+        <div>
+          <h2>Photo</h2>
+          <p>Visible dans l’en-tête de votre espace</p>
+        </div>
+      </header>
+      <div class="ge-photo-picker{% if profile.avatar %} has-photo{% endif %}" data-photo-picker>
+        <div class="ge-photo-preview">
+          <img data-photo-img{% if profile.avatar %} src="{{ profile.avatar.url }}"{% else %} hidden{% endif %} alt="">
+          <span class="ge-photo-ph" data-photo-ph {% if profile.avatar %}hidden{% endif %} aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/><path d="M8 5l1.2-1.6h5.6L16 5"/></svg>
+          </span>
+        </div>
+        <div class="ge-photo-meta">
+          <p class="ge-photo-name" data-photo-name>{% if profile.avatar %}Photo actuelle{% else %}Aucune photo{% endif %}</p>
+          <p class="ge-photo-hint">JPG ou PNG · visible dans l’en-tête</p>
+          <div class="ge-photo-actions">
+            <label class="ge-photo-btn" for="{{ form.avatar.id_for_label }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V8M8.5 11.5L12 8l3.5 3.5"/><path d="M5 16.5V18a1 1 0 001 1h12a1 1 0 001-1v-1.5"/></svg>
+              <span data-photo-cta>{% if profile.avatar %}Remplacer{% else %}Ajouter une photo{% endif %}</span>
+            </label>
+            <button type="button" class="ge-photo-remove" data-photo-clear {% if not profile.avatar %}hidden{% endif %}>Retirer</button>
+          </div>
+          <input type="file" name="avatar" id="{{ form.avatar.id_for_label }}" accept="image/*" class="ge-photo-file">
+          {% if profile.avatar %}
+          <input type="checkbox" name="avatar-clear" id="avatar-clear_id" class="ge-photo-clear">
+          {% endif %}
+          {% if form.avatar.errors %}<span class="ge-field-err">{{ form.avatar.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+    </section>
+
+    <div class="ge-studio-save">
+      <button type="submit" class="ok-btn-dark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+        Enregistrer
+      </button>
+    </div>
+  </form>
+</main>
+{% endblock %}

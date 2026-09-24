@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} — Tableau de bord{% endblock %}
+{% block body_class %}page-app page-event page-event-dash{% endblock %}
+{% block content %}
+{% include "partials/event_nav.html" with nav_active="overview" %}
+<main class="ge-dash" style="--event-color: {{ event.display_primary_color }}; --presence: {{ stats.presence_rate|default:0 }};">
+  <section class="ge-dash-sky">
+    <div class="ge-dash-arc" aria-hidden="true">
+      <img class="ge-dash-arc-img" src="{{ event.cover_url }}" alt="">
+    </div>
+    <div class="ge-dash-hero">
+      <h1>{{ event.name }}</h1>
+      <p class="ge-dash-meta">
+        {{ event.date|date:"d F Y"|default:"Date à confirmer" }}
+        {% if event.city or event.venue %} · {{ event.city|default:event.venue }}{% endif %}
+      </p>
+    </div>
+  </section>
+  <div class="ge-dash-orb">
+    <svg class="ge-dash-ring" viewBox="0 0 136 136" aria-hidden="true">
+      <circle class="ge-dash-ring-track" cx="68" cy="68" r="56"></circle>
+      <circle class="ge-dash-ring-value" data-ge-ring="{{ stats.presence_rate|default:0 }}" cx="68" cy="68" r="56"></circle>
+    </svg>
+    <div class="ge-dash-orb-label">
+      <strong data-ge-count="{{ stats.presence_rate|default:0 }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
+      <span>Présence</span>
+    </div>
+  </div>
+
+  <div class="ge-dash-body">
+    {% if event.status == 'pending_payment' %}
+    <div class="ge-banner ge-banner-warn">Paiement en attente — l’événement n’est pas encore actif.</div>
+    {% elif event.is_disabled %}
+    <div class="ge-banner ge-banner-warn">Événement désactivé — le scan et le lien d’invitation sont suspendus. Vous pouvez le réactiver tant que la validité n’est pas écoulée.</div>
+    {% elif event.status == 'archived' %}
+    <div class="ge-banner ge-banner-warn">Événement archivé — aucun retour en arrière n’est possible. La suppression reste disponible depuis Mes événements.</div>
+    {% endif %}
+
+    <div class="ge-dash-cards">
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.total }}">0</strong>
+        <span>Invitations</span>
+      </article>
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l2.2 6.6H21l-5.4 4 2.1 6.4L12 16.8 6.3 20l2.1-6.4L3 9.6h6.8z"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.vips.total }}">0</strong>
+        <span>VIP</span>
+      </article>
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.sent }}">0</strong>
+        <span>Envoyées</span>
+      </article>
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.places_expected }}">0</strong>
+        <span>Attendues</span>
+      </article>
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16"/><path d="M12 4v16"/><circle cx="12" cy="12" r="9"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.places_admitted }}">0</strong>
+        <span>Entrées</span>
+      </article>
+      <article class="ge-dash-card">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        </span>
+        <strong data-ge-count="{{ stats.places_remaining }}">0</strong>
+        <span>Restantes</span>
+      </article>
+    </div>
+
+    <section class="ge-dash-panel">
+      <header class="ge-dash-panel-head">
+        <h2>Capacité</h2>
+        <p>
+          {{ quotas.regular_count }}/{{ quotas.regular_limit }} standard
+          · {{ quotas.vip_count }}/{{ quotas.vip_limit }} VIP
+          {% if quotas.total_limit %} · {{ quotas.total_count }}/{{ quotas.total_limit }} total{% endif %}
+        </p>
+      </header>
+      <div class="ge-dash-bars">
+        <div class="ge-dash-bar">
+          <div class="ge-dash-bar-meta"><span>Standard</span><strong>{{ quotas.regular_count }}/{{ quotas.regular_limit }}</strong></div>
+          <div class="ge-dash-bar-track"><i style="--bar: {% if quotas.regular_limit %}{% widthratio quotas.regular_count quotas.regular_limit 100 %}{% else %}0{% endif %}%"></i></div>
+        </div>
+        <div class="ge-dash-bar">
+          <div class="ge-dash-bar-meta"><span>VIP</span><strong>{{ quotas.vip_count }}/{{ quotas.vip_limit }}</strong></div>
+          <div class="ge-dash-bar-track is-vip"><i style="--bar: {% if quotas.vip_limit %}{% widthratio quotas.vip_count quotas.vip_limit 100 %}{% else %}0{% endif %}%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    {% if stats.admissions_chart %}
+    <section class="ge-dash-panel">
+      <header class="ge-dash-panel-head">
+        <h2>Cette semaine</h2>
+        <p>Entrées validées, jour par jour</p>
+      </header>
+      <div class="ge-dash-week" role="img" aria-label="Activité des 7 derniers jours">
+        {% for row in stats.admissions_chart %}
+        <div class="ge-dash-week-col">
+          <span class="ge-dash-week-bar"><i style="height: {{ row.pct }}%"></i></span>
+          <small>{{ row.label }}</small>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <div class="ge-dash-actions">
+      <a class="ge-dash-action is-primary" href="{% url 'event_invite_link' event.id %}">
+        <span class="ge-dash-action-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M10 13a5 5 0 007.07 0l1.41-1.41a5 5 0 00-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 00-7.07 0L5.52 12.41a5 5 0 007.07 7.07L14 18.07"/></svg>
+        </span>
+        <span>
+          <strong>Lien d’invitation</strong>
+          <small>{% if event.uses_paid_guest_link %}Inscription payante{% else %}Les invités s’inscrivent{% endif %}</small>
+        </span>
+      </a>
+      <a class="ge-dash-action" href="{% url 'event_export' event.id %}">
+        <span class="ge-dash-action-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21V9"/><path d="M8 13l4-4 4 4"/><path d="M4 5h16"/></svg>
+        </span>
+        <span>
+          <strong>Excel</strong>
+          <small>Télécharger la liste</small>
+        </span>
+      </a>
+      <a class="ge-dash-action" href="{% url 'home' %}?scan=1&event={{ event.id }}">
+        <span class="ge-dash-action-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+        </span>
+        <span>
+          <strong>Scanner</strong>
+          <small>Contrôle d’accès</small>
+        </span>
+      </a>
+      <a class="ge-dash-action" href="{% url 'event_settings' event.id %}">
+        <span class="ge-dash-action-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </span>
+        <span>
+          <strong>Configurer</strong>
+          <small>Date, lieu, formule</small>
+        </span>
+      </a>
+    </div>
+  </div>
+</main>
+{% endblock %}

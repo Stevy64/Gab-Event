@@ -1,34 +1,41 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" class="ge-loading">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0B1220" media="(prefers-color-scheme: dark)">
   <meta name="theme-color" content="#0B1220">
-  <meta name="description" content="Gab Event — validation des invitations de cérémonie">
+  <meta name="description" content="Gab Event — gérez vos invitations événementielles avec QR Code">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="application-name" content="Gab Event">
-  {# iOS / iPadOS — « Ajouter à l'écran d'accueil » #}
+  {# iOS / iPadOS — Ajouter a l'ecran d'accueil #}
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gab Event">
   <meta name="format-detection" content="telephone=no">
   <link rel="manifest" href="{% static 'manifest.json' %}">
-  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'icons/icon-192.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% url 'brand_icon' %}?s=192{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
   <link rel="icon" type="image/svg+xml" href="{% static 'icons/icon.svg' %}">
-  <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
-  <link rel="apple-touch-icon" sizes="180x180" href="{% static 'icons/apple-touch-icon.png' %}">
+  <link rel="apple-touch-icon" href="{% url 'brand_icon' %}?s=180{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
+  <link rel="apple-touch-icon" sizes="180x180" href="{% url 'brand_icon' %}?s=180{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Outfit:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=16">
+  <link rel="preload" href="{% static 'css/app.css' %}?v=146" as="style">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=146">
   <title>{% block title %}Gab Event{% endblock %}</title>
   {% block extra_head %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
+  <div id="ge-page-loader" class="ge-page-loader" aria-live="polite" aria-busy="true">
+    <div class="ge-page-loader-card">
+      <span class="ge-page-loader-ring" aria-hidden="true"></span>
+      <p>Chargement…</p>
+    </div>
+  </div>
   <div id="offline-banner" class="offline-banner" hidden>
-    Connexion indisponible — la validation nécessite le réseau
+    Hors-ligne — les pages déjà ouvertes restent disponibles.
   </div>
 
   <div id="pwa-install-banner" class="pwa-install-banner" hidden role="dialog" aria-label="Installer l'application">
@@ -43,9 +50,21 @@
   </div>
 
   {% if messages %}
-  <div class="flash-stack">
+  <div class="ge-toast-host" id="ge-toast-host" aria-live="polite">
     {% for message in messages %}
-    <div class="flash flash-{{ message.tags }}">{{ message }}</div>
+    <div class="ge-toast ge-toast-{{ message.tags|default:'info' }}" role="status" data-ge-toast>
+      <span class="ge-toast-icon" aria-hidden="true">
+        {% if 'error' in message.tags or 'danger' in message.tags %}
+        <svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#DC3B3B"/><path d="M17 17l14 14M31 17L17 31" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/></svg>
+        {% elif 'warning' in message.tags %}
+        <svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#D97706"/><path d="M24 14v14" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/><circle cx="24" cy="34" r="2.2" fill="#fff"/></svg>
+        {% else %}
+        <svg viewBox="0 0 48 48" width="40" height="40"><circle cx="24" cy="24" r="22" fill="#1F9D57"/><path d="M14 24.5l6.5 6.5L34 17" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        {% endif %}
+      </span>
+      <p class="ge-toast-msg">{{ message }}</p>
+      <button type="button" class="ge-toast-x" data-ge-toast-close aria-label="Fermer">×</button>
+    </div>
     {% endfor %}
   </div>
   {% endif %}
@@ -63,13 +82,28 @@
       window.addEventListener('offline', sync);
       sync();
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
-        });
+        navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function () {});
       }
     })();
   </script>
-  <script src="{% static 'js/pwa.js' %}?v=1" defer></script>
+  <script src="{% static 'js/pwa.js' %}?v=3" defer></script>
+  <script>
+    (function () {
+      function hideLoader() {
+        if (window.__gePageLeaving) return;
+        document.documentElement.classList.remove('ge-loading');
+        var el = document.getElementById('ge-page-loader');
+        if (el) el.classList.remove('is-on');
+      }
+      if (document.readyState === 'interactive' || document.readyState === 'complete') hideLoader();
+      else document.addEventListener('DOMContentLoaded', hideLoader);
+      window.addEventListener('load', hideLoader);
+    })();
+  </script>
+  <script src="{% static 'js/ge-app.js' %}?v=22" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>
+
+
+

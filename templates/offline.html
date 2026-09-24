@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Hors-ligne — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui page-offline{% endblock %}
+{% block content %}
+<main class="ge-app ge-sheet-page ge-offline">
+  <section class="ge-sheet-hero">
+    <div class="ge-blob" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 8.5C5 5 9 4 12 4s7 1 10 4.5"/><path d="M5 12c2-2 4.5-3 7-3s5 1 7 3"/><path d="M8.5 15.5c1.2-1 2.6-1.5 3.5-1.5s2.3.5 3.5 1.5"/><circle cx="12" cy="19" r="1.2"/></svg>
+    </div>
+    <p class="ge-kicker">Hors-ligne</p>
+    <h1>Vous n’êtes pas connecté</h1>
+    <p class="ge-sheet-help">Les pages déjà ouvertes sur cet appareil restent disponibles. La validation QR et les paiements nécessitent le réseau.</p>
+  </section>
+  <section class="ge-form-card ge-studio-card">
+    <header class="ge-studio-card-head">
+      <div>
+        <h2>Pages récentes</h2>
+        <p>Mémorisées sur votre téléphone.</p>
+      </div>
+    </header>
+    <ul class="ge-offline-list" id="ge-offline-recent"></ul>
+    <p class="ge-muted" id="ge-offline-empty">Aucune page mémorisée pour le moment. Rouvrez l’application une fois en ligne.</p>
+    <div class="ge-action-grid" style="margin-top:1rem">
+      <a class="ok-btn-dark" href="{% url 'landing' %}">Accueil</a>
+      <a class="ge-btn-ghost" href="{% url 'my_events' %}">Mes événements</a>
+    </div>
+  </section>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var list = document.getElementById("ge-offline-recent");
+  var empty = document.getElementById("ge-offline-empty");
+  var items = [];
+  try { items = JSON.parse(localStorage.getItem("ge-recent") || "[]"); } catch (e) {}
+  items = (items || []).filter(function (x) { return x && x.path && x.path !== "/offline/"; }).slice(0, 8);
+  if (!items.length || !list) return;
+  if (empty) empty.hidden = true;
+  items.forEach(function (item) {
+    var li = document.createElement("li");
+    var a = document.createElement("a");
+    a.href = item.path;
+    a.textContent = item.title || item.path;
+    li.appendChild(a);
+    list.appendChild(li);
+  });
+})();
+</script>
+{% endblock %}

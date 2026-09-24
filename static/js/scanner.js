@@ -14,6 +14,26 @@
   const ADMIT_URL = "/api/admit/";
   const DISMISS_THRESHOLD = 120;
 
+  function resolveEventId() {
+    if (window.__SCAN_EVENT_ID__) return window.__SCAN_EVENT_ID__;
+    const fromDom = document.getElementById("home-screen")?.getAttribute("data-event-id");
+    if (fromDom) return parseInt(fromDom, 10) || null;
+    const fromQuery = new URLSearchParams(window.location.search).get("event");
+    return fromQuery ? parseInt(fromQuery, 10) || null : null;
+  }
+
+  function scanPayload(extra) {
+    const body = Object.assign({}, extra || {});
+    const eid = resolveEventId();
+    if (eid) body.event_id = eid;
+    return body;
+  }
+
+  function scanQueryString() {
+    const eid = resolveEventId();
+    return eid ? "/?scan=1&event=" + eid : "/?scan=1";
+  }
+
   const sheet = document.getElementById("scanner-sheet");
   const backdrop = document.getElementById("sheet-backdrop");
   const sheetGrab = document.getElementById("sheet-grab");
@@ -137,8 +157,8 @@
     if (homeScreen) homeScreen.classList.add("sheet-active");
     showPanel(idlePanel);
     clearError();
-    if (window.history && window.location.search.indexOf("scan=1") === -1) {
-      window.history.replaceState({}, "", "/?scan=1");
+    if (window.history) {
+      window.history.replaceState({}, "", scanQueryString());
     }
   }
 
@@ -162,7 +182,10 @@
         showPanel(idlePanel);
       }
     }, 320);
-    if (window.history) window.history.replaceState({}, "", "/");
+    if (window.history) {
+      const eid = resolveEventId();
+      window.history.replaceState({}, "", eid ? "/?event=" + eid : "/");
+    }
   }
 
   function setResultActions(showNext, nextLabel, dismissLabel) {
@@ -245,11 +268,28 @@
         '<p class="result-msg">Invitation enregistrée. Bonne cérémonie.</p>';
       setResultActions(true, "Scanner le suivant", "Fermer");
       locked = false;
+    } else if (data.status === "wrong_event") {
+      resultIcon.innerHTML = ICONS.invalid;
+      resultTitle.textContent = "Mauvais événement";
+      resultBody.innerHTML =
+        '<p class="result-msg">' +
+        escapeHtml(
+          data.message ||
+            "Cette invitation n'appartient pas à l'événement ouvert pour le scan."
+        ) +
+        "</p>";
+      setResultActions(true, "Scanner à nouveau", "Fermer");
+      locked = false;
     } else {
       resultIcon.innerHTML = ICONS.invalid;
       resultTitle.textContent = "Invitation non reconnue";
       resultBody.innerHTML =
-        '<p class="result-msg">Ce QR Code ne correspond à aucune invitation valide.</p>';
+        '<p class="result-msg">' +
+        escapeHtml(
+          data.message ||
+            "Ce QR Code ne correspond à aucune invitation valide pour cet événement."
+        ) +
+        "</p>";
       setResultActions(true, "Scanner à nouveau", "Fermer");
       locked = false;
     }
@@ -272,7 +312,7 @@
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken(),
         },
-        body: JSON.stringify({ code, persons: 1 }),
+        body: JSON.stringify(scanPayload({ code, persons: 1 })),
         credentials: "same-origin",
       });
       const data = await response.json();
@@ -284,6 +324,8 @@
         return;
       }
       if (data.status === "admitted" || data.status === "already_used") {
+        openResultModal(data);
+      } else if (data.status === "wrong_event" || data.status === "invalid") {
         openResultModal(data);
       } else {
         showError(data.message || "Impossible d'enregistrer l'entrée.");
@@ -478,7 +520,7 @@
           "Content-Type": "application/json",
           "X-CSRFToken": csrfToken(),
         },
-        body: JSON.stringify({ code: normalized }),
+        body: JSON.stringify(scanPayload({ code: normalized })),
         credentials: "same-origin",
         signal: controller.signal,
       });
@@ -497,6 +539,14 @@
         locked = false;
         return;
       }
+      if (response.status === 400) {
+        showError(
+          (data && data.message) ||
+            "Ouvrez le scan depuis un événement pour valider ses invitations."
+        );
+        locked = false;
+        return;
+      }
       if (!data || !data.status) {
         showError(
           response.status === 403
@@ -509,7 +559,8 @@
       if (
         data.status === "recognized" ||
         data.status === "already_used" ||
-        data.status === "invalid"
+        data.status === "invalid" ||
+        data.status === "wrong_event"
       ) {
         openResultModal(data);
       } else {
@@ -649,6 +700,17 @@
   window.addEventListener("online", setOnlineUI);
   window.addEventListener("offline", setOnlineUI);
   setOnlineUI();
+
+  (function syncEventLabel() {
+    const help = document.getElementById("scan-event-help");
+    const title = document.getElementById("sheet-title");
+    const name = window.__SCAN_EVENT_NAME__;
+    if (name && help) {
+      help.textContent =
+        "Scan limité à « " + name + " ». Un QR d’un autre événement sera refusé.";
+    }
+    if (name && title) title.textContent = "Scan · " + name;
+  })();
 
   if (
     window.__OPEN_SCANNER__ ||

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}FAQ — Gab Event{% endblock %}
+{% block body_class %}page-legal{% endblock %}
+{% block content %}
+<div class="ge-legal">
+  {% include "partials/legal_top.html" %}
+  <main class="ge-legal-main">
+    <p class="ge-legal-kicker">Aide</p>
+    <h1>Questions fréquentes</h1>
+    <p class="ge-legal-lead">Tout ce qu’il faut savoir pour créer un événement, inviter vos convives, encaisser et scanner le jour J.</p>
+
+    {% if faq_sections %}
+    {% for section, items in faq_sections %}
+    <section class="ge-faq-section">
+      <h2>{{ section }}</h2>
+      <div class="ge-faq-list">
+        {% for item in items %}
+        <details class="ge-faq-item"{% if forloop.parentloop.first and forloop.first %} open{% endif %}>
+          <summary>
+            <span>{{ item.question }}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </summary>
+          <p>{{ item.answer }}</p>
+        </details>
+        {% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+    {% else %}
+    <article class="ge-legal-card">
+      <p>La FAQ sera bientôt disponible. En attendant, créez un compte ou écrivez-nous depuis votre espace.</p>
+    </article>
+    {% endif %}
+
+    <p class="ge-legal-more">
+      Vous ne trouvez pas la réponse ?
+      <a href="{% url 'terms' %}">Lire les CGU</a>
+      ou
+      <a href="{% url 'signup' %}">créer un compte</a>.
+    </p>
+  </main>
+  {% include "partials/legal_foot.html" %}
+</div>
+{% endblock %}

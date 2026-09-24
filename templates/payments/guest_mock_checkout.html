@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Paiement invitation{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth">
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm">
+      <p class="ge-auth-kicker">Paiement test</p>
+      <h1>{{ payment.amount|floatformat:0 }} {{ payment.currency }}</h1>
+      <p class="ge-auth-lead">{{ payment.full_name }} — {{ payment.get_participant_type_display }}</p>
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="ok-btn-dark ge-auth-submit">Simuler le paiement</button>
+      </form>
+    </div>
+  </div>
+</main>
+{% endblock %}

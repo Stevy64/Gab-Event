@@ -1,0 +1,67 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Catégories — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Catalogue</p>
+    <h1>Types d’événements</h1>
+    <p class="cx-lead">Chaque type a une photo par défaut, utilisée tant que l’organisateur n’en ajoute pas.</p>
+  </div>
+</header>
+<div class="cx-grid-2{% if editing %} is-editing{% endif %}">
+  <section class="cx-card">
+    <h2>Liste</h2>
+    <div class="cx-table-wrap">
+    <table class="cx-table">
+      <thead><tr><th>Visuel</th><th>Nom</th><th>Slug</th><th>Actif</th><th></th></tr></thead>
+      <tbody>
+      {% for c in categories %}
+        <tr>
+          <td>
+            {% if c.image_url %}
+            <img class="cx-cat-thumb" src="{{ c.image_url }}" alt="">
+            {% else %}
+            <span class="cx-cat-thumb is-empty" aria-hidden="true"></span>
+            {% endif %}
+          </td>
+          <td>{{ c.name }}{% if c.is_custom_entry %} <span class="cx-pill">Libre</span>{% endif %}</td>
+          <td>{{ c.slug }}</td>
+          <td>{% if c.is_active %}<span class="cx-pill is-ok">Oui</span>{% else %}<span class="cx-pill is-muted">Non</span>{% endif %}</td>
+          <td class="cx-row-actions">
+            <a class="cx-ico-btn" href="?edit={{ c.id }}#cx-editor" aria-label="Modifier {{ c.name }}" title="Modifier">
+              {% include "partials/admin_icon.html" with name="pencil" %}
+            </a>
+            <form method="post" action="{% url 'platform_admin_category_delete' c.id %}" onsubmit="return confirm('Supprimer {{ c.name }} ?');">
+              {% csrf_token %}
+              <button class="cx-ico-btn is-danger" type="submit" aria-label="Supprimer {{ c.name }}" title="Supprimer">
+                {% include "partials/admin_icon.html" with name="trash" %}
+              </button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section class="cx-card" id="cx-editor">
+    <h2>{% if editing %}Modifier {{ editing.name }}{% else %}Ajouter{% endif %}</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% if editing %}<input type="hidden" name="category_id" value="{{ editing.id }}">{% endif %}
+      {% for field in form %}
+      <div class="cx-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <div class="cx-actions">
+        <button class="cx-btn" type="submit">{% if editing %}Enregistrer{% else %}Créer{% endif %}</button>
+        {% if editing %}<a class="cx-btn-ghost" href="{% url 'platform_admin_categories' %}">Annuler</a>{% endif %}
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

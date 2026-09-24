@@ -9,6 +9,7 @@ from django.core.management import call_command
 from django.test import Client, TestCase, TransactionTestCase
 from django.urls import reverse
 from openpyxl import Workbook
+from PIL import Image
 
 from validation.card_service import generate_invitation_card, invitation_filename
 from validation.code_service import generate_invitation_code, normalize_code
@@ -141,14 +142,27 @@ class QrTests(TestCase):
         )
         data, path = generate_invitation_card(inv, save=True)
         self.assertTrue(data.startswith(b"\x89PNG"))
+        card = Image.open(BytesIO(data))
+        self.assertEqual(card.size, (1080, 1620))
         inv.refresh_from_db()
         self.assertTrue(inv.invitation_generated)
-        self.assertIn("invitation_ATC24", invitation_filename(inv))
+        self.assertTrue(invitation_filename(inv).startswith("invitation_"))
+        self.assertIn("Abdou", invitation_filename(inv))
+        self.assertTrue(invitation_filename(inv).endswith(".png"))
 
 
 class LookupAdmitTests(TransactionTestCase):
     def setUp(self):
+        from validation.models import Event
+
+        self.user = User.objects.create_user("agent", password="secret123")
+        self.event = Event.objects.create(
+            owner=self.user,
+            name="Cérémonie test",
+            status=Event.STATUS_ACTIVE,
+        )
         self.recipient = Invitation.objects.create(
+            event=self.event,
             code="ATC24-A7K9P2",
             first_name="Abdou",
             last_name="ISSA",
@@ -157,6 +171,7 @@ class LookupAdmitTests(TransactionTestCase):
             places=1,
         )
         self.vip = Invitation.objects.create(
+            event=self.event,
             code="VIP-H8K2M4",
             first_name="Mariama",
             last_name="ALI",
@@ -164,7 +179,6 @@ class LookupAdmitTests(TransactionTestCase):
             category="Instructrice",
             places=1,
         )
-        self.user = User.objects.create_user("agent", password="secret123")
 
     def test_scan_atc24_recognized(self):
         result = lookup_invitation("atc24-a7k9p2")
@@ -207,7 +221,7 @@ class LookupAdmitTests(TransactionTestCase):
         token = client.cookies["csrftoken"].value
         r = client.post(
             reverse("api_validate"),
-            data=json.dumps({"code": "ATC24-A7K9P2"}),
+            data=json.dumps({"code": "ATC24-A7K9P2", "event_id": self.event.pk}),
             content_type="application/json",
             HTTP_X_CSRFTOKEN=token,
         )
@@ -216,12 +230,12 @@ class LookupAdmitTests(TransactionTestCase):
     def test_api_flow(self):
         client = Client(enforce_csrf_checks=True)
         client.login(username="agent", password="secret123")
-        client.get(reverse("home"))
+        client.get(reverse("home") + f"?event={self.event.pk}")
         token = client.cookies["csrftoken"].value
         headers = {"HTTP_X_CSRFTOKEN": token}
         r = client.post(
             reverse("api_validate"),
-            data=json.dumps({"code": "ATC24-A7K9P2"}),
+            data=json.dumps({"code": "ATC24-A7K9P2", "event_id": self.event.pk}),
             content_type="application/json",
             **headers,
         )
@@ -229,7 +243,9 @@ class LookupAdmitTests(TransactionTestCase):
         self.assertEqual(r.json()["status"], "recognized")
         r2 = client.post(
             reverse("api_admit"),
-            data=json.dumps({"code": "ATC24-A7K9P2", "persons": 1}),
+            data=json.dumps(
+                {"code": "ATC24-A7K9P2", "persons": 1, "event_id": self.event.pk}
+            ),
             content_type="application/json",
             **headers,
         )
@@ -268,7 +284,10 @@ class ZipAndPermissionTests(TestCase):
     def test_dashboard_permission(self):
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 302)
         self.client.login(username="admin", password="secret123")
-        self.assertEqual(self.client.get(reverse("dashboard")).status_code, 200)
+        # dashboard redirige vers mes-evenements ou un événement
+        r = self.client.get(reverse("dashboard"))
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(self.client.get(reverse("my_events")).status_code, 200)
 
     def test_download_permission(self):
         inv = Invitation.objects.first()

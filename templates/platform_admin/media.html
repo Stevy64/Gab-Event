@@ -1,0 +1,49 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Images — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Catalogue</p>
+    <h1>Images</h1>
+    <p class="cx-lead">Carrousel d’accueil et fonds des événements sans visuel personnalisé.</p>
+  </div>
+</header>
+<section class="cx-card" id="cx-editor">
+  <h2>{% if editing %}Modifier « {{ editing.label }} »{% else %}Ajouter une image{% endif %}</h2>
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {% if editing %}<input type="hidden" name="image_id" value="{{ editing.id }}">{% endif %}
+    {% for field in form %}
+    <div class="cx-field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    <div class="cx-actions">
+      <button class="cx-btn" type="submit">{% if editing %}Enregistrer{% else %}Ajouter{% endif %}</button>
+      {% if editing %}<a class="cx-btn-ghost" href="{% url 'platform_admin_media' %}">Annuler</a>{% endif %}
+    </div>
+  </form>
+</section>
+<div class="cx-media-grid">
+  {% for img in images %}
+  <article class="cx-media">
+    {% if img.url %}<img src="{{ img.url }}" alt="{{ img.label }}">{% endif %}
+    <div class="cx-media-body">
+      <strong>{{ img.label }}</strong>
+      <small>{{ img.caption }}{% if not img.is_active %} · masquée{% endif %}</small>
+      <div class="cx-row-actions">
+        <a href="?edit={{ img.id }}#cx-editor">Modifier</a>
+        <form method="post" action="{% url 'platform_admin_media_delete' img.id %}" onsubmit="return confirm('Retirer cette image ?');">
+          {% csrf_token %}
+          <button class="cx-link-btn" type="submit">Supprimer</button>
+        </form>
+      </div>
+    </div>
+  </article>
+  {% empty %}
+  <p>Aucune image.</p>
+  {% endfor %}
+</div>
+{% endblock %}

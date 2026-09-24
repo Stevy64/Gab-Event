@@ -1,0 +1,32 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Formules — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Catalogue</p>
+    <h1>Formules & tarifs</h1>
+    <p class="cx-lead">Les options proposées à la création d’un événement.</p>
+  </div>
+  <a class="cx-btn" href="{% url 'platform_admin_plan_create' %}">{% include "partials/admin_icon.html" with name="plus" %} Nouvelle formule</a>
+</header>
+<section class="cx-card">
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Formule">
+    <thead><tr><th>Nom</th><th>Prix</th><th>Standard</th><th>VIP</th><th>Total</th><th>Actif</th><th></th></tr></thead>
+    <tbody>
+    {% for p in plans %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{% if p.is_custom %}{{ p.price_per_regular }} / std{% else %}{{ p.price }} {{ p.currency }}{% endif %}</td>
+        <td>{{ p.regular_invitation_limit }}</td>
+        <td>{{ p.vip_invitation_limit }}</td>
+        <td>{{ p.total_invitation_limit|default:"—" }}</td>
+        <td>{% if p.is_active %}<span class="cx-pill is-ok">Oui</span>{% else %}<span class="cx-pill is-muted">Non</span>{% endif %}</td>
+        <td><a href="{% url 'platform_admin_plan_edit' p.id %}">Paramétrer</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}{{ event.name }} — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Événement</p>
+    <h1>{{ event.name }}</h1>
+    <p class="cx-lead">{{ event.type_label }} · {{ event.owner }} · {{ invitations_count }} invitation{{ invitations_count|pluralize }}</p>
+  </div>
+  <div class="cx-actions">
+    <a class="cx-btn-ghost" href="{% url 'event_dashboard' event.id %}">Ouvrir dans l’app</a>
+  </div>
+</header>
+<div class="cx-grid-2">
+  <section class="cx-card">
+    <h2>Ajuster les limites</h2>
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+      <div class="cx-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+      </div>
+      {% endfor %}
+      <button class="cx-btn" type="submit">Enregistrer</button>
+    </form>
+    {% if event.status != 'active' %}
+    <form method="post" style="margin-top:1rem">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="activate">
+      <button class="cx-btn-ghost" type="submit">Activer manuellement</button>
+    </form>
+    {% endif %}
+  </section>
+  <section class="cx-card">
+    <h2>Historique des ajustements</h2>
+    <table class="cx-table">
+      <tbody>
+      {% for a in adjustments %}
+        <tr><td>{{ a.created_at|date:"d/m H:i" }}</td><td>{{ a.admin_user }}</td><td>{{ a.reason|default:"—" }}</td></tr>
+      {% empty %}
+        <tr><td>Aucun ajustement.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

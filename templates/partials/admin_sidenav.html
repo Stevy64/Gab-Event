@@ -1,0 +1,42 @@
+<nav class="cx-sidenav" aria-label="Administration">
+  <a href="{% url 'platform_admin' %}" class="cx-nav-item {% if nav_active == 'overview' %}is-active{% endif %}" title="Vue d’ensemble">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="grid" %}</span>
+    <span>Vue d’ensemble</span>
+  </a>
+  <a href="{% url 'platform_admin_events' %}" class="cx-nav-item {% if nav_active == 'events' %}is-active{% endif %}" title="Événements">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="calendar" %}</span>
+    <span>Événements</span>
+  </a>
+  <a href="{% url 'platform_admin_users' %}" class="cx-nav-item {% if nav_active == 'users' %}is-active{% endif %}" title="Utilisateurs">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="users" %}</span>
+    <span>Utilisateurs</span>
+  </a>
+  <a href="{% url 'platform_admin_payments' %}" class="cx-nav-item {% if nav_active == 'payments' %}is-active{% endif %}" title="Comptabilité">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="wallet" %}</span>
+    <span>Comptabilité</span>
+  </a>
+  <a href="{% url 'platform_admin_plans' %}" class="cx-nav-item {% if nav_active == 'plans' %}is-active{% endif %}" title="Formules">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="tag" %}</span>
+    <span>Formules</span>
+  </a>
+  <a href="{% url 'platform_admin_media' %}" class="cx-nav-item {% if nav_active == 'media' %}is-active{% endif %}" title="Images">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="image" %}</span>
+    <span>Images</span>
+  </a>
+  <a href="{% url 'platform_admin_categories' %}" class="cx-nav-item {% if nav_active == 'categories' %}is-active{% endif %}" title="Catégories">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="layers" %}</span>
+    <span>Catégories</span>
+  </a>
+  <a href="{% url 'platform_admin_faq' %}" class="cx-nav-item {% if nav_active == 'faq' %}is-active{% endif %}" title="FAQ">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="help" %}</span>
+    <span>FAQ</span>
+  </a>
+  <a href="{% url 'platform_admin_activity' %}" class="cx-nav-item {% if nav_active == 'activity' %}is-active{% endif %}" title="Activité">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="pulse" %}</span>
+    <span>Activité</span>
+  </a>
+  <a href="{% url 'platform_admin_settings' %}" class="cx-nav-item {% if nav_active == 'settings' %}is-active{% endif %}" title="Site">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="sliders" %}</span>
+    <span>Site</span>
+  </a>
+</nav>

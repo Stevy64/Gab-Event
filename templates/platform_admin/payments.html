@@ -1,0 +1,140 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Comptabilité — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Pilotage</p>
+    <h1>Comptabilité</h1>
+    <p class="cx-lead">Formules organisateurs et billets invités (Personnalisé), avec commission Gab Event.</p>
+  </div>
+</header>
+<div class="cx-kpis">
+  <article class="cx-kpi"><span>Formules</span><strong>{{ revenue }}</strong><small>{{ success_count }} paiements organisateurs</small></article>
+  <article class="cx-kpi"><span>En attente</span><strong>{{ pending_amount }}</strong><small>À confirmer</small></article>
+  <article class="cx-kpi"><span>Invités collecté</span><strong>{{ guest_gross }}</strong><small>Commission {{ guest_commission }} · Net {{ guest_net }}</small></article>
+  <article class="cx-kpi"><span>À reverser</span><strong>{{ payout_due }}</strong><small>Mobile Money organisateurs</small></article>
+</div>
+<section class="cx-card">
+  <h2>Reversements Mobile Money</h2>
+  <p class="cx-lead">Envoi Airtel Money / Moov Money vers le numéro confirmé de l’organisateur, après déduction de la commission.</p>
+  <div class="cx-table-wrap">
+  <table class="cx-table">
+    <thead>
+      <tr><th>Organisateur</th><th>Mobile Money</th><th>Tickets</th><th>Net à envoyer</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for row in payout_rows %}
+      <tr>
+        <td><a href="{% url 'platform_admin_user' row.organizer.id %}">{{ row.organizer }}</a></td>
+        <td>
+          {% if row.profile and row.profile.momo_ready %}
+          {{ row.profile.momo_label }}
+          {% else %}
+          <span class="cx-pill is-warn">Numéro non confirmé</span>
+          {% endif %}
+        </td>
+        <td>{{ row.count }}</td>
+        <td>{{ row.net }}</td>
+        <td>
+          {% if row.profile and row.profile.momo_ready %}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="payout">
+            <input type="hidden" name="organizer_id" value="{{ row.organizer.id }}">
+            {% for pid in row.ids %}<input type="hidden" name="payment_ids" value="{{ pid }}">{% endfor %}
+            <button class="cx-btn" type="submit">Reverser</button>
+          </form>
+          {% else %}
+          —
+          {% endif %}
+        </td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5">Aucun reversement en attente.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if recent_payouts %}
+  <h3>Derniers envois</h3>
+  <table class="cx-table">
+    <thead><tr><th>Date</th><th>Organisateur</th><th>Numéro</th><th>Montant</th><th>Statut</th><th>Admin</th></tr></thead>
+    <tbody>
+    {% for b in recent_payouts %}
+      <tr>
+        <td>{{ b.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ b.organizer }}</td>
+        <td>{{ b.get_momo_operator_display|default:b.momo_operator }} {{ b.momo_phone }}</td>
+        <td>{{ b.amount }} {{ b.currency }}</td>
+        <td>{{ b.get_status_display }}</td>
+        <td>{{ b.actor|default:"—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+<form method="get" class="cx-filters">
+  <select name="status">
+    <option value="">Tous</option>
+    <option value="success" {% if status == 'success' %}selected{% endif %}>Réussi</option>
+    <option value="pending" {% if status == 'pending' %}selected{% endif %}>En attente</option>
+    <option value="failed" {% if status == 'failed' %}selected{% endif %}>Échoué</option>
+  </select>
+  <button class="cx-btn" type="submit">Filtrer</button>
+</form>
+<section class="cx-card">
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Paiement">
+    <thead><tr><th>Date</th><th>Organisateur</th><th>Événement</th><th>Formule</th><th>Montant</th><th>Statut</th></tr></thead>
+    <tbody>
+    {% for p in payments %}
+      <tr>
+        <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ p.user }}</td>
+        <td>{{ p.event.name }}</td>
+        <td>{% if p.plan_id %}{{ p.plan.name }}{% else %}—{% endif %}</td>
+        <td>{{ p.amount }} {{ p.currency }}</td>
+        <td><span class="cx-pill {% if p.status == 'success' %}is-ok{% elif p.status == 'pending' %}is-warn{% else %}is-muted{% endif %}">{{ p.get_status_display }}</span></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="6">Aucun paiement.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="cx-card">
+  <h2>Paiements invités</h2>
+  <p class="cx-lead">Traçabilité par organisateur — encaissement wallet, commission et montant à reverser.</p>
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Paiement invité">
+    <thead>
+      <tr>
+        <th>Date</th><th>Organisateur</th><th>Événement</th><th>Invité</th><th>Type</th>
+        <th>Brut</th><th>Commission</th><th>Net</th><th>Statut</th><th>Reversement</th><th>Mobile Money</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for p in guest_payments %}
+      <tr>
+        <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
+        <td><a href="{% url 'platform_admin_user' p.organizer_id %}">{{ p.organizer }}</a></td>
+        <td>{{ p.event.name }}</td>
+        <td>{{ p.full_name }}</td>
+        <td>{{ p.get_participant_type_display }}</td>
+        <td>{{ p.amount }} {{ p.currency }}</td>
+        <td>{{ p.commission_amount }} ({{ p.commission_rate }}%)</td>
+        <td>{{ p.net_amount }}</td>
+        <td><span class="cx-pill {% if p.status == 'success' %}is-ok{% elif p.status == 'pending' %}is-warn{% else %}is-muted{% endif %}">{{ p.get_status_display }}</span></td>
+        <td>{{ p.get_payout_status_display }}{% if p.payout_error %}<br><small>{{ p.payout_error }}</small>{% endif %}</td>
+        <td>{% if p.organizer.profile %}{{ p.organizer.profile.momo_label }}{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="11">Aucun paiement invité.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

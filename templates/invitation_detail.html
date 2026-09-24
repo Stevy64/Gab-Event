@@ -1,78 +1,97 @@
 {% extends "base.html" %}
-{% load static %}
-
-{% block title %}{{ invitation.full_name }}{% endblock %}
-{% block body_class %}page-admin{% endblock %}
-
-{% block extra_head %}
-<link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=1">
-{% endblock %}
-
+{% block title %}{{ invitation.full_name }} — Gab Event{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
 {% block content %}
-<div class="zyz-shell">
-  <header class="zyz-top">
+{% url 'event_invitations' event.id as detail_back %}
+{% include "partials/event_nav.html" with event=event nav_active="guests" back_url=detail_back back_label="Cartes" %}
+<main class="ge-app">
+  <header class="ge-page-head">
+    <a class="ge-level-back" href="{% url 'event_invitations' event.id %}" aria-label="Retour aux cartes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
     <div>
-      <p class="zyz-kicker">{{ invitation.get_participant_type_display }}{% if invitation.is_vip %} · VIP{% endif %}</p>
+      <p class="ge-kicker">{{ invitation.get_participant_type_display }}</p>
       <h1>{{ invitation.full_name }}</h1>
-      <p class="zyz-lead">Fiche invitation — actions et historique d’entrée.</p>
-    </div>
-    <div class="zyz-top-cta">
-      <a class="zyz-btn zyz-btn-primary" href="{% url 'invitation_preview' invitation.pk %}">Voir invitation</a>
-      <a class="zyz-btn zyz-btn-ghost" href="{% url 'dashboard' %}">Tableau</a>
+      <p class="ge-lead">Fiche invitation — actions et historique.</p>
     </div>
   </header>
 
-  <section class="zyz-card">
-    <ul class="zyz-modal-fields" style="margin:0">
-      <li><span class="zyz-modal-ico">▢</span><div><em>Catégorie</em><strong>{{ invitation.category|default:"—" }}</strong></div></li>
-      <li><span class="zyz-modal-ico">★</span><div><em>Places</em><strong>{{ invitation.places_used }} / {{ invitation.places }} (reste {{ invitation.places_remaining }})</strong></div></li>
-      <li><span class="zyz-modal-ico">◆</span><div><em>Code</em><strong><code>{{ invitation.code }}</code></strong></div></li>
-      <li><span class="zyz-modal-ico">◎</span><div><em>Statut billet</em><strong>{{ invitation.get_status_display }}</strong></div></li>
-      <li><span class="zyz-modal-ico">✉</span><div><em>Invitation</em><strong>{% if invitation.invitation_sent %}Envoyée{% elif invitation.invitation_generated %}Générée{% else %}À générer{% endif %}</strong></div></li>
-      <li><span class="zyz-modal-ico">✓</span><div><em>Présence</em><strong>{% if invitation.places_used > 0 %}Entré{% if invitation.validated_at %} · {{ invitation.validated_at|date:"d/m/Y H:i" }}{% endif %}{% else %}En attente{% endif %}</strong></div></li>
-    </ul>
-    <div class="zyz-modal-actions" style="margin-top:1rem">
-      <a class="zyz-btn zyz-btn-primary" href="{% url 'invitation_download' invitation.pk %}">PNG</a>
-      <a class="zyz-btn zyz-btn-dark" href="{% url 'invitation_qr' invitation.pk %}">QR seul</a>
+  <div class="ge-form-card">
+    <dl class="ge-dl">
+      <div><dt>Catégorie</dt><dd>{{ invitation.category|default:"—" }}</dd></div>
+      <div><dt>Places</dt><dd>{{ invitation.places_used }} / {{ invitation.places }} (reste {{ invitation.places_remaining }})</dd></div>
+      <div><dt>Code</dt><dd><code>{{ invitation.code }}</code></dd></div>
+      <div><dt>Statut</dt><dd>{{ invitation.get_status_display }}</dd></div>
+      <div><dt>Invitation</dt><dd>{% if invitation.invitation_sent %}Envoyée{% elif invitation.invitation_generated %}Générée{% else %}À générer{% endif %}</dd></div>
+      <div><dt>Présence</dt><dd>{% if invitation.places_used > 0 %}Entré{% if invitation.validated_at %} · {{ invitation.validated_at|date:"d/m/Y H:i" }}{% endif %}{% else %}En attente{% endif %}</dd></div>
+    </dl>
+
+    <div class="ge-tool-row ge-tool-row-wide" aria-label="Fichier invitation">
+      <a class="ge-text-tool" href="{% url 'invitation_preview' invitation.pk %}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span>Aperçu</span>
+      </a>
+      <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-4.5-4.5L9 19"/></svg>
+        <span>PNG</span>
+      </a>
+      <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}?fmt=pdf" data-ge-download data-no-loader download>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
+        <span>PDF</span>
+      </a>
+      <a class="ge-text-tool" href="{% url 'invitation_qr' invitation.pk %}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>
+        <span>QR</span>
+      </a>
     </div>
-    <form method="post" style="margin-top:1rem">
+
+    <form method="post" class="ge-sent-form">
       {% csrf_token %}
       {% if invitation.invitation_sent %}
         <input type="hidden" name="action" value="unmark_sent">
-        <button type="submit" class="zyz-btn zyz-btn-ghost zyz-btn-block">Annuler « envoyée »</button>
+        <button type="submit" class="ge-btn-ghost ge-sent-btn">Annuler « envoyée »</button>
       {% else %}
         <input type="hidden" name="action" value="mark_sent">
-        <button type="submit" class="zyz-btn zyz-btn-primary zyz-btn-block">Marquer comme envoyée</button>
+        <button type="submit" class="ge-btn-ghost ge-sent-btn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+          Marquer comme envoyée
+        </button>
       {% endif %}
     </form>
-  </section>
+  </div>
 
   {% if invitation.places_used > 0 %}
-  <section class="zyz-card">
-    <div class="zyz-card-head"><h3>Annuler les entrées</h3></div>
-    <p class="zyz-lead" style="max-width:none">Remet les places à zéro en cas d'erreur humaine.</p>
+  <section class="ge-form-card" style="margin-top:1rem">
+    <h2 class="ge-form-section-title">Annuler les entrées</h2>
+    <p class="ge-muted">Remet les places à zéro en cas d’erreur.</p>
     <form method="post" onsubmit="return confirm('Confirmer l\'annulation des entrées ?');">
       {% csrf_token %}
       <input type="hidden" name="action" value="cancel">
-      {{ form.as_p }}
-      <button type="submit" class="zyz-btn zyz-btn-ghost zyz-btn-block">Annuler les validations</button>
+      <label class="ge-check-card">
+        <span class="ge-check-input">{{ form.confirm }}</span>
+        <span class="ge-check-body"><strong>{{ form.confirm.label }}</strong></span>
+      </label>
+      <button type="submit" class="ge-btn-ghost" style="width:100%;margin-top:0.85rem">Annuler les validations</button>
     </form>
   </section>
   {% endif %}
 
-  <section class="zyz-card">
-    <div class="zyz-card-head"><h3>Admissions</h3></div>
-    <ul class="zyz-feed">
+  <section class="ge-form-card" style="margin-top:1rem">
+    <h2 class="ge-form-section-title">Admissions</h2>
+    <ul class="ge-feed">
       {% for adm in admissions %}
-      <li class="zyz-feed-item">
-        <span class="zyz-feed-dot"></span>
-        <div><strong>{{ adm.persons }} personne{{ adm.persons|pluralize }}</strong></div>
-        <time class="zyz-meta">{{ adm.admitted_at|date:"d/m H:i:s" }}</time>
+      <li>
+        <strong>{{ adm.persons }} personne{{ adm.persons|pluralize }}</strong>
+        <time>{{ adm.admitted_at|date:"d/m H:i:s" }}</time>
       </li>
       {% empty %}
-      <li class="zyz-empty-row">Aucune admission.</li>
+      <li class="ge-muted">Aucune admission.</li>
       {% endfor %}
     </ul>
   </section>
-</div>
+
+  <p style="margin-top:1.25rem">
+    <a class="ge-btn-ghost" href="{% url 'event_invitations' event.id %}">← Retour aux cartes</a>
+  </p>
+</main>
 {% endblock %}

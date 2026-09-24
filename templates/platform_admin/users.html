@@ -1,0 +1,39 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Utilisateurs — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Pilotage</p>
+    <h1>Utilisateurs</h1>
+    <p class="cx-lead">Comptes organisateurs et administrateurs.</p>
+  </div>
+</header>
+<form method="get" class="cx-filters">
+  <input type="search" name="q" value="{{ q }}" placeholder="Nom, e-mail, organisation…">
+  <button class="cx-btn" type="submit">Chercher</button>
+</form>
+<section class="cx-card">
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Utilisateur">
+    <thead><tr><th>Utilisateur</th><th>E-mail</th><th>Événements</th><th>Staff</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+      <tr>
+        <td>
+          <a class="cx-idcell" href="{% url 'platform_admin_user' u.id %}">
+            <span class="cx-avatar" aria-hidden="true">{{ u.get_full_name|default:u.username|slice:":1"|upper }}</span>
+            <span>{{ u.get_full_name|default:u.username }}</span>
+          </a>
+        </td>
+        <td>{{ u.email }}</td>
+        <td>{{ u.events_count }}</td>
+        <td>{% if u.is_staff %}<span class="cx-pill is-ok">Admin</span>{% else %}—{% endif %}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="4">Aucun utilisateur.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

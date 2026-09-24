@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}CGU — Gab Event{% endblock %}
+{% block body_class %}page-legal{% endblock %}
+{% block content %}
+<div class="ge-legal">
+  {% include "partials/legal_top.html" %}
+  <main class="ge-legal-main">
+    <p class="ge-legal-kicker">Juridique</p>
+    <h1>Conditions générales d’utilisation</h1>
+    {% include "partials/terms_body.html" %}
+    <p class="ge-legal-more">Pour toute question : consultez d’abord la <a href="{% url 'faq' %}">FAQ</a>.</p>
+  </main>
+  {% include "partials/legal_foot.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Import — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
+{% block content %}
+{% include "partials/event_nav.html" with nav_active="guests" %}
+<main class="ge-app">
+  <header class="ge-page-head">
+    <div>
+      <p class="ge-kicker">Import Excel</p>
+      <h1>Importer des invités</h1>
+      <p class="ge-lead">Les quotas de votre formule sont vérifiés côté serveur. Un dépassement refuse l’import complet.</p>
+    </div>
+  </header>
+
+  <div class="ge-stat-grid">
+    <div class="ge-stat-tile"><strong>{{ quotas.remaining_regular }}</strong><span>Standard restants</span></div>
+    <div class="ge-stat-tile"><strong>{{ quotas.remaining_vip }}</strong><span>VIP restants</span></div>
+    <div class="ge-stat-tile">
+      <strong>{% if quotas.remaining_total != None %}{{ quotas.remaining_total }}{% else %}—{% endif %}</strong>
+      <span>Total restant</span>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="ge-form-card">
+    {% csrf_token %}
+    <div class="ge-field">
+      <label for="{{ form.file.id_for_label }}">{{ form.file.label }}</label>
+      {{ form.file }}
+      {% if form.file.help_text %}<small class="ge-muted">{{ form.file.help_text }}</small>{% endif %}
+      {% if form.file.errors %}<span class="ge-field-err">{{ form.file.errors.0 }}</span>{% endif %}
+    </div>
+    <button type="submit" class="ok-btn-dark ge-auth-submit">Importer</button>
+  </form>
+
+  {% if import_result and import_result.refused %}
+  <div class="ge-banner ge-banner-err" style="margin-top:1rem">
+    {{ import_result.refusal_message }}
+    <a href="{% url 'landing' %}#offres">Voir les formules</a>
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

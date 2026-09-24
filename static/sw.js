@@ -1,29 +1,137 @@
 /**
- * Service worker PWA — coque offline légère.
- * Les appels /api/* ne sont jamais servis depuis le cache (validation online).
+ * Gab Event PWA — cache shell, pages visitées et médias.
+ * /api/*, paiements et console restent toujours en réseau.
  */
-const CACHE = "gab-event-shell-v2";
-const SHELL = [
+const VERSION = "gab-event-v5";
+const SHELL = VERSION + "-shell";
+const PAGES = VERSION + "-pages";
+const ASSETS = VERSION + "-assets";
+const IMAGES = VERSION + "-images";
+const IMAGE_LIMIT = 80;
+
+const PRECACHE = [
   "/",
-  "/static/manifest.json",
+  "/offline/",
   "/static/css/app.css",
-  "/static/js/scanner.js",
+  "/static/js/ge-app.js",
   "/static/js/pwa.js",
+  "/static/js/scanner.js",
+  "/static/manifest.json",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
   "/static/icons/apple-touch-icon.png",
 ];
 
+function isBypass(url) {
+  const p = url.pathname;
+  if (p.startsWith("/api/")) return true;
+  if (p.startsWith("/payments/")) return true;
+  if (p.startsWith("/console/")) return true;
+  if (p.startsWith("/admin/") || p.startsWith("/platform-admin/")) return true;
+  if (p.includes("/webhook")) return true;
+  if (/\/carte\/?$/.test(p) || /\/download\/?$/.test(p) || /\/qr\/?$/.test(p)) return true;
+  if (/\/generer\/?$/.test(p) || /\/export\/?$/.test(p)) return true;
+  if (/(?:^|[?&])fmt=(png|pdf|xlsx)\b/i.test(url.search)) return true;
+  if (p.startsWith("/accounts/logout")) return true;
+  if (p.startsWith("/brand/")) return true;
+  return false;
+}
+
+function isAsset(url) {
+  return (
+    url.pathname.startsWith("/static/css/") ||
+    url.pathname.startsWith("/static/js/") ||
+    url.pathname.startsWith("/static/icons/") ||
+    url.pathname === "/static/manifest.json" ||
+    url.hostname === "fonts.googleapis.com" ||
+    url.hostname === "fonts.gstatic.com"
+  );
+}
+
+function isImage(url, dest) {
+  if (dest === "image") return true;
+  return (
+    url.pathname.startsWith("/media/") ||
+    url.pathname.startsWith("/static/img/") ||
+    /\.(png|jpe?g|webp|gif|svg|ico)(\?|$)/i.test(url.pathname)
+  );
+}
+
+function isNavigation(request) {
+  const accept = request.headers.get("accept") || "";
+  return request.mode === "navigate" ||
+    (request.destination === "document" && accept.includes("text/html"));
+}
+
+async function trimCache(cacheName, max) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length <= max) return;
+  await Promise.all(keys.slice(0, keys.length - max).map((key) => cache.delete(key)));
+}
+
+async function putOk(cacheName, request, response) {
+  if (!response || !response.ok || response.type === "opaque") return response;
+  if (response.redirected) return response;
+  const cache = await caches.open(cacheName);
+  cache.put(request, response.clone());
+  return response;
+}
+
+async function matchAny(request) {
+  return (
+    (await caches.match(request)) ||
+    (await caches.match(request, { ignoreSearch: true }))
+  );
+}
+
+async function staleWhileRevalidate(request, cacheName) {
+  const cached = await matchAny(request);
+  const fetching = fetch(request)
+    .then((res) => putOk(cacheName, request, res))
+    .catch(() => cached);
+  return cached || fetching;
+}
+
+async function cacheFirst(request, cacheName, trimTo) {
+  const cached = await matchAny(request);
+  if (cached) return cached;
+  try {
+    const res = await fetch(request);
+    await putOk(cacheName, request, res);
+    if (trimTo) trimCache(cacheName, trimTo);
+    return res;
+  } catch (err) {
+    return cached;
+  }
+}
+
+async function networkFirst(request, cacheName, timeoutMs) {
+  const cached = await matchAny(request);
+  const fetching = fetch(request)
+    .then((res) => {
+      if (res && res.ok && !res.redirected) putOk(cacheName, request, res);
+      return res;
+    });
+  if (!cached) {
+    return fetching.catch(() => caches.match("/offline/"));
+  }
+  try {
+    return await Promise.race([
+      fetching,
+      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), timeoutMs)),
+    ]);
+  } catch (err) {
+    return cached;
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
-      .open(CACHE)
+      .open(SHELL)
       .then((cache) =>
-        Promise.all(
-          SHELL.map((url) =>
-            cache.add(url).catch(() => undefined)
-          )
-        )
+        Promise.all(PRECACHE.map((url) => cache.add(url).catch(() => undefined)))
       )
       .then(() => self.skipWaiting())
   );
@@ -34,45 +142,41 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
+        Promise.all(keys.filter((key) => !key.startsWith(VERSION)).map((key) => caches.delete(key)))
       )
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-  if (event.request.method !== "GET") return;
-  if (url.pathname.startsWith("/api/")) return;
+  const request = event.request;
+  if (request.method !== "GET") return;
 
-  // CSS/JS : réseau d'abord pour les mises à jour de design
-  if (
-    url.pathname.startsWith("/static/css/") ||
-    url.pathname.startsWith("/static/js/")
-  ) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (err) {
     return;
   }
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        const copy = response.clone();
-        if (response.ok && url.origin === self.location.origin) {
-          caches.open(CACHE).then((cache) => cache.put(event.request, copy));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((r) => r || caches.match("/")))
-  );
+  if (isBypass(url)) return;
+
+  if (isAsset(url)) {
+    event.respondWith(staleWhileRevalidate(request, ASSETS));
+    return;
+  }
+
+  if (isImage(url, request.destination)) {
+    event.respondWith(cacheFirst(request, IMAGES, IMAGE_LIMIT));
+    return;
+  }
+
+  if (url.origin === self.location.origin && isNavigation(request)) {
+    event.respondWith(networkFirst(request, PAGES, 1800));
+    return;
+  }
+
+  if (url.origin === self.location.origin) {
+    event.respondWith(staleWhileRevalidate(request, PAGES));
+  }
 });

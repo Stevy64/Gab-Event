@@ -1,0 +1,15 @@
+<header class="ge-legal-top">
+  <a class="ge-legal-brand" href="{% url 'landing' %}">
+    {% include "partials/brand_mark.html" %}
+    <span>Gab Event</span>
+  </a>
+  <nav class="ge-legal-nav" aria-label="Pages d’aide">
+    <a href="{% url 'faq' %}">FAQ</a>
+    <a href="{% url 'terms' %}" title="Conditions générales d’utilisation">CGU</a>
+    {% if user.is_authenticated %}
+    <a href="{% url 'my_events' %}">Mon espace</a>
+    {% else %}
+    <a href="{% url 'login' %}">Connexion</a>
+    {% endif %}
+  </nav>
+</header>

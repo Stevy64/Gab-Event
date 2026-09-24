@@ -1,0 +1,58 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}FAQ — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Contenu public</p>
+    <h1>FAQ</h1>
+    <p class="cx-lead">Questions affichées sur <a href="{% url 'faq' %}" target="_blank" rel="noopener">/faq/</a>. Ajoutez, modifiez ou retirez une entrée.</p>
+  </div>
+</header>
+<div class="cx-grid-2{% if editing %} is-editing{% endif %}">
+  <section class="cx-card">
+    <h2>Liste</h2>
+    <div class="cx-table-wrap">
+    <table class="cx-table">
+      <thead><tr><th>Question</th><th>Rubrique</th><th>Visible</th><th></th></tr></thead>
+      <tbody>
+      {% for item in items %}
+        <tr>
+          <td>{{ item.question }}</td>
+          <td>{{ item.get_section_display }}</td>
+          <td>{% if item.is_active %}<span class="cx-pill is-ok">Oui</span>{% else %}<span class="cx-pill is-muted">Non</span>{% endif %}</td>
+          <td class="cx-row-actions">
+            <a href="?edit={{ item.id }}#cx-editor">Modifier</a>
+            <form method="post" action="{% url 'platform_admin_faq_delete' item.id %}" onsubmit="return confirm('Supprimer cette question ?');">
+              {% csrf_token %}
+              <button class="cx-link-btn" type="submit">Supprimer</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4">Aucune question pour l’instant.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section class="cx-card" id="cx-editor">
+    <h2>{% if editing %}Modifier{% else %}Ajouter{% endif %}</h2>
+    <form method="post">
+      {% csrf_token %}
+      {% if editing %}<input type="hidden" name="item_id" value="{{ editing.id }}">{% endif %}
+      {% for field in form %}
+      <div class="cx-field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+        {{ field.errors }}
+      </div>
+      {% endfor %}
+      <div class="cx-actions">
+        <button class="cx-btn" type="submit">{% if editing %}Enregistrer{% else %}Ajouter{% endif %}</button>
+        {% if editing %}<a class="cx-btn-ghost" href="{% url 'platform_admin_faq' %}">Annuler</a>{% endif %}
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

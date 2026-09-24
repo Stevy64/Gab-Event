@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Invités — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
+{% block content %}
+{% include "partials/event_nav.html" with nav_active="guests" %}
+<main class="ge-app ge-studio ge-guests">
+  <header class="ge-studio-head ge-list-head">
+    <div class="ge-list-head-top">
+      <div>
+        <p class="ge-kicker">Liste</p>
+        <h1>Invités</h1>
+      </div>
+      <div class="ge-tool-row" aria-label="Actions">
+        <a class="ge-text-tool" href="{% url 'event_invite_link' event.id %}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 13a5 5 0 007.07 0l1.41-1.41a5 5 0 00-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 00-7.07 0L5.52 12.41a5 5 0 007.07 7.07L14 18.07"/></svg>
+          <span>Lien</span>
+        </a>
+        <a class="ge-text-tool" href="{% url 'event_export' event.id %}?fmt=xlsx" data-ge-download data-no-loader download>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11M15 9v11"/></svg>
+          <span>Excel</span>
+        </a>
+        <a class="ge-text-tool" href="{% url 'event_export' event.id %}?fmt=pdf" data-ge-download data-no-loader download>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
+          <span>PDF</span>
+        </a>
+      </div>
+    </div>
+    <p class="ge-lead">Recherchez, filtrez et ouvrez une fiche invité.</p>
+    <div class="ge-studio-chips" aria-label="Capacité">
+      <span class="ge-studio-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        {{ quotas.regular_count }}/{{ quotas.regular_limit }} standard
+      </span>
+      <span class="ge-studio-chip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l2.2 6.6H21l-5.4 4 2.1 6.4L12 16.8 6.3 20l2.1-6.4L3 9.6h6.8z"/></svg>
+        {{ quotas.vip_count }}/{{ quotas.vip_limit }} VIP
+      </span>
+    </div>
+  </header>
+
+  <form method="get" class="ge-search-bar" role="search">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+    <input type="hidden" name="type" value="{{ type_filter }}">
+    <input type="hidden" name="status" value="{{ status_filter }}">
+    <input type="search" name="q" value="{{ query }}" placeholder="Nom, prénom ou code…" aria-label="Rechercher un invité">
+    <button type="submit">Chercher</button>
+  </form>
+
+  <nav class="ge-tabs" aria-label="Filtres">
+    <a class="ge-tab {% if type_filter == 'all' and status_filter == 'all' %}is-active{% endif %}" href="?type=all&status=all{% if query %}&q={{ query }}{% endif %}">Tous</a>
+    <a class="ge-tab {% if type_filter == 'RECIPIENT' %}is-active{% endif %}" href="?type=RECIPIENT&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">Standard</a>
+    <a class="ge-tab {% if type_filter == 'VIP' %}is-active{% endif %}" href="?type=VIP&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">VIP</a>
+    <a class="ge-tab {% if status_filter == 'present' %}is-active{% endif %}" href="?type={{ type_filter }}&status=present{% if query %}&q={{ query }}{% endif %}">Présents</a>
+    <a class="ge-tab {% if status_filter == 'pending' %}is-active{% endif %}" href="?type={{ type_filter }}&status=pending{% if query %}&q={{ query }}{% endif %}">En attente</a>
+  </nav>
+
+  <div class="ge-card-list">
+    {% for g in guests %}
+    <a class="ge-list-card ge-guest-card" href="{% url 'invitation_detail' g.pk %}">
+      <div class="ge-list-card-main">
+        <div class="ge-list-avatar{% if g.is_vip %} is-vip{% endif %}" aria-hidden="true">{{ g.full_name|slice:":1"|upper }}</div>
+        <div>
+          <h2>{{ g.full_name }}</h2>
+          <p class="ge-muted">
+            <code>{{ g.code }}</code>
+            · {{ g.get_participant_type_display }}
+            · {{ g.places_used }}/{{ g.places }} places
+          </p>
+        </div>
+      </div>
+      <span class="ge-status ge-status-{{ g.invitation_lifecycle }}">
+        {% if g.invitation_lifecycle == "present" %}Présent
+        {% elif g.invitation_lifecycle == "sent" %}Envoyée
+        {% elif g.invitation_lifecycle == "generated" %}Générée
+        {% else %}À faire{% endif %}
+      </span>
+    </a>
+    {% empty %}
+    <div class="ge-empty">
+      <span class="ge-empty-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      </span>
+      {% if query or type_filter != "all" or status_filter != "all" %}
+      <h2>Aucun résultat</h2>
+      <p>Essayez un autre filtre ou une autre recherche.</p>
+      {% else %}
+      <h2>Aucun invité</h2>
+      <p>Partagez le lien d’inscription pour que les invités s’enregistrent, dans la limite de votre formule.</p>
+      <a class="ok-btn-dark" href="{% url 'event_invite_link' event.id %}">Préparer le lien</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if guests.has_other_pages %}
+  <nav class="ge-pagination" aria-label="Pagination">
+    {% if guests.has_previous %}
+    <a href="?page={{ guests.previous_page_number }}&type={{ type_filter }}&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">← Préc.</a>
+    {% endif %}
+    <span>{{ guests.number }} / {{ guests.paginator.num_pages }}</span>
+    {% if guests.has_next %}
+    <a href="?page={{ guests.next_page_number }}&type={{ type_filter }}&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">Suiv. →</a>
+    {% endif %}
+  </nav>
+  {% endif %}
+</main>
+{% endblock %}

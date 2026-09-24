@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Paiement — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-sheet-ui{% endblock %}
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Paiement" nav_active="events" %}
+<main class="ge-app ge-sheet-page ge-pay-hold">
+  <header class="ge-page-head">
+    <div>
+      <p class="ge-kicker">Paiement requis</p>
+      <h1>{{ event.name }}</h1>
+      <p class="ge-lead">L’espace événement reste fermé tant que le paiement n’est pas finalisé. Aucune invitation, scan ou modification n’est possible.</p>
+    </div>
+  </header>
+
+  <section class="ge-form-card">
+    <h2 class="ge-form-section-title">À régler</h2>
+    <div class="ge-pay-rows">
+      <div><span>Formule</span><strong>{{ plan.name|default:event.plan_name_snapshot|default:"—" }}</strong></div>
+      <div>
+        <span>Montant</span>
+        <strong>
+          {% if payment %}{{ payment.amount|floatformat:0 }} {{ payment.currency }}{% elif event.price_snapshot %}{{ event.price_snapshot|floatformat:0 }} {{ event.currency_snapshot }}{% else %}—{% endif %}
+        </strong>
+      </div>
+      <div><span>Statut</span><strong>En attente de paiement</strong></div>
+    </div>
+    <form method="post" class="ge-pay-hold-actions">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="pay">
+      <button type="submit" class="ok-btn-dark ge-auth-submit">Finaliser le paiement</button>
+    </form>
+  </section>
+
+  <section class="ge-form-card ge-danger-card">
+    <h2 class="ge-form-section-title">Ou abandonner</h2>
+    <p class="ge-muted">Supprimer définitivement cet événement non activé.</p>
+    <form method="post" action="{% url 'event_delete' event.id %}" onsubmit="return confirm('Supprimer « {{ event.name }} » ? Cette action est définitive.');">
+      {% csrf_token %}
+      <button type="submit" class="ge-danger-btn">Supprimer l’événement</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Lien d’invitation — {{ event.name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth ge-invite">
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm ge-invite-card">
+      <p class="ge-auth-kicker">{{ event.type_label }}</p>
+      {% if window_state == "upcoming" %}
+      <h1>Lien pas encore ouvert</h1>
+      <p class="ge-auth-lead">
+        Les inscriptions pour « {{ event.name }} » commencent
+        le {{ event.invite_valid_from|date:"d/m/Y" }}.
+      </p>
+      {% elif window_state == "ended" %}
+      <h1>Lien expiré</h1>
+      <p class="ge-auth-lead">
+        La période d’inscription pour « {{ event.name }} » est terminée.
+      </p>
+      {% elif window_state == "full" %}
+      <h1>Complet</h1>
+      <p class="ge-auth-lead">
+        {{ quota_message|default:"Le nombre d’invités prévu pour cet événement est atteint. Les inscriptions sont fermées." }}
+      </p>
+      {% else %}
+      <h1>Lien indisponible</h1>
+      <p class="ge-auth-lead">
+        Ce formulaire d’invitation n’est pas ouvert pour le moment.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</main>
+{% endblock %}

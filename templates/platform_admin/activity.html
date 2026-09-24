@@ -1,0 +1,29 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Activité — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Système</p>
+    <h1>Activité</h1>
+    <p class="cx-lead">Journal des actions administrateur.</p>
+  </div>
+</header>
+<section class="cx-card">
+  <div class="cx-table-wrap">
+  <table class="cx-table" data-zyz-kicker="Activité">
+    <thead><tr><th>Quand</th><th>Qui</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ log.actor|default:"—" }}</td>
+        <td>{{ log.summary }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3">Aucune activité.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

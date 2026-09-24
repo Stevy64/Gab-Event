@@ -1,0 +1,128 @@
+x-django-env: &django-env
+  POSTGRES_HOST: gabevent-db
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: ${POSTGRES_DB:-gabevent}
+  POSTGRES_USER: ${POSTGRES_USER:-gabevent}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword123}
+  REDIS_URL: redis://gabevent-redis:6379/0
+  CELERY_BROKER_URL: redis://gabevent-redis:6379/0
+  CELERY_RESULT_BACKEND: redis://gabevent-redis:6379/0
+  DJANGO_SETTINGS_MODULE: config.settings
+  DEBUG: ${DEBUG:-0}
+  SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+  ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,gabevent-web,gabevent-nginx}
+  CSRF_TRUSTED_ORIGINS: ${CSRF_TRUSTED_ORIGINS:-http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80}
+  PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://127.0.0.1}
+  BEHIND_PROXY: "1"
+
+services:
+  gabevent-db:
+    container_name: gabevent-db
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-gabevent}
+      POSTGRES_USER: ${POSTGRES_USER:-gabevent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpassword123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gabevent} -d ${POSTGRES_DB:-gabevent}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gabevent-redis:
+    container_name: gabevent-redis
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  gabevent-web:
+    container_name: gabevent-web
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *django-env
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    volumes:
+      - static_files:/app/staticfiles
+      - media_files:/app/media
+    depends_on:
+      gabevent-db:
+        condition: service_healthy
+      gabevent-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  gabevent-celery-worker:
+    container_name: gabevent-celery-worker
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *django-env
+    command: celery -A config worker -l info
+    depends_on:
+      gabevent-db:
+        condition: service_healthy
+      gabevent-redis:
+        condition: service_healthy
+      gabevent-web:
+        condition: service_healthy
+
+  gabevent-celery-beat:
+    container_name: gabevent-celery-beat
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *django-env
+    command: celery -A config beat -l info
+    depends_on:
+      gabevent-db:
+        condition: service_healthy
+      gabevent-redis:
+        condition: service_healthy
+      gabevent-web:
+        condition: service_healthy
+
+  gabevent-nginx:
+    container_name: gabevent-nginx
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - static_files:/app/staticfiles:ro
+      - media_files:/app/media:ro
+    depends_on:
+      gabevent-web:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  static_files:
+  media_files:

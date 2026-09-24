@@ -1,0 +1,198 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}Tableau de bord — Admin{% endblock %}
+{% block content %}
+<header class="zyz-top">
+  <div class="zyz-top-copy">
+    <p class="zyz-kicker">Administration</p>
+    <h1>Tableau de bord</h1>
+    <p class="zyz-lead">Événements, utilisateurs et encaissements — pilotage de toute la plateforme.</p>
+  </div>
+  <div class="zyz-top-cta">
+    <a class="zyz-btn zyz-btn-primary" href="{% url 'platform_admin_events' %}">
+      {% include "partials/admin_icon.html" with name="calendar" %}
+      Événements
+    </a>
+    <a class="zyz-btn zyz-btn-dark" href="{% url 'platform_admin_users' %}">
+      {% include "partials/admin_icon.html" with name="users" %}
+      Utilisateurs
+    </a>
+    <a class="zyz-btn zyz-btn-ghost" href="{% url 'platform_admin_payments' %}">
+      {% include "partials/admin_icon.html" with name="wallet" %}
+      Compta
+    </a>
+  </div>
+</header>
+
+<section class="zyz-metrics zyz-metrics-lg" aria-label="Indicateurs clés">
+  <div class="zyz-metric accent">
+    <span class="zyz-metric-ico">{% include "partials/admin_icon.html" with name="users" %}</span>
+    <span class="zyz-metric-label">Utilisateurs</span>
+    <strong data-count="{{ users_total }}">{{ users_total }}</strong>
+    <span class="zyz-metric-sub">{{ users_today }} aujourd’hui · {{ users_new }} / 30 j</span>
+  </div>
+  <div class="zyz-metric ok">
+    <span class="zyz-metric-ico">{% include "partials/admin_icon.html" with name="calendar" %}</span>
+    <span class="zyz-metric-label">Événements</span>
+    <strong data-count="{{ events_total }}">{{ events_total }}</strong>
+    <span class="zyz-metric-sub">{{ events_active }} actifs · {{ events_pending }} en paiement</span>
+  </div>
+  <div class="zyz-metric">
+    <span class="zyz-metric-ico">{% include "partials/admin_icon.html" with name="ticket" %}</span>
+    <span class="zyz-metric-label">Invitations</span>
+    <strong data-count="{{ invitations_total }}">{{ invitations_total }}</strong>
+    <span class="zyz-metric-sub">{{ invitations_vip }} VIP</span>
+  </div>
+  <div class="zyz-metric accent">
+    <span class="zyz-metric-ico">{% include "partials/admin_icon.html" with name="coin" %}</span>
+    <span class="zyz-metric-label">Revenus</span>
+    <strong data-count="{{ revenue|floatformat:0 }}">{{ revenue|floatformat:0 }}</strong>
+    <span class="zyz-metric-sub">{{ payments_success }} encaissés · {{ payments_pending }} en attente</span>
+  </div>
+</section>
+
+<div class="zyz-charts">
+  <section class="zyz-card zyz-chart-card">
+    <div class="zyz-card-head">
+      <div>
+        <p class="zyz-card-kicker">Volume</p>
+        <h3>Événements / jour</h3>
+      </div>
+      <a class="zyz-card-link" href="{% url 'platform_admin_events' %}">Détail {% include "partials/admin_icon.html" with name="arrow" %}</a>
+    </div>
+    <div class="zyz-bars" role="img" aria-label="Événements des 14 derniers jours">
+      {% for v in chart_events %}
+      <div class="zyz-bar" style="--i: {{ forloop.counter0 }}" title="{{ v.label }} : {{ v.n }} événement{{ v.n|pluralize }}">
+        <span class="zyz-bar-tip">{{ v.n }} · {{ v.label }}</span>
+        <div class="zyz-bar-track">
+          <div class="zyz-bar-fill" style="--h: {{ v.pct }}%;"></div>
+        </div>
+        <span class="zyz-bar-val">{{ v.n }}</span>
+        <span class="zyz-bar-lab">{{ v.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="zyz-card zyz-chart-card">
+    <div class="zyz-card-head">
+      <div>
+        <p class="zyz-card-kicker">Finance</p>
+        <h3>Encaissements / jour</h3>
+      </div>
+      <a class="zyz-card-link" href="{% url 'platform_admin_payments' %}">Compta {% include "partials/admin_icon.html" with name="arrow" %}</a>
+    </div>
+    <div class="zyz-bars zyz-bars-alt" role="img" aria-label="Paiements réussis des 14 derniers jours">
+      {% for row in chart_payments %}
+      <div class="zyz-bar" style="--i: {{ forloop.counter0 }}" title="{{ row.label }} : {{ row.t|default:0|floatformat:0 }}">
+        <span class="zyz-bar-tip">{{ row.t|default:0|floatformat:0 }} · {{ row.label }}</span>
+        <div class="zyz-bar-track">
+          <div class="zyz-bar-fill" style="--h: {{ row.pct }}%;"></div>
+        </div>
+        <span class="zyz-bar-val">{{ row.n }}</span>
+        <span class="zyz-bar-lab">{{ row.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+
+<section class="zyz-hero-actions" aria-label="Actions principales">
+  <a class="zyz-hero-card is-vip" href="{% url 'platform_admin_events' %}?status=pending_payment">
+    <div class="zyz-hero-card-top">
+      <span class="zyz-pill">Prioritaire</span>
+      <span class="zyz-hero-ico">{% include "partials/admin_icon.html" with name="wallet" %}</span>
+    </div>
+    <span class="zyz-hero-count" data-count="{{ events_pending }}">{{ events_pending }}</span>
+    <h2>Paiements en attente</h2>
+    <p>Événements payants encore bloqués.</p>
+    <span class="zyz-hero-go">Ouvrir {% include "partials/admin_icon.html" with name="arrow" %}</span>
+  </a>
+  <a class="zyz-hero-card" href="{% url 'platform_admin_users' %}">
+    <div class="zyz-hero-card-top">
+      <span class="zyz-pill soft">Comptes</span>
+      <span class="zyz-hero-ico">{% include "partials/admin_icon.html" with name="users" %}</span>
+    </div>
+    <span class="zyz-hero-count" data-count="{{ users_active }}">{{ users_active }}</span>
+    <h2>Utilisateurs actifs</h2>
+    <p>Organisateurs connectés sur 30 jours.</p>
+    <span class="zyz-hero-go">Ouvrir {% include "partials/admin_icon.html" with name="arrow" %}</span>
+  </a>
+  <a class="zyz-hero-card" href="{% url 'platform_admin_plans' %}">
+    <div class="zyz-hero-card-top">
+      <span class="zyz-pill soft">Tarifs</span>
+      <span class="zyz-hero-ico">{% include "partials/admin_icon.html" with name="tag" %}</span>
+    </div>
+    <span class="zyz-hero-count">€</span>
+    <h2>Formules</h2>
+    <p>Paramétrer les options et les prix.</p>
+    <span class="zyz-hero-go">Ouvrir {% include "partials/admin_icon.html" with name="arrow" %}</span>
+  </a>
+  <a class="zyz-hero-card" href="{% url 'platform_admin_settings' %}">
+    <div class="zyz-hero-card-top">
+      <span class="zyz-pill soft">Site</span>
+      <span class="zyz-hero-ico">{% include "partials/admin_icon.html" with name="sliders" %}</span>
+    </div>
+    <span class="zyz-hero-count">ID</span>
+    <h2>Identité</h2>
+    <p>Logo, accroche et visuels par défaut.</p>
+    <span class="zyz-hero-go">Ouvrir {% include "partials/admin_icon.html" with name="arrow" %}</span>
+  </a>
+</section>
+
+<div class="zyz-main-grid">
+  <section class="zyz-card">
+    <div class="zyz-card-head">
+      <div>
+        <p class="zyz-card-kicker">Live</p>
+        <h3>Derniers événements</h3>
+      </div>
+      <a class="zyz-card-link" href="{% url 'platform_admin_events' %}">Tout voir {% include "partials/admin_icon.html" with name="arrow" %}</a>
+    </div>
+    <div class="cx-table-wrap">
+    <table class="cx-table" data-zyz-list data-zyz-kicker="Événement">
+      <thead><tr><th>Nom</th><th>Organisateur</th><th>Statut</th></tr></thead>
+      <tbody>
+      {% for e in recent_events %}
+        <tr>
+          <td>
+            <a class="cx-idcell" href="{% url 'platform_admin_event' e.id %}">
+              <span class="cx-avatar" aria-hidden="true">{{ e.name|slice:":1"|upper }}</span>
+              <span>{{ e.name }}</span>
+            </a>
+          </td>
+          <td>{{ e.owner.get_full_name|default:e.owner.username }}</td>
+          <td><span class="cx-pill {% if e.status == 'active' %}is-ok{% elif e.status == 'pending_payment' %}is-warn{% else %}is-muted{% endif %}">{{ e.get_status_display }}</span></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="3">Aucun événement.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section class="zyz-card">
+    <div class="zyz-card-head">
+      <div>
+        <p class="zyz-card-kicker">Journal</p>
+        <h3>Activité récente</h3>
+      </div>
+      <a class="zyz-card-link" href="{% url 'platform_admin_activity' %}">Journal {% include "partials/admin_icon.html" with name="arrow" %}</a>
+    </div>
+    <ul class="zyz-feed">
+      {% for log in recent_logs %}
+      <li class="zyz-feed-item">
+        <span class="zyz-feed-dot" aria-hidden="true"></span>
+        <div>
+          <div class="zyz-feed-top">
+            <span class="zyz-feed-type">{{ log.actor|default:"Système" }}</span>
+          </div>
+          <p class="zyz-feed-label">{{ log.summary }}</p>
+        </div>
+        <span class="zyz-meta">{{ log.created_at|date:"d/m H:i" }}</span>
+      </li>
+      {% empty %}
+      <li class="zyz-empty-row">Aucune action admin pour le moment.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+<div class="cx-filebox{% if widget.preview_url %} has-file{% endif %}" data-filebox>
+  <label class="cx-filebox-preview" for="{{ widget.attrs.id }}">
+    {% if widget.preview_url %}
+    <img src="{{ widget.preview_url }}" alt="" data-filebox-img>
+    {% else %}
+    <img alt="" data-filebox-img hidden>
+    {% endif %}
+    <span class="cx-filebox-ph" data-filebox-ph aria-hidden="true"{% if widget.preview_url %} hidden{% endif %}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2.2"/><circle cx="12" cy="13" r="3.1"/><path d="M8.2 6l1.1-1.7h5.4L15.8 6"/></svg>
+    </span>
+  </label>
+  <div class="cx-filebox-meta">
+    <p class="cx-filebox-name" data-filebox-name>{% if widget.filename %}{{ widget.filename }}{% else %}Aucun fichier choisi{% endif %}</p>
+    <p class="cx-filebox-hint">JPG ou PNG · glissez une image ou cliquez pour choisir</p>
+    <div class="cx-filebox-actions">
+      <span class="cx-filebox-pick-wrap">
+        <input type="{{ widget.type|default:'file' }}" name="{{ widget.name }}"{% include "django/forms/widgets/attrs.html" %} data-filebox-input>
+        <span class="cx-filebox-pick" data-filebox-pick>
+          {% if widget.preview_url %}Remplacer{% else %}Choisir une image{% endif %}
+        </span>
+      </span>
+      {% if widget.preview_url %}
+      <a class="cx-filebox-dl" href="{{ widget.preview_url }}" download="{{ widget.filename }}">Télécharger</a>
+      {% endif %}
+      {% if widget.can_clear %}
+      <label class="cx-filebox-clear" data-filebox-clear-wrap>
+        <input type="checkbox" name="{{ widget.checkbox_name }}" id="{{ widget.checkbox_id }}" data-filebox-clear{% if widget.attrs.disabled %} disabled{% endif %}>
+        Retirer
+      </label>
+      {% endif %}
+    </div>
+  </div>
+</div>

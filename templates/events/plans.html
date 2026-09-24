@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Choisir une formule — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui{% endblock %}
+
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Formules" nav_active="create" %}
+<main class="ge-app ge-sheet-page">
+  <div class="ge-wizard">
+    <ol class="ge-steps" aria-label="Progression">
+      <li class="is-done"><span>✓</span> Type</li>
+      <li class="is-done"><span>✓</span> Infos</li>
+      <li class="is-active"><span>3</span> Formule</li>
+    </ol>
+
+    <header class="ge-sheet-hero">
+      <div class="ge-blob" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3l2.2 6.6H21l-5.4 4 2.1 6.4L12 16.8 6.3 20l2.1-6.4L3 9.6h6.8z"/></svg>
+      </div>
+      <p class="ge-kicker">Étape 3 sur 3</p>
+      <h1>Choisissez votre formule</h1>
+      <p class="ge-sheet-help">Estimation&nbsp;: ≈ {{ expected }} personnes{% if wizard.name %} pour « {{ wizard.name }} »{% endif %}.</p>
+    </header>
+
+    <form method="post" class="ge-plans-form" id="ge-plans-form" data-expected="{{ expected }}">
+      {% csrf_token %}
+      <div class="ge-plan-grid">
+        {% for plan in plans %}
+        <label class="ge-plan-card {% if plan.is_recommended %}is-featured{% endif %} {% if plan.is_free %}is-free{% endif %} {% if not plan.is_custom and plan.potential_total < expected %}is-tight{% endif %}"
+               data-name="{{ plan.name }}"
+               data-capacity="{{ plan.potential_total }}"
+               data-unlimited="{% if plan.is_custom %}1{% else %}0{% endif %}"
+               data-custom="{% if plan.is_custom %}1{% else %}0{% endif %}"
+               data-price="{% if plan.is_custom %}{{ plan.price_per_regular|floatformat:0 }} FCFA / std{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} FCFA{% endif %}">
+          <input type="radio" name="plan" value="{{ plan.id }}" required>
+          <header class="ge-plan-head">
+            <h3>{{ plan.name }}</h3>
+            {% if plan.is_recommended %}<span class="ok-badge">Recommandé</span>{% elif plan.is_popular %}<span class="ok-badge">Populaire</span>{% endif %}
+          </header>
+          <p class="ge-plan-price">
+            {% if plan.is_custom %}
+            <em>{{ plan.price_per_regular|floatformat:0 }}</em>
+            <small>FCFA / std</small>
+            {% elif plan.is_free or plan.price == 0 %}
+            <em>Gratuit</em>
+            {% else %}
+            <em>{{ plan.price|floatformat:"0g" }}</em>
+            <small>FCFA</small>
+            {% endif %}
+          </p>
+          {% if plan.is_custom %}
+          <p class="ge-plan-cap">{{ plan.price_per_vip|floatformat:0 }} FCFA / VIP · Au choix</p>
+          {% elif plan.total_invitation_limit %}
+          <p class="ge-plan-cap">Jusqu’à {{ plan.total_invitation_limit }} personnes</p>
+          {% else %}
+          <p class="ge-plan-cap">{{ plan.regular_invitation_limit }} · {{ plan.vip_invitation_limit }} VIP</p>
+          {% endif %}
+          <p class="ge-plan-life">{{ plan.lifetime_label }}</p>
+          <p class="ge-plan-desc">{{ plan.description }}</p>
+          <span class="ge-plan-check" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
+          </span>
+        </label>
+        {% empty %}
+        <p>Aucune formule disponible pour le moment.</p>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+</main>
+
+<div class="ge-bottom-sheet ge-wizard-sheet" id="ge-sheet-plan" role="dialog" aria-modal="true" aria-labelledby="ge-sheet-plan-title" hidden>
+  <div class="ge-sheet-handle" aria-hidden="true"></div>
+  <header class="ge-sheet-head">
+    <div>
+      <p class="ge-kicker">Confirmer</p>
+      <h2 id="ge-sheet-plan-title">Formule</h2>
+    </div>
+    <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <p class="ge-sheet-lead"><strong data-plan-name>—</strong> · <span data-plan-price>—</span></p>
+  <div class="ge-custom-window" id="ge-custom-window" hidden>
+    <p class="ge-muted">Définissez la fenêtre de validité de cet événement personnalisé. Il sera supprimé automatiquement à la date de fin.</p>
+    <div class="ge-studio-split">
+      <div class="ge-field">
+        <label for="id_validity_starts_on">Début</label>
+        <input type="date" name="validity_starts_on" id="id_validity_starts_on" form="ge-plans-form">
+      </div>
+      <div class="ge-field">
+        <label for="id_validity_ends_on">Fin</label>
+        <input type="date" name="validity_ends_on" id="id_validity_ends_on" form="ge-plans-form">
+      </div>
+    </div>
+  </div>
+  <div class="ge-sheet-actions">
+    <button type="button" class="ge-btn-ghost" data-sheet-close>Changer</button>
+    <button type="submit" form="ge-plans-form" class="ok-btn-dark">
+      Confirmer
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+    </button>
+  </div>
+</div>
+
+<div class="ge-bottom-sheet ge-wizard-sheet" id="ge-sheet-plan-tight" role="dialog" aria-modal="true" aria-labelledby="ge-sheet-plan-tight-title" hidden>
+  <div class="ge-sheet-handle" aria-hidden="true"></div>
+  <header class="ge-sheet-head">
+    <div>
+      <p class="ge-kicker">Capacité insuffisante</p>
+      <h2 id="ge-sheet-plan-tight-title">Formule trop petite</h2>
+    </div>
+    <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <p class="ge-sheet-lead" data-tight-copy></p>
+  <div class="ge-sheet-actions">
+    <a class="ge-btn-ghost" href="{% url 'event_create' %}?step=2">Modifier le nombre</a>
+    <button type="button" class="ok-btn-dark" data-sheet-close>Choisir une autre formule</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var form = document.getElementById('ge-plans-form');
+  var sheet = document.getElementById('ge-sheet-plan');
+  var tight = document.getElementById('ge-sheet-plan-tight');
+  if (!form || !sheet) return;
+  var expected = parseInt(form.getAttribute('data-expected') || '0', 10) || 0;
+  var nameEl = sheet.querySelector('[data-plan-name]');
+  var priceEl = sheet.querySelector('[data-plan-price]');
+  var copyEl = tight ? tight.querySelector('[data-tight-copy]') : null;
+
+  document.querySelectorAll('.ge-plan-card').forEach(function (card) {
+    var input = card.querySelector('input');
+    function select() {
+      input.checked = true;
+      document.querySelectorAll('.ge-plan-card').forEach(function (c) {
+        c.classList.toggle('is-selected', c.querySelector('input').checked);
+      });
+      var unlimited = card.getAttribute('data-unlimited') === '1';
+      var capacity = parseInt(card.getAttribute('data-capacity') || '0', 10) || 0;
+      if (!unlimited && capacity && expected > capacity) {
+        if (copyEl) {
+          copyEl.textContent = '« ' + (card.getAttribute('data-name') || 'Cette formule') +
+            ' » accepte jusqu’à ' + capacity + ' personnes, alors que vous avez indiqué ≈ ' +
+            expected + ' invités. Choisissez une formule supérieure, ou revenez à l’étape Infos pour ajuster le nombre.';
+        }
+        if (window.GeSheets) window.GeSheets.open(tight);
+        return;
+      }
+      var customBox = document.getElementById('ge-custom-window');
+      var isCustom = card.getAttribute('data-custom') === '1';
+      if (customBox) {
+        customBox.hidden = !isCustom;
+        customBox.querySelectorAll('input[type=date]').forEach(function (inp) {
+          inp.required = isCustom;
+        });
+      }
+      if (nameEl) nameEl.textContent = card.getAttribute('data-name') || '';
+      if (priceEl) priceEl.textContent = card.getAttribute('data-price') || '';
+      if (window.GeSheets) window.GeSheets.open(sheet);
+    }
+    input.addEventListener('change', select);
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      select();
+    });
+  });
+})();
+</script>
+{% endblock %}

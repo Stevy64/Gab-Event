@@ -1,0 +1,33 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}{% if plan %}{{ plan.name }}{% else %}Nouvelle formule{% endif %} — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Formules</p>
+    <h1>{% if plan %}Paramétrer {{ plan.name }}{% else %}Nouvelle formule{% endif %}</h1>
+  </div>
+</header>
+<section class="cx-card">
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+    <div class="cx-field">
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+      {{ field.errors }}
+    </div>
+    {% endfor %}
+    <div class="cx-actions">
+      <button class="cx-btn" type="submit">Enregistrer</button>
+      <a class="cx-btn-ghost" href="{% url 'platform_admin_plans' %}">Annuler</a>
+    </div>
+  </form>
+  {% if plan %}
+  <form method="post" action="{% url 'platform_admin_plan_delete' plan.id %}" style="margin-top:1.2rem" onsubmit="return confirm('Supprimer cette formule ?');">
+    {% csrf_token %}
+    <button class="cx-btn-danger" type="submit">Supprimer</button>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Paiements invités — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui{% endblock %}
+{% block content %}
+{% url 'event_invite_link' event.id as payments_back %}
+{% include "partials/event_nav.html" with nav_active="invite" back_url=payments_back back_label="Lien d’invitation" %}
+<main class="ge-app ge-sheet-page">
+  <header class="ge-page-head">
+    <a class="ge-level-back" href="{% url 'event_invite_link' event.id %}" aria-label="Retour au lien">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div>
+      <p class="ge-kicker">Transparence</p>
+      <h1>Paiements invités</h1>
+      <p class="ge-lead">
+        Encaissements SingPay, commission Gab Event et montant à vous reverser
+        {% if momo_ready %} — {{ momo_label }}{% else %} — confirmez votre numéro Mobile Money dans le profil{% endif %}.
+      </p>
+    </div>
+    <a class="ge-btn-ghost" href="{% url 'event_invite_link' event.id %}">Retour au lien</a>
+  </header>
+
+  <section class="ge-pay-metrics">
+    <article><span>Collecté</span><strong>{{ gross|floatformat:0 }}</strong></article>
+    <article><span>Commission Gab Event</span><strong>{{ commission|floatformat:0 }}</strong></article>
+    <article><span>À vous reverser</span><strong>{{ net|floatformat:0 }}</strong></article>
+  </section>
+
+  <section class="ge-form-card">
+    <div class="ge-table-wrap">
+      <table class="ge-table">
+        <thead>
+          <tr>
+            <th>Date</th><th>Invité</th><th>Type</th><th>Brut</th><th>Commission</th><th>Net</th><th>Statut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td>{{ p.created_at|date:"d/m H:i" }}</td>
+            <td>{{ p.full_name }}</td>
+            <td>{{ p.get_participant_type_display }}</td>
+            <td>{{ p.amount|floatformat:0 }} {{ p.currency }}</td>
+            <td>{{ p.commission_amount|floatformat:0 }} ({{ p.commission_rate }}%)</td>
+            <td>{{ p.net_amount|floatformat:0 }}</td>
+            <td>{{ p.get_status_display }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" class="ge-table-empty">Aucun paiement invité pour le moment.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}

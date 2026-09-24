@@ -1,0 +1,87 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Admin — Gab Event{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{% url 'brand_icon' %}?s=192{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=7">
+  <link rel="stylesheet" href="{% static 'css/console.css' %}?v=13">
+</head>
+<body class="cx page-admin">
+  <div class="cx-scrim" data-cx-nav-close hidden></div>
+  <aside class="cx-sidebar" data-cx-side>
+    <a class="cx-brand" href="{% url 'platform_admin' %}">
+      {% if site_logo %}
+      <img src="{{ site_logo }}" alt="">
+      {% else %}
+      <span class="cx-brand-mark" aria-hidden="true">{% include "partials/admin_icon.html" with name="spark" %}</span>
+      {% endif %}
+      <span class="cx-brand-copy">
+        <strong>Gab Event</strong>
+        <small>Console admin</small>
+      </span>
+    </a>
+    <button class="cx-collapse" type="button" data-cx-collapse aria-label="Réduire le menu" title="Réduire le menu">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    {% include "partials/admin_sidenav.html" %}
+    <div class="cx-sidefoot">
+      <a class="cx-nav-item" href="{% url 'my_events' %}" title="Retour au site">
+        <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="globe" %}</span>
+        <span>Retour au site</span>
+      </a>
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="cx-nav-item" type="submit" title="Déconnexion">
+          <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="logout" %}</span>
+          <span>Déconnexion</span>
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  <div class="cx-app">
+    <header class="cx-topbar">
+      <button class="cx-burger" type="button" data-cx-nav aria-label="Ouvrir le menu">
+        <span></span><span></span><span></span>
+      </button>
+      <a class="cx-brand cx-brand-mobile" href="{% url 'platform_admin' %}">
+        {% if site_logo %}
+        <img src="{{ site_logo }}" alt="">
+        {% else %}
+        <span class="cx-brand-mark" aria-hidden="true">{% include "partials/admin_icon.html" with name="spark" %}</span>
+        {% endif %}
+        <span>
+          <strong>Gab Event</strong>
+          <small>Administration</small>
+        </span>
+      </a>
+      <div class="cx-usertools">
+        <span class="zyz-userchip">
+          <span class="cx-avatar cx-avatar-sm" aria-hidden="true">{{ request.user.get_full_name|default:request.user.username|slice:":1"|upper }}</span>
+          {{ request.user.get_full_name|default:request.user.username }}
+        </span>
+        <a class="cx-ghost-link" href="{% url 'my_events' %}">Site</a>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+          <button type="submit">Déconnexion</button>
+        </form>
+      </div>
+    </header>
+    <main class="cx-main zyz-shell">
+      {% if messages %}
+        {% for message in messages %}
+        <div class="cx-flash{% if 'error' in message.tags %} cx-flash-error{% endif %}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% include "partials/admin_modal.html" %}
+  <script src="{% static 'js/console.js' %}?v=8"></script>
+</body>
+</html>

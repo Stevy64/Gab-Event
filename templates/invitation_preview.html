@@ -1,26 +1,49 @@
 {% extends "base.html" %}
-
 {% block title %}Invitation — {{ invitation.full_name }}{% endblock %}
-{% block body_class %}page-admin{% endblock %}
-
+{% block body_class %}page-app page-event page-preview{% endblock %}
+{% block extra_head %}
+<style>
+@media print {
+  .ge-app-top, .ge-dock, .ge-sheet-backdrop, .ge-bottom-sheet, .ge-preview-actions, .ge-preview-wait, .ge-level-back { display: none !important; }
+  .page-app { padding: 0 !important; background: #fff !important; }
+  .ge-preview-card { box-shadow: none !important; border: none !important; }
+  .ge-preview-img { opacity: 1 !important; }
+}
+</style>
+{% endblock %}
 {% block content %}
-<main class="admin-shell">
-  {% include "partials/admin_nav.html" with admin_kicker=invitation.get_participant_type_display admin_title=invitation.full_name nav_active="dash" %}
-
-  <section class="admin-card" style="text-align:center">
-    <p class="admin-kicker">{{ ceremony.title }}</p>
-    <h2 class="admin-detail-name" style="margin:0.35rem 0 0.75rem">{{ ceremony.subtitle }}</h2>
-    {% if invitation.is_vip %}<span class="admin-badge is-warn">VIP</span>{% endif %}
-    <p class="admin-help">{{ invitation.category }} · {{ invitation.places }} place{{ invitation.places|pluralize }}</p>
-    <p><code>{{ invitation.code }}</code></p>
-    <p class="admin-help">{{ ceremony.date }} · {{ ceremony.time }} · {{ ceremony.venue }}</p>
-    <img src="{% url 'invitation_download' invitation.pk %}?inline=1"
-         alt="Invitation {{ invitation.code }}"
-         style="width:min(100%,360px);margin:1rem auto;border-radius:16px;box-shadow:var(--shadow)">
-    <div class="admin-actions" style="justify-content:center;margin-top:1rem">
-      <a class="btn btn-primary" id="btn-download" href="{% url 'invitation_download' invitation.pk %}">Télécharger</a>
-      <button type="button" class="btn btn-soft" id="btn-share">Partager</button>
-      <button type="button" class="btn btn-soft" onclick="window.print()">Imprimer</button>
+{% url 'invitation_detail' invitation.pk as preview_back %}
+{% include "partials/event_nav.html" with event=invitation.event nav_active="invitations" back_url=preview_back back_label="Fiche invitation" %}
+<main class="ge-app ge-preview-page">
+  <section class="ge-form-card ge-preview-card">
+    <header class="ge-preview-head">
+      <a class="ge-level-back" href="{% url 'invitation_detail' invitation.pk %}" aria-label="Retour à la fiche">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      </a>
+      <div>
+        <h1>{{ invitation.full_name }}</h1>
+        <p class="ge-lead">{{ ceremony.date }} · {{ ceremony.time }} · {{ ceremony.venue }}</p>
+      </div>
+    </header>
+    <div class="ge-preview-meta">
+      {% if invitation.is_vip %}<span class="ge-preview-chip is-vip">VIP</span>{% endif %}
+      <span class="ge-preview-chip">{{ invitation.places }} place{{ invitation.places|pluralize }}</span>
+      <span class="ge-preview-chip ge-preview-code">{{ invitation.code }}</span>
+    </div>
+    <div class="ge-action-grid ge-preview-actions">
+      <a class="ok-btn-dark" id="btn-download" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>Télécharger</a>
+      <button type="button" class="ge-btn-ghost" id="btn-share">Partager</button>
+      <button type="button" class="ge-btn-ghost" onclick="window.print()">Imprimer</button>
+    </div>
+    <div class="ge-preview-frame" data-preview-frame>
+      <div class="ge-preview-wait" data-preview-wait>
+        <span class="ge-preview-ring" aria-hidden="true"></span>
+        <p>Préparation du billet…</p>
+      </div>
+      <img class="ge-preview-img"
+           src="{% url 'invitation_download' invitation.pk %}?inline=1"
+           alt="Invitation {{ invitation.code }}"
+           data-preview-img>
     </div>
   </section>
 </main>
@@ -29,25 +52,43 @@
 {% block extra_js %}
 <script>
 (function () {
-  const btn = document.getElementById("btn-share");
+  var frame = document.querySelector("[data-preview-frame]");
+  var img = document.querySelector("[data-preview-img]");
+  var wait = document.querySelector("[data-preview-wait]");
+  function ready() {
+    if (frame) frame.classList.add("is-ready");
+    if (wait) wait.hidden = true;
+    if (img) img.classList.add("is-on");
+  }
+  function fail() {
+    if (wait) {
+      wait.hidden = false;
+      var p = wait.querySelector("p");
+      if (p) p.textContent = "Impossible de charger le billet.";
+      var ring = wait.querySelector(".ge-preview-ring");
+      if (ring) ring.hidden = true;
+    }
+  }
+  if (img) {
+    if (img.complete && img.naturalWidth) ready();
+    else {
+      img.addEventListener("load", ready);
+      img.addEventListener("error", fail);
+    }
+  }
+  var btn = document.getElementById("btn-share");
   if (!btn || !navigator.share) {
     if (btn) btn.hidden = true;
     return;
   }
-  btn.addEventListener("click", async () => {
+  btn.addEventListener("click", async function () {
     try {
-      const url = document.getElementById("btn-download").href;
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const file = new File([blob], "invitation.png", { type: "image/png" });
-      await navigator.share({
-        title: "Invitation",
-        text: "Invitation cérémonie",
-        files: [file],
-      });
-    } catch (e) {
-      console.warn(e);
-    }
+      var url = document.getElementById("btn-download").href;
+      var res = await fetch(url);
+      var blob = await res.blob();
+      var file = new File([blob], "invitation.png", { type: "image/png" });
+      await navigator.share({ title: "Invitation", text: "Invitation", files: [file] });
+    } catch (e) {}
   });
 })();
 </script>

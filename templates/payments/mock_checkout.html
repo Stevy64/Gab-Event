@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Paiement — Gab Event{% endblock %}
+{% block body_class %}page-app{% endblock %}
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Paiement" nav_active="create" %}
+<main class="ge-app">
+  <header class="ge-page-head">
+    <div>
+      <p class="ge-kicker">Simulation</p>
+      <h1>Paiement</h1>
+      <p class="ge-lead">Environnement de développement uniquement.</p>
+    </div>
+  </header>
+
+  <div class="ge-form-card">
+    <div class="ge-pay-rows">
+      <div><span>Événement</span><strong>{{ payment.event.name }}</strong></div>
+      <div><span>Formule</span><strong>{{ payment.plan.name }}</strong></div>
+      <div><span>Montant</span><strong>{{ payment.amount }} {{ payment.currency }}</strong></div>
+    </div>
+    <form method="post" style="margin-top:1.25rem">
+      {% csrf_token %}
+      <button class="ok-btn-dark ge-auth-submit" type="submit">Simuler le paiement réussi</button>
+    </form>
+  </div>
+</main>
+{% endblock %}

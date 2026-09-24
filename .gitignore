@@ -17,6 +17,9 @@ env/
 db.sqlite3
 staticfiles/
 media/
+celerybeat-schedule
+celerybeat-schedule.*
+*.pid
 
 # Generated artefacts
 generated_qr/*.png

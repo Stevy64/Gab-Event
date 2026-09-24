@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Inscription — {{ event.name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth ge-invite">
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm ge-invite-card">
+      <div class="ge-invite-ornament" aria-hidden="true">
+        <span class="ge-invite-corner ge-invite-tl"></span>
+        <span class="ge-invite-corner ge-invite-tr"></span>
+        <span class="ge-invite-corner ge-invite-bl"></span>
+        <span class="ge-invite-corner ge-invite-br"></span>
+      </div>
+      <header class="ge-invite-head">
+        <div class="welcome-blob ge-invite-blob" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="#8A7040" stroke-width="1.8"><path d="M5 12l5 5L20 7"/></svg>
+        </div>
+      {% if failed %}
+      <p class="ge-auth-kicker">Paiement</p>
+      <h1>Paiement non abouti</h1>
+      <p class="ge-auth-lead">Vous pouvez réessayer depuis le lien d’invitation.</p>
+      <p class="ge-auth-foot"><a href="{% url 'public_invite' event.invite_token %}">Réessayer</a></p>
+      {% else %}
+      <p class="ge-auth-kicker">C’est noté</p>
+      <h1>Inscription enregistrée</h1>
+      <p class="ge-auth-lead ge-invite-important"><strong>Important !</strong> Veuillez télécharger votre billet d’invitation qui sera scanné à l’entrée.</p>
+      {% if code %}<p class="ge-muted">Code : <strong>{{ code }}</strong></p>{% endif %}
+      {% if invitation %}
+      <div class="ge-invite-downloads">
+        <a class="ok-btn-dark" href="{% url 'public_invite_card' event.invite_token %}?fmt=png" data-ge-download data-no-loader download>Télécharger PNG</a>
+        <a class="ge-btn-ghost" href="{% url 'public_invite_card' event.invite_token %}?fmt=pdf" data-ge-download data-no-loader download>Télécharger PDF</a>
+      </div>
+      {% endif %}
+      {% endif %}
+      </header>
+      <p class="ge-auth-foot ge-invite-foot">
+        <a href="{% url 'faq' %}" data-sheet="ge-sheet-faq">FAQ</a>
+        <span aria-hidden="true">·</span>
+        <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" title="Conditions générales d’utilisation">CGU</a>
+      </p>
+    </div>
+  </div>
+  {% include "partials/legal_sheets.html" %}
+</main>
+{% endblock %}

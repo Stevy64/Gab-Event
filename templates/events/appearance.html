@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Apparence — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
+{% block content %}
+{% include "partials/event_nav.html" with nav_active="appearance" %}
+<main class="ge-app ge-style" style="--event-color: {{ event.display_primary_color }};">
+  <header class="ge-page-head">
+    <div>
+      <p class="ge-kicker">Personnalisation</p>
+      <h1>Apparence</h1>
+      <p class="ge-lead">Flyer, logo et couleur — ce que vos invités voient.</p>
+    </div>
+  </header>
+
+  <section class="ge-style-preview" aria-label="Aperçu">
+    <div class="ge-style-hero" data-style-hero>
+      <div class="ge-style-hero-photo" data-style-flyer>
+        {% if event.has_custom_cover %}
+        <img src="{{ event.flyer.url }}" alt="Flyer actuel">
+        {% endif %}
+      </div>
+      <div class="ge-style-hero-copy">
+        <img class="ge-style-hero-logo{% if not event.has_custom_logo %} is-empty{% endif %}" data-style-logo{% if event.has_custom_logo %} src="{{ event.logo.url }}"{% endif %} alt="">
+        <p>{{ event.type_label }}</p>
+        <strong>{{ event.name }}</strong>
+      </div>
+    </div>
+  </section>
+
+  <form method="post" enctype="multipart/form-data" class="ge-style-form" data-style-form>
+    {% csrf_token %}
+
+    <section class="ge-form-card">
+      <h2 class="ge-form-section-title">Visuels</h2>
+      <div class="ge-style-uploads">
+        <label class="ge-upload">
+          <span class="ge-upload-frame" data-style-flyer-thumb>
+            {% if event.has_custom_cover %}
+            <img src="{{ event.flyer.url }}" alt="">
+            {% else %}
+            <span class="ge-upload-ph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 13l2.5-3 3 3.5L16 11l3 4"/></svg>
+            </span>
+            {% endif %}
+          </span>
+          <span class="ge-upload-meta">
+            <strong>Flyer</strong>
+            <small>Image principale de votre événement · JPG, PNG</small>
+          </span>
+          {{ form.flyer }}
+          {% if form.flyer.errors %}<span class="ge-field-err">{{ form.flyer.errors.0 }}</span>{% endif %}
+        </label>
+
+        <label class="ge-upload ge-upload-logo">
+          <span class="ge-upload-frame is-round" data-style-logo-thumb>
+            {% if event.has_custom_logo %}
+            <img src="{{ event.logo.url }}" alt="">
+            {% else %}
+            <span class="ge-upload-ph" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="3.2"/><path d="M5 19a7 7 0 0114 0"/></svg>
+            </span>
+            {% endif %}
+          </span>
+          <span class="ge-upload-meta">
+            <strong>Logo</strong>
+            <small>Carré de préférence</small>
+          </span>
+          {{ form.logo }}
+          {% if form.logo.errors %}<span class="ge-field-err">{{ form.logo.errors.0 }}</span>{% endif %}
+        </label>
+      </div>
+    </section>
+
+    <section class="ge-form-card">
+      <h2 class="ge-form-section-title">Identité</h2>
+      <div class="ge-field ge-color-row">
+        <label for="{{ form.primary_color.id_for_label }}">Couleur principale</label>
+        <div class="ge-color-wrap">
+          {{ form.primary_color }}
+          <span class="ge-color-hex" data-style-hex>{{ event.display_primary_color }}</span>
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.welcome_text.id_for_label }}">Message d’accueil</label>
+        {{ form.welcome_text }}
+        {% if form.welcome_text.errors %}<span class="ge-field-err">{{ form.welcome_text.errors.0 }}</span>{% endif %}
+      </div>
+      <label class="ge-check-card {% if form.show_on_homepage.errors %}has-error{% endif %}">
+        <span class="ge-check-input">{{ form.show_on_homepage }}</span>
+        <span class="ge-check-body">
+          <strong>{{ form.show_on_homepage.label }}</strong>
+          <small>{{ form.show_on_homepage.help_text }}</small>
+          {% if form.show_on_homepage.errors %}
+          <span class="ge-field-err">{{ form.show_on_homepage.errors.0 }}</span>
+          {% endif %}
+        </span>
+      </label>
+    </section>
+
+    <button type="submit" class="ok-btn-dark ge-auth-submit">Enregistrer l’apparence</button>
+  </form>
+</main>
+{% endblock %}

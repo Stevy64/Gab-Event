@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Informations événement — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui{% endblock %}
+
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Créer un événement" nav_active="create" %}
+<main class="ge-app ge-sheet-page ge-studio">
+  <div class="ge-wizard">
+    <ol class="ge-steps" aria-label="Progression">
+      <li class="is-done"><span>✓</span> Type</li>
+      <li class="is-active"><span>2</span> Infos</li>
+      <li><span>3</span> Formule</li>
+    </ol>
+
+    <header class="ge-sheet-hero">
+      <div class="ge-blob" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      </div>
+      <p class="ge-kicker">Étape 2 sur 3</p>
+      <h1>Informations essentielles</h1>
+      <p class="ge-sheet-help">Nom, date, lieu et estimation d’invités pour proposer la bonne formule.</p>
+    </header>
+
+    <form method="post" class="ge-form-card ge-studio-card">
+      {% csrf_token %}
+      <input type="hidden" name="step" value="2">
+      {% if form.non_field_errors %}
+      <div class="ge-auth-errors">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="ge-field">
+        <label for="{{ form.name.id_for_label }}">Nom de l’événement</label>
+        {{ form.name }}
+        {% if form.name.errors %}<span class="ge-field-err">{{ form.name.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="ge-studio-split">
+        <div class="ge-field">
+          <label for="{{ form.date.id_for_label }}">Date</label>
+          {{ form.date }}
+          {% if form.date.errors %}<span class="ge-field-err">{{ form.date.errors.0 }}</span>{% endif %}
+        </div>
+        <div class="ge-field">
+          <label for="{{ form.start_time.id_for_label }}">Heure</label>
+          {{ form.start_time }}
+          {% if form.start_time.errors %}<span class="ge-field-err">{{ form.start_time.errors.0 }}</span>{% endif %}
+        </div>
+      </div>
+
+      <div class="ge-field">
+        <label for="{{ form.venue.id_for_label }}">Lieu</label>
+        {{ form.venue }}
+        {% if form.venue.errors %}<span class="ge-field-err">{{ form.venue.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="ge-field">
+        <label for="{{ form.expected_guests.id_for_label }}">Nombre d’invités (estimation)</label>
+        {{ form.expected_guests }}
+        {% if form.expected_guests.errors %}<span class="ge-field-err">{{ form.expected_guests.errors.0 }}</span>{% endif %}
+      </div>
+
+      <div class="ge-field">
+        <label for="{{ form.description.id_for_label }}">Description <span class="ge-opt">(optionnel)</span></label>
+        {{ form.description }}
+      </div>
+
+      <div class="ge-wizard-actions">
+        <a class="ge-btn-ghost" href="{% url 'event_create' %}">Retour</a>
+        <button type="submit" class="ok-btn-dark">
+          Voir les formules
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}

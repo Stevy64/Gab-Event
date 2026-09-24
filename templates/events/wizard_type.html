@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Créer un événement — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui{% endblock %}
+
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Créer un événement" nav_active="create" %}
+<main class="ge-app ge-sheet-page">
+  <div class="ge-wizard">
+    <ol class="ge-steps" aria-label="Progression">
+      <li class="is-active"><span>1</span> Type</li>
+      <li><span>2</span> Infos</li>
+      <li><span>3</span> Formule</li>
+    </ol>
+
+    <header class="ge-sheet-hero">
+      <div class="ge-blob" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      </div>
+      <p class="ge-kicker">Étape 1 sur 3</p>
+      <h1>Quel événement organisez-vous&nbsp;?</h1>
+      <p class="ge-sheet-help">Commencez par un type classique. Personnalisé n’apparaît qu’à la demande.</p>
+    </header>
+
+    <form method="post" class="ge-type-form" id="ge-type-form">
+      {% csrf_token %}
+      <input type="hidden" name="step" value="1">
+      {% if form.event_type.errors %}
+      <div class="ge-auth-errors">{{ form.event_type.errors.0 }}</div>
+      {% endif %}
+
+      <div class="ge-type-grid" role="radiogroup" aria-label="Type d'événement">
+        {% for value, label in form.event_type.field.choices %}
+        <label class="ge-type-card {% if form.event_type.value == value %}is-selected{% endif %}" data-label="{{ label }}" data-type="{{ value }}">
+          <input type="radio" name="event_type" value="{{ value }}" required
+            {% if form.event_type.value == value %}checked{% endif %}>
+          <span class="ge-type-ico" aria-hidden="true">
+            {% if value == "wedding" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 11c0 5.6-7 10-7 10z"/></svg>
+            {% elif value == "birthday" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21H4v-8a2 2 0 012-2h12a2 2 0 012 2v8z"/><path d="M12 3v8M8 7h8"/></svg>
+            {% elif value == "conference" or value == "professional" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+            {% elif value == "gala" or value == "ceremony" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.4 7.2H22l-6 4.4 2.3 7.1L12 16.8 5.7 20.7 8 13.6 2 9.2h7.6L12 2z"/></svg>
+            {% elif value == "graduation" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 10L12 5 2 10l10 5 10-5z"/><path d="M6 12v5c0 1 3 3 6 3s6-2 6-3v-5"/></svg>
+            {% elif value == "reception" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 21h8M12 17v4M6 3h12l-1 10H7L6 3z"/></svg>
+            {% elif value == "other" %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>
+            {% else %}
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            {% endif %}
+          </span>
+          <span class="ge-type-label">{{ label }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </form>
+  </div>
+</main>
+
+<div class="ge-bottom-sheet ge-wizard-sheet" id="ge-sheet-type" role="dialog" aria-modal="true" aria-labelledby="ge-sheet-type-title" hidden>
+  <div class="ge-sheet-handle" aria-hidden="true"></div>
+  <header class="ge-sheet-head">
+    <div>
+      <p class="ge-kicker">Étape suivante</p>
+      <h2 id="ge-sheet-type-title">Type sélectionné</h2>
+    </div>
+    <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <p class="ge-sheet-lead">Vous avez choisi <strong data-selected-type>—</strong>.</p>
+  <div class="ge-custom-type" data-custom-type {% if form.event_type.value != "other" %}hidden{% endif %}>
+    <label for="{{ form.event_type_custom.id_for_label }}">Nommez ce type</label>
+    {{ form.event_type_custom }}
+    {% if form.event_type_custom.errors %}<span class="ge-field-err">{{ form.event_type_custom.errors.0 }}</span>{% endif %}
+    <div class="ge-suggest" aria-label="Suggestions">
+      <button type="button" data-type-suggest="Noël">Noël</button>
+      <button type="button" data-type-suggest="Nouvel an">Nouvel an</button>
+      <button type="button" data-type-suggest="Baptême">Baptême</button>
+      <button type="button" data-type-suggest="Baby shower">Baby shower</button>
+    </div>
+  </div>
+  <div class="ge-sheet-actions">
+    <button type="button" class="ge-btn-ghost" data-sheet-close>Changer</button>
+    <button type="submit" form="ge-type-form" class="ok-btn-dark">
+      Continuer
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  var form = document.getElementById('ge-type-form');
+  var sheet = document.getElementById('ge-sheet-type');
+  var labelEl = sheet && sheet.querySelector('[data-selected-type]');
+  var customBox = sheet && sheet.querySelector('[data-custom-type]');
+  var customInput = document.getElementById('{{ form.event_type_custom.id_for_label }}');
+  if (!form || !sheet) return;
+
+  function isOther(value) { return value === 'other'; }
+
+  function syncCustom(value, label) {
+    var other = isOther(value);
+    if (customBox) customBox.hidden = !other;
+    if (customInput) {
+      customInput.required = other;
+      if (!other) customInput.value = '';
+    }
+    if (labelEl) labelEl.textContent = other ? (customInput && customInput.value.trim() || 'un type personnalisé') : (label || 'ce type');
+  }
+
+  function openTypeSheet(card) {
+    var input = card.querySelector('input');
+    var label = card.getAttribute('data-label');
+    syncCustom(input && input.value, label);
+    if (window.GeSheets) window.GeSheets.open(sheet);
+    else {
+      sheet.hidden = false;
+      requestAnimationFrame(function () { sheet.classList.add('is-open'); });
+    }
+    if (isOther(input && input.value) && customInput) {
+      setTimeout(function () { customInput.focus(); }, 220);
+    }
+  }
+
+  document.querySelectorAll('.ge-type-card').forEach(function (card) {
+    var input = card.querySelector('input');
+    function select() {
+      input.checked = true;
+      document.querySelectorAll('.ge-type-card').forEach(function (c) {
+        c.classList.toggle('is-selected', c.querySelector('input').checked);
+      });
+      openTypeSheet(card);
+    }
+    input.addEventListener('change', function () { select(); });
+    card.addEventListener('click', function (e) {
+      e.preventDefault();
+      select();
+    });
+  });
+
+  document.querySelectorAll('[data-type-suggest]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      if (!customInput) return;
+      customInput.value = btn.getAttribute('data-type-suggest') || '';
+      if (labelEl) labelEl.textContent = customInput.value;
+      customInput.focus();
+    });
+  });
+
+  if (customInput) {
+    customInput.addEventListener('input', function () {
+      if (labelEl && customBox && !customBox.hidden) {
+        labelEl.textContent = customInput.value.trim() || 'un type personnalisé';
+      }
+    });
+  }
+
+  var params = new URLSearchParams(window.location.search);
+  var selected = form.querySelector('input[name=event_type]:checked');
+  if (selected) {
+    var card = selected.closest('.ge-type-card');
+    var hasCustomErr = customBox && customBox.querySelector('.ge-field-err');
+    if (card && (hasCustomErr || (isOther(selected.value) && params.get('type') === 'other'))) {
+      openTypeSheet(card);
+    }
+  }
+})();
+</script>
+{% endblock %}

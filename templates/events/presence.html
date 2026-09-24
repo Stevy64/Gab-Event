@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Présences — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
+{% block content %}
+{% include "partials/event_nav.html" with nav_active="presence" %}
+<main class="ge-app ge-studio ge-presence">
+  <header class="ge-studio-head">
+    <div class="ge-studio-head-row">
+      <div>
+        <p class="ge-kicker">Jour J</p>
+        <h1>Présences</h1>
+      </div>
+      <a class="ge-btn-ghost ge-btn-compact" href="{% url 'event_export' event.id %}">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg>
+        Exporter
+      </a>
+    </div>
+    <p class="ge-lead">Entrées validées et dernières arrivées.</p>
+  </header>
+
+  <div class="ge-dash-cards ge-hub-stats ge-presence-stats">
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16"/><path d="M12 4v16"/><circle cx="12" cy="12" r="9"/></svg>
+      </span>
+      <strong data-ge-count="{{ stats.places_admitted }}">0</strong>
+      <span>Entrées</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </span>
+      <strong data-ge-count="{{ stats.places_expected }}">0</strong>
+      <span>Attendues</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      </span>
+      <strong data-ge-count="{{ stats.presence_rate|default:0 }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
+      <span>Taux</span>
+    </article>
+  </div>
+
+  {% if stats.admissions_chart %}
+  <section class="ge-dash-panel">
+    <header class="ge-dash-panel-head">
+      <h2>Cette semaine</h2>
+      <p>Entrées validées, jour par jour</p>
+    </header>
+    <div class="ge-dash-week" role="img" aria-label="Activité des 7 derniers jours">
+      {% for row in stats.admissions_chart %}
+      <div class="ge-dash-week-col">
+        <span class="ge-dash-week-bar"><i style="height: {{ row.pct }}%"></i></span>
+        <small>{{ row.label }}</small>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="ge-form-card ge-studio-card ge-presence-feed">
+    <header class="ge-studio-card-head">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+      </span>
+      <div>
+        <h2>Dernières entrées</h2>
+        <p>{% if stats.recent_scans %}Les 30 plus récentes{% else %}Aucune entrée pour le moment{% endif %}</p>
+      </div>
+    </header>
+
+    {% if stats.recent_scans %}
+    <ul class="ge-presence-list">
+      {% for a in stats.recent_scans %}
+      <li>
+        <div class="ge-list-avatar" aria-hidden="true">{{ a.invitation.full_name|slice:":1"|upper }}</div>
+        <div class="ge-presence-who">
+          <strong>{{ a.invitation.full_name }}</strong>
+          <small>
+            <code>{{ a.invitation.code }}</code>
+            {% if a.invitation.is_vip %} · VIP{% endif %}
+            · +{{ a.persons }}
+            {% if a.agent %} · {{ a.agent }}{% endif %}
+          </small>
+        </div>
+        <time datetime="{{ a.admitted_at|date:'c' }}">{{ a.admitted_at|date:"H:i" }}</time>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="ge-empty ge-presence-empty">
+      <span class="ge-empty-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+      </span>
+      <p>Ouvrez le scanner pour enregistrer les premières arrivées.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <a class="ge-dash-action is-primary" href="{% url 'home' %}?scan=1&event={{ event.id }}">
+    <span class="ge-dash-action-ico" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+    </span>
+    <span>
+      <strong>Ouvrir le scanner</strong>
+      <small>Valider une invitation à l’entrée</small>
+    </span>
+  </a>
+</main>
+{% endblock %}

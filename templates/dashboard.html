@@ -18,7 +18,6 @@
     </div>
     <div class="zyz-top-cta">
       <a class="zyz-btn zyz-btn-primary" href="{% url 'home' %}?scan=1">Scanner</a>
-      <a class="zyz-btn zyz-btn-dark" href="{% url 'import_excel' %}">Import</a>
       <a class="zyz-btn zyz-btn-ghost" href="{% url 'export_report' %}">Export</a>
       <form method="post" action="{% url 'logout' %}" class="inline-form">
         {% csrf_token %}
@@ -69,14 +68,14 @@
       <p>Retrouver un invité par nom, catégorie ou code.</p>
       <span class="zyz-hero-go">Ouvrir →</span>
     </a>
-    <a class="zyz-hero-card" href="{% url 'import_excel' %}">
+    <a class="zyz-hero-card" href="{% url 'export_report' %}">
       <div class="zyz-hero-card-top">
         <span class="zyz-pill soft">Data</span>
         <span class="zyz-hero-count">XLS</span>
       </div>
-      <h2>Import Excel</h2>
-      <p>Charger ou mettre à jour la liste des invitations.</p>
-      <span class="zyz-hero-go">Ouvrir →</span>
+      <h2>Export Excel</h2>
+      <p>Télécharger la liste des invitations pour un usage hors ligne.</p>
+      <span class="zyz-hero-go">Télécharger →</span>
     </a>
     <a class="zyz-hero-card" href="{% url 'dashboard' %}#guests">
       <div class="zyz-hero-card-top">

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Mes événements — Gab Event{% endblock %}
+{% block body_class %}page-app page-hub page-sheet-ui{% endblock %}
+
+{% block content %}
+{% include "partials/user_nav.html" with nav_active="events" admin_title="Mes événements" %}
+<main class="ge-hub ge-sheet-page">
+  <section class="ge-hub-flaque">
+    <div class="ge-petals" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+    </div>
+    <div class="ge-hub-flaque-inner">
+      <div class="ge-hub-flaque-copy">
+        <p class="ge-hub-hello">{{ hello }}{% if first_name %}, {{ first_name }}{% endif %}</p>
+        <h1>Vos événements</h1>
+        <p class="ge-hub-lede">Gérez vos événements, invitations et activités — tout au même endroit.</p>
+      </div>
+
+      <div class="ge-dash-cards ge-hub-stats">
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          </span>
+          <strong data-ge-count="{{ hub.events }}">0</strong>
+          <span>Événements</span>
+        </article>
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+          </span>
+          <strong data-ge-count="{{ hub.invitations }}">0</strong>
+          <span>Invitations</span>
+        </article>
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+          </span>
+          <strong data-ge-count="{{ hub.present }}">0</strong>
+          <span>Présents</span>
+        </article>
+      </div>
+
+      <form method="get" class="ge-hub-search" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+        <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un événement…" aria-label="Rechercher">
+        <button type="submit">Chercher</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="ge-hub-body">
+  {% if q %}<p class="ge-muted ge-hub-results">Résultats pour « {{ q }} »</p>{% endif %}
+
+  <div class="ge-hub-grid">
+    {% for e in events %}
+    {% with life=e.lifecycle_actions %}
+    <article class="ge-hub-card{% if e.is_disabled %} is-disabled{% endif %}{% if e.status == 'archived' %} is-archived{% endif %}" style="--event-color: {{ e.display_primary_color }}; --hub-delay: {{ forloop.counter0 }}">
+      <a class="ge-hub-card-link" href="{% if e.needs_payment %}{% url 'event_payment' e.id %}{% else %}{% url 'event_dashboard' e.id %}{% endif %}">
+        <div class="ge-hub-card-cover has-flyer">
+          <img src="{{ e.cover_url }}" alt="" decoding="async">
+          <span class="ge-status ge-status-{{ e.status }}">{{ e.get_status_display }}</span>
+        </div>
+        <span class="ge-hub-card-ico" aria-hidden="true">
+          {% include "partials/event_type_icon.html" with event_type=e.event_type %}
+        </span>
+        <div class="ge-hub-card-body">
+          <p class="ge-hub-card-kicker">{{ e.type_label }}</p>
+          <h2>{{ e.name }}</h2>
+          <p class="ge-hub-card-meta">
+            {{ e.date|date:"d F Y"|default:"Date à confirmer" }}
+            {% if e.city or e.venue %} · {{ e.city|default:e.venue }}{% endif %}
+          </p>
+          {% if e.expires_at %}
+          <p class="ge-hub-card-life">Valable jusqu’au {{ e.expires_at|date:"d/m/Y" }}{% if e.days_until_expiry is not None %} · {{ e.days_until_expiry }} j{% endif %}</p>
+          {% endif %}
+          <div class="ge-hub-card-stats">
+            <div>
+              <strong data-ge-count="{{ e.inv_regular }}">0</strong>
+              <span>Invitations</span>
+            </div>
+            <div>
+              <strong data-ge-count="{{ e.inv_vip }}">0</strong>
+              <span>VIP</span>
+            </div>
+            <div>
+              <strong data-ge-count="{{ e.present }}">0</strong>
+              <span>Présents</span>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% if life.has_menu %}
+      <details class="ge-hub-more-wrap">
+        <summary class="ge-hub-more" aria-label="Gérer {{ e.name }}" title="Gérer">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="12" cy="19" r="1.7"/></svg>
+        </summary>
+        <div class="ge-hub-more-list" role="menu">
+          {% if life.note %}<p class="ge-hub-more-note">{{ life.note }}</p>{% endif %}
+          {% if life.can_disable %}
+          <button type="button" role="menuitem" data-sheet="ge-sheet-event-life-confirm" data-life-act="disable" data-life-id="{{ e.id }}" data-life-name="{{ e.name }}">Désactiver</button>
+          {% endif %}
+          {% if life.can_enable %}
+          <button type="button" role="menuitem" data-sheet="ge-sheet-event-life-confirm" data-life-act="enable" data-life-id="{{ e.id }}" data-life-name="{{ e.name }}">Activer</button>
+          {% endif %}
+          {% if life.can_archive %}
+          <button type="button" role="menuitem" class="is-warn" data-sheet="ge-sheet-event-life-confirm" data-life-act="archive" data-life-id="{{ e.id }}" data-life-name="{{ e.name }}">Archiver</button>
+          {% endif %}
+          {% if life.can_delete %}
+          <button type="button" role="menuitem" class="is-danger" data-sheet="ge-sheet-event-life-confirm" data-life-act="delete" data-life-id="{{ e.id }}" data-life-name="{{ e.name }}">Supprimer</button>
+          {% endif %}
+        </div>
+      </details>
+      {% endif %}
+    </article>
+    {% endwith %}
+    {% empty %}
+    <div class="ge-hub-empty">
+      <span class="ge-blob ge-blob-sm" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M12 10v6M9 13h6"/></svg>
+      </span>
+      <h2>Aucun événement{% if q %} trouvé{% endif %}</h2>
+      <p>{% if q %}Essayez un autre nom, une ville ou un lieu.{% else %}Créez votre premier événement et envoyez vos invitations QR.{% endif %}</p>
+      {% if not q %}
+      <a class="ok-btn-dark" href="{% url 'event_create' %}">Créer un événement</a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="ge-dash-actions ge-hub-actions">
+    <a class="ge-dash-action is-primary" href="{% url 'event_create' %}">
+      <span class="ge-dash-action-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>
+      </span>
+      <span>
+        <strong>Créer</strong>
+        <small>Lancer un nouvel événement</small>
+      </span>
+    </a>
+    {% if scan_event %}
+    <a class="ge-dash-action" href="{% url 'home' %}?scan=1&event={{ scan_event.id }}">
+      <span class="ge-dash-action-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+      </span>
+      <span>
+        <strong>Scanner</strong>
+        <small>{{ scan_event.name }}</small>
+      </span>
+    </a>
+    {% endif %}
+    <a class="ge-dash-action" href="{% url 'profile' %}">
+      <span class="ge-dash-action-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <span>
+        <strong>Profil</strong>
+        <small>Compte et préférences</small>
+      </span>
+    </a>
+  </div>
+  </div>
+</main>
+{% include "partials/event_lifecycle_sheets.html" %}
+{% if delete_prompt %}
+<div class="ge-bottom-sheet" id="ge-sheet-delete-prompt" role="dialog" aria-modal="true" aria-labelledby="ge-sheet-delete-prompt-title" data-open hidden>
+  <div class="ge-sheet-handle" aria-hidden="true"></div>
+  <header class="ge-sheet-head">
+    <h2 id="ge-sheet-delete-prompt-title">Supprimer cet événement ?</h2>
+    <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <p class="ge-sheet-lead">
+    « {{ delete_prompt.name }} » est archivé depuis 7 jours. Les grands événements ne sont pas effacés automatiquement.
+  </p>
+  <div class="ge-sheet-actions">
+    <form method="post" action="{% url 'event_keep' delete_prompt.id %}">
+      {% csrf_token %}
+      <button type="submit" class="ge-btn-ghost">Plus tard</button>
+    </form>
+    <form method="post" action="{% url 'event_delete' delete_prompt.id %}">
+      {% csrf_token %}
+      <button type="submit" class="ok-btn-dark">Supprimer</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

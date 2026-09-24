@@ -1,0 +1,2 @@
+{% comment %}Marque Gab Event — logo site ou pictogramme par défaut.{% endcomment %}
+<img class="ge-brand-mark {{ mark_class|default:'' }}" src="{% url 'brand_icon' %}{% if site_logo_version %}?v={{ site_logo_version }}{% endif %}" alt="Gab Event" width="28" height="28">

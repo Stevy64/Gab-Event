@@ -1,5 +1,5 @@
 """
-Django settings — ATC Graduation Check.
+Django settings — Gab Event (plateforme multi-événements).
 
 Configuration via variables d'environnement (fichier `.env` en local / prod).
 Voir `.env.example` et `DEPLOY_PYTHONANYWHERE.md`.
@@ -53,6 +53,11 @@ for _host in (
     ".pythonanywhere.com",
     "localhost",
     "127.0.0.1",
+    "0.0.0.0",
+    "web",
+    "nginx",
+    "gabevent-web",
+    "gabevent-nginx",
 ):
     if _host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_host)
@@ -70,6 +75,10 @@ CSRF_TRUSTED_ORIGINS = [
 for _origin in (
     "https://steevy64.pythonanywhere.com",
     "https://*.pythonanywhere.com",
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
 ):
     if _origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(_origin)
@@ -82,8 +91,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "validation",
+    "django.forms",
+    "validation.apps.ValidationConfig",
 ]
+
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -104,6 +116,8 @@ try:
 except ImportError:
     _STATICFILES_BACKEND = "django.contrib.staticfiles.storage.StaticFilesStorage"
 
+WHITENOISE_MAX_AGE = 60 * 60 * 24 * 7
+
 ROOT_URLCONF = "config.urls"
 
 TEMPLATES = [
@@ -116,6 +130,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "validation.context_processors.user_profile",
             ],
         },
     },
@@ -123,20 +138,54 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# SQLite : suffisant pour un événement ponctuel (sauvegarder db.sqlite3 régulièrement)
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+# Postgres dans Docker ; SQLite en local / PythonAnywhere
+if _env("POSTGRES_HOST"):
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": _env("POSTGRES_DB", default="gabevent"),
+            "USER": _env("POSTGRES_USER", default="gabevent"),
+            "PASSWORD": _env("POSTGRES_PASSWORD", default=""),
+            "HOST": _env("POSTGRES_HOST"),
+            "PORT": _env("POSTGRES_PORT", default="5432"),
+            "CONN_MAX_AGE": 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    },
 ]
+
+# --- E-mail (récupération de compte) ----------------------------------------
+_email_host = _env("EMAIL_HOST", default="")
+_email_backend = _env("EMAIL_BACKEND", default="")
+if _email_backend:
+    EMAIL_BACKEND = _email_backend
+elif _email_host:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_HOST = _email_host
+EMAIL_PORT = int(_env("EMAIL_PORT", default="587") or "587")
+EMAIL_HOST_USER = _env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = _env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = _env("EMAIL_USE_TLS", default="True").lower() in ("1", "true", "yes")
+EMAIL_USE_SSL = _env("EMAIL_USE_SSL", default="").lower() in ("1", "true", "yes")
+DEFAULT_FROM_EMAIL = _env(
+    "DEFAULT_FROM_EMAIL",
+    default="Gab Event <noreply@gabevent.local>",
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Africa/Niamey"
@@ -160,32 +209,93 @@ STORAGES = {
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "dashboard"
-LOGOUT_REDIRECT_URL = "home"
+LOGIN_REDIRECT_URL = "my_events"
+LOGOUT_REDIRECT_URL = "landing"
 
-# --- Identité cérémonie / codes invitation ----------------------------------
-RECIPIENT_CODE_PREFIX = os.environ.get("RECIPIENT_CODE_PREFIX", "ATC24")
+AUTHENTICATION_BACKENDS = [
+    "validation.auth_backends.EmailPhoneUsernameBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# --- Médias (flyers, avatars) ------------------------------------------------
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# --- Paiement ----------------------------------------------------------------
+# mock uniquement en DEBUG ; SingPay si les identifiants sont présents
+SINGPAY_API_KEY = _env("SINGPAY_API_KEY", "SINGPAY_CLIENT_ID", default="")
+SINGPAY_API_SECRET = _env("SINGPAY_API_SECRET", "SINGPAY_CLIENT_SECRET", default="")
+SINGPAY_MERCHANT_ID = _env("SINGPAY_MERCHANT_ID", "SINGPAY_WALLET", default="")
+SINGPAY_DISBURSEMENT_ID = _env("SINGPAY_DISBURSEMENT_ID", default="")
+SINGPAY_ENVIRONMENT = _env("SINGPAY_ENVIRONMENT", default="sandbox")
+PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", default="http://127.0.0.1:8000")
+_explicit_provider = os.environ.get("PAYMENT_PROVIDER", "").strip().lower()
+if _explicit_provider:
+    PAYMENT_PROVIDER = _explicit_provider
+elif SINGPAY_API_KEY and SINGPAY_API_SECRET and SINGPAY_MERCHANT_ID:
+    PAYMENT_PROVIDER = "singpay"
+else:
+    PAYMENT_PROVIDER = "mock"
+ALLOW_MOCK_PAYMENTS = _env("ALLOW_MOCK_PAYMENTS", default="True").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+# --- Identité legacy / codes invitation -------------------------------------
+from datetime import date as _date
+
+RECIPIENT_CODE_PREFIX = os.environ.get(
+    "RECIPIENT_CODE_PREFIX",
+    f"GAE{_date.today().strftime('%y')}",
+)
 VIP_CODE_PREFIX = os.environ.get("VIP_CODE_PREFIX", "VIP")
 # Alphabet sans caractères ambigus (I, O, 0, 1)
 CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
+# Fallback affichage si aucun Event (landing / legacy)
 CEREMONY = {
-    "title": os.environ.get("CEREMONY_TITLE", "Cérémonie de remise des diplômes"),
-    "subtitle": os.environ.get("CEREMONY_SUBTITLE", "Contrôleurs Aériens"),
-    "date": os.environ.get("CEREMONY_DATE", "Samedi 20 Décembre"),
-    "time": os.environ.get("CEREMONY_TIME", "18 h 00"),
-    "venue": os.environ.get("CEREMONY_VENUE", "Grande salle de cérémonie"),
-    "organizer": os.environ.get("CEREMONY_ORGANIZER", "ATC"),
+    "title": os.environ.get("CEREMONY_TITLE", "Gab Event"),
+    "subtitle": os.environ.get("CEREMONY_SUBTITLE", "Invitations événementielles"),
+    "date": os.environ.get("CEREMONY_DATE", ""),
+    "time": os.environ.get("CEREMONY_TIME", ""),
+    "venue": os.environ.get("CEREMONY_VENUE", ""),
+    "organizer": os.environ.get("CEREMONY_ORGANIZER", "Gab Event"),
     "footer": "Veuillez présenter cette invitation à l'entrée.",
 }
 
+# --- Celery / Redis ----------------------------------------------------------
+CELERY_BROKER_URL = _env(
+    "CELERY_BROKER_URL",
+    "REDIS_URL",
+    default="redis://127.0.0.1:6379/0",
+)
+CELERY_RESULT_BACKEND = _env("CELERY_RESULT_BACKEND", default=CELERY_BROKER_URL)
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = TIME_ZONE
+CELERY_BEAT_SCHEDULE = {
+    "expire-events-hourly": {
+        "task": "validation.tasks.expire_events_task",
+        "schedule": 3600.0,
+    },
+}
+
 # --- Durcissement production ------------------------------------------------
-if not DEBUG:
+if _env("BEHIND_PROXY", default="").lower() in ("1", "true", "yes"):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    USE_X_FORWARDED_HOST = True
+
+if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
-    # HSTS léger (PythonAnywhere termine déjà le TLS)
-    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "3600"))
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    _public = _env("PUBLIC_BASE_URL", default="")
+    _force_ssl = _env("SECURE_SSL", default="").lower() in ("1", "true", "yes")
+    if _force_ssl or _public.startswith("https://"):
+        SESSION_COOKIE_SECURE = True
+        CSRF_COOKIE_SECURE = True
+        SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", "3600"))
+        SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+        if not _env("BEHIND_PROXY"):
+            SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

@@ -2,12 +2,24 @@
 {% load static %}
 
 {% block title %}{{ ceremony.title }} — {{ ceremony.subtitle }}{% endblock %}
-{% block body_class %}page-home{% endblock %}
+{% block body_class %}page-home{% if ceremony.flyer_url %} has-flyer{% endif %}{% endblock %}
+
+{% block extra_head %}
+<style>
+  .page-home {
+    --home-accent: {{ ceremony.primary_color|default:"#1A2744" }};
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<main class="home-screen" id="home-screen">
+<main class="home-screen" id="home-screen" {% if event %}data-event-id="{{ event.id }}"{% endif %}>
   <div class="home-bg" aria-hidden="true">
-    <img src="{% static 'img/ceremony-bg.jpg' %}" alt="" class="home-bg-img" width="1080" height="1920" decoding="async">
+    <img
+      src="{% if ceremony.flyer_url %}{{ ceremony.flyer_url }}{% else %}{% static 'img/ceremony-bg.jpg' %}{% endif %}"
+      alt=""
+      class="home-bg-img"
+      decoding="async">
     <div class="home-bg-veil"></div>
   </div>
 
@@ -17,44 +29,44 @@
   </div>
 
   <div class="flyer">
-    <p class="flyer-invite">Vous êtes cordialement invité(e)</p>
+    <div class="flyer-body">
+      <div class="flyer-top">
+        <p class="flyer-invite">{{ ceremony.welcome|default:"Vous êtes cordialement invité(e)" }}</p>
+        <div class="flyer-ornament" aria-hidden="true">
+          <span class="flyer-line"></span>
+          <span class="flyer-diamond"></span>
+          <span class="flyer-line"></span>
+        </div>
+        <h1 class="flyer-title">
+          <span class="flyer-title-serif">{{ ceremony.title }}</span>
+        </h1>
+        {% if ceremony.welcome or ceremony.description %}
+        <div class="flyer-ornament" aria-hidden="true">
+          <span class="flyer-line"></span>
+          <span class="flyer-diamond"></span>
+          <span class="flyer-line"></span>
+        </div>
+        <p class="flyer-lede">{% if ceremony.welcome %}{{ ceremony.welcome }}{% else %}{{ ceremony.description }}{% endif %}</p>
+        {% endif %}
+      </div>
 
-    <div class="flyer-ornament" aria-hidden="true">
-      <span class="flyer-line"></span>
-      <span class="flyer-diamond"></span>
-      <span class="flyer-line"></span>
+      <ul class="flyer-meta">
+        <li>
+          <span class="flyer-meta-label">Date</span>
+          <span class="flyer-meta-value">{{ ceremony.date }}</span>
+        </li>
+        <li>
+          <span class="flyer-meta-label">Heure</span>
+          <span class="flyer-meta-value">{{ ceremony.time }}</span>
+        </li>
+        <li>
+          <span class="flyer-meta-label">Lieu</span>
+          <span class="flyer-meta-value">{{ ceremony.venue }}</span>
+        </li>
+      </ul>
+
+      <p class="flyer-note">Présentez votre invitation à l’entrée</p>
     </div>
-
-    <p class="flyer-kicker">{{ ceremony.organizer }} · Fin de formation</p>
-    <h1 class="flyer-title">
-      <span class="flyer-title-main">Graduation</span>
-      <span class="flyer-title-serif">{{ ceremony.subtitle }}</span>
-    </h1>
-
-    <div class="flyer-ornament flyer-ornament-sm" aria-hidden="true">
-      <span class="flyer-line"></span>
-      <span class="flyer-diamond"></span>
-      <span class="flyer-line"></span>
-    </div>
-
-    <p class="flyer-lede">{{ ceremony.title }}</p>
-
-    <ul class="flyer-meta">
-      <li>
-        <span class="flyer-meta-label">Date</span>
-        <span class="flyer-meta-value">{{ ceremony.date }}</span>
-      </li>
-      <li>
-        <span class="flyer-meta-label">Heure</span>
-        <span class="flyer-meta-value">{{ ceremony.time }}</span>
-      </li>
-      <li>
-        <span class="flyer-meta-label">Lieu</span>
-        <span class="flyer-meta-value">{{ ceremony.venue }}</span>
-      </li>
-    </ul>
-
-    <p class="flyer-note">Présentez votre invitation à l’entrée</p>
 
     <div class="flyer-cta">
       {% if can_scan %}
@@ -65,12 +77,15 @@
         </svg>
         Scanner l’invitation
       </button>
-      <a href="{% url 'dashboard' %}" class="flyer-admin">Tableau de bord</a>
+      {% if event %}
+      <a href="{% url 'event_dashboard' event.id %}" class="flyer-admin">Mon événement</a>
       {% else %}
-      <a href="{% url 'login' %}?next={% url 'home' %}" class="btn-flyer">
-        Connexion contrôleur
-      </a>
-      <p class="flyer-scan-lock">Le scan QR est réservé aux agents connectés.</p>
+      <a href="{% url 'my_events' %}" class="flyer-admin">Mes événements</a>
+      {% endif %}
+      {% else %}
+      <a href="{% url 'landing' %}" class="btn-flyer">Découvrir Gab Event</a>
+      <a href="{% url 'login' %}?next={% url 'home' %}" class="flyer-admin">Connexion agent</a>
+      <p class="flyer-scan-lock">Le scan QR est réservé aux comptes connectés.</p>
       {% endif %}
     </div>
   </div>
@@ -83,8 +98,12 @@
 
 {% block extra_js %}
 {% if can_scan %}
-<script>window.__OPEN_SCANNER__ = {{ open_scanner|yesno:"true,false" }};</script>
+<script>
+  window.__OPEN_SCANNER__ = {{ open_scanner|yesno:"true,false" }};
+  window.__SCAN_EVENT_ID__ = {% if event %}{{ event.id }}{% else %}null{% endif %};
+  window.__SCAN_EVENT_NAME__ = {% if event %}"{{ event.name|escapejs }}"{% else %}null{% endif %};
+</script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="{% static 'js/scanner.js' %}?v=16"></script>
+<script src="{% static 'js/scanner.js' %}?v=17"></script>
 {% endif %}
 {% endblock %}

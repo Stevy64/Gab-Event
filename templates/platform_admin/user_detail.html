@@ -1,0 +1,66 @@
+{% extends "platform_admin/base_admin.html" %}
+{% block title %}{{ u.get_username }} — Console{% endblock %}
+{% block content %}
+<header class="cx-top">
+  <div>
+    <p class="cx-kicker">Utilisateur</p>
+    <h1>{{ u.get_full_name|default:u.username }}</h1>
+    <p class="cx-lead">{{ u.email }} · {{ profile.organization_name|default:"Sans organisation" }} · {{ profile.momo_label }}</p>
+  </div>
+</header>
+<section class="cx-card">
+  <h2>Événements</h2>
+  <ul>
+    {% for e in events %}
+    <li><a href="{% url 'platform_admin_event' e.id %}">{{ e.name }}</a> — {{ e.get_status_display }}</li>
+    {% empty %}<li>Aucun événement.</li>{% endfor %}
+  </ul>
+</section>
+<section class="cx-card">
+  <h2>Paiements formules</h2>
+  <table class="cx-table">
+    <tbody>
+    {% for p in payments %}
+      <tr><td>{{ p.created_at|date:"d/m/Y" }}</td><td>{{ p.amount }} {{ p.currency }}</td><td>{{ p.get_status_display }}</td><td>{{ p.event.name }}</td></tr>
+    {% empty %}
+      <tr><td>Aucun paiement.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+<section class="cx-card">
+  <h2>Paiements invités</h2>
+  <p class="cx-lead">Collecté {{ guest_gross }} · Commission {{ guest_commission }} · Net {{ guest_net }} · En attente {{ pending_net }}</p>
+  {% if pending_net and profile.momo_ready %}
+  <form method="post" action="{% url 'platform_admin_payments' %}">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="payout">
+    <input type="hidden" name="organizer_id" value="{{ u.id }}">
+    <button class="cx-btn" type="submit">Reverser {{ pending_net }} vers {{ profile.momo_label }}</button>
+  </form>
+  {% elif pending_net %}
+  <p class="cx-lead">Reversement bloqué : l’organisateur n’a pas confirmé son numéro Mobile Money.</p>
+  {% endif %}
+  <table class="cx-table">
+    <thead>
+      <tr><th>Date</th><th>Événement</th><th>Invité</th><th>Type</th><th>Brut</th><th>Commission</th><th>Net</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+    {% for p in guest_payments %}
+      <tr>
+        <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
+        <td>{{ p.event.name }}</td>
+        <td>{{ p.full_name }}</td>
+        <td>{{ p.get_participant_type_display }}</td>
+        <td>{{ p.amount }}</td>
+        <td>{{ p.commission_amount }} ({{ p.commission_rate }}%)</td>
+        <td>{{ p.net_amount }}</td>
+        <td>{{ p.get_status_display }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="8">Aucun paiement invité.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
