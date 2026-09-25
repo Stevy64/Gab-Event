@@ -40,13 +40,13 @@
         <h1 class="flyer-title">
           <span class="flyer-title-serif">{{ ceremony.title }}</span>
         </h1>
-        {% if ceremony.welcome or ceremony.description %}
+        {% if ceremony.description %}
         <div class="flyer-ornament" aria-hidden="true">
           <span class="flyer-line"></span>
           <span class="flyer-diamond"></span>
           <span class="flyer-line"></span>
         </div>
-        <p class="flyer-lede">{% if ceremony.welcome %}{{ ceremony.welcome }}{% else %}{{ ceremony.description }}{% endif %}</p>
+        <p class="flyer-lede">{{ ceremony.description }}</p>
         {% endif %}
       </div>
 

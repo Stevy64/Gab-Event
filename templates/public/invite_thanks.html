@@ -31,9 +31,10 @@
       {% if code %}<p class="ge-muted">Code : <strong>{{ code }}</strong></p>{% endif %}
       {% if invitation %}
       <div class="ge-invite-downloads">
-        <a class="ok-btn-dark" href="{% url 'public_invite_card' event.invite_token %}?fmt=png" data-ge-download data-no-loader download>Télécharger PNG</a>
-        <a class="ge-btn-ghost" href="{% url 'public_invite_card' event.invite_token %}?fmt=pdf" data-ge-download data-no-loader download>Télécharger PDF</a>
+        <a class="ok-btn-dark" href="{% url 'public_invite_card' event.invite_token %}?fmt=png" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PNG…" download>Télécharger PNG</a>
+        <a class="ge-btn-ghost" href="{% url 'public_invite_card' event.invite_token %}?fmt=pdf" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PDF…" download>Télécharger PDF</a>
       </div>
+      <p class="ge-invite-dl-status" data-ge-dl-status hidden aria-live="polite"></p>
       {% endif %}
       {% endif %}
       </header>

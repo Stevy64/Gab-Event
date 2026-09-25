@@ -52,6 +52,8 @@ from .constants import PARTICIPANT_RECIPIENT, PARTICIPANT_VIP, ceremony_settings
 from .flyer_service import process_flyer_image
 from .forms import (
     CancelValidationForm,
+    ConfirmInvitationCancelForm,
+    ConfirmInvitationDeleteForm,
     EventAppearanceForm,
     EventPlanSelectForm,
     EventSettingsForm,
@@ -78,7 +80,9 @@ from .quota_service import can_add_invitations, quota_status
 from .list_pdf import export_guest_list_pdf_response
 from .services import (
     admit_persons,
+    cancel_invitation,
     cancel_validation,
+    delete_invitation,
     event_dashboard_stats,
     export_attendance_response,
     lookup_invitation,
@@ -1048,9 +1052,11 @@ def event_guests(request, event_id):
     elif type_filter == "VIP":
         qs = qs.filter(participant_type=PARTICIPANT_VIP)
     if status_filter == "present":
-        qs = qs.filter(places_used__gt=0)
+        qs = qs.filter(places_used__gt=0).exclude(status=Invitation.STATUS_DISABLED)
     elif status_filter == "pending":
-        qs = qs.filter(places_used=0)
+        qs = qs.filter(places_used=0).exclude(status=Invitation.STATUS_DISABLED)
+    elif status_filter == "cancelled":
+        qs = qs.filter(status=Invitation.STATUS_DISABLED)
     query = ""
     if form.is_valid():
         query = form.cleaned_data.get("q", "")
@@ -1323,6 +1329,8 @@ def invitation_detail(request, pk):
     if locked:
         return locked
     form = CancelValidationForm()
+    void_form = ConfirmInvitationCancelForm()
+    delete_form = ConfirmInvitationDeleteForm()
     if request.method == "POST":
         action = request.POST.get("action", "cancel")
         if action == "mark_sent":
@@ -1333,11 +1341,35 @@ def invitation_detail(request, pk):
             mark_invitation_sent(invitation, False)
             messages.success(request, "Statut « envoyée » annulé.")
             return redirect("invitation_detail", pk=invitation.pk)
-        form = CancelValidationForm(request.POST)
-        if form.is_valid() and invitation.places_used > 0:
-            cancel_validation(invitation)
-            messages.success(request, f"Entrées annulées pour {invitation.full_name}.")
-            return redirect("invitation_detail", pk=invitation.pk)
+        if action == "cancel_invite":
+            void_form = ConfirmInvitationCancelForm(request.POST)
+            if void_form.is_valid() and invitation.status != Invitation.STATUS_DISABLED:
+                cancel_invitation(invitation)
+                messages.success(
+                    request,
+                    f"Invitation de {invitation.full_name} annulée. Vous pouvez maintenant la supprimer.",
+                )
+                return redirect("invitation_detail", pk=invitation.pk)
+        elif action == "delete_invite":
+            delete_form = ConfirmInvitationDeleteForm(request.POST)
+            if delete_form.is_valid():
+                event_id = invitation.event_id
+                name = invitation.full_name
+                try:
+                    delete_invitation(invitation)
+                except ValueError as exc:
+                    messages.error(request, str(exc))
+                    return redirect("invitation_detail", pk=invitation.pk)
+                messages.success(request, f"Invitation de {name} supprimée.")
+                if event_id:
+                    return redirect("event_guests", event_id=event_id)
+                return redirect("my_events")
+        else:
+            form = CancelValidationForm(request.POST)
+            if form.is_valid() and invitation.places_used > 0:
+                cancel_validation(invitation)
+                messages.success(request, f"Entrées annulées pour {invitation.full_name}.")
+                return redirect("invitation_detail", pk=invitation.pk)
     logs = invitation.scan_logs.all()[:20]
     admissions = invitation.admissions.filter(is_cancelled=False)[:20]
     return render(
@@ -1346,6 +1378,8 @@ def invitation_detail(request, pk):
         {
             "invitation": invitation,
             "form": form,
+            "void_form": void_form,
+            "delete_form": delete_form,
             "logs": logs,
             "admissions": admissions,
             "ceremony": ceremony_settings(invitation.event),

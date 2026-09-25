@@ -473,12 +473,32 @@
     return document.getElementById('ge-page-loader');
   }
 
+  function loaderCopyEl() {
+    var el = pageLoaderEl();
+    return el ? el.querySelector('p') : null;
+  }
+
+  function setLoaderText(text) {
+    var p = loaderCopyEl();
+    if (!p) return;
+    if (!p.getAttribute('data-ge-default')) {
+      p.setAttribute('data-ge-default', p.textContent || 'Chargement…');
+    }
+    p.textContent = text;
+  }
+
+  function restoreLoaderText() {
+    var p = loaderCopyEl();
+    if (p) p.textContent = p.getAttribute('data-ge-default') || 'Chargement…';
+  }
+
   function isEventPath(pathname) {
     return /^\/evenements\/\d+(\/|$)/.test(pathname || '');
   }
 
   function showPageLoader(opts) {
     window.__gePageLeaving = true;
+    setLoaderText((opts && opts.message) || 'Chargement…');
     document.documentElement.classList.add('ge-loading');
     document.documentElement.classList.toggle('ge-loading-event', !!(opts && opts.toEvent));
     var el = pageLoaderEl();
@@ -488,9 +508,42 @@
   function hidePageLoader(force) {
     if (window.__gePageLeaving && !force) return;
     window.__gePageLeaving = false;
+    restoreLoaderText();
     document.documentElement.classList.remove('ge-loading', 'ge-loading-event');
     var el = pageLoaderEl();
     if (el) el.classList.remove('is-on');
+  }
+
+  function showBusyLoader(message, opts) {
+    setLoaderText(message || 'Chargement…');
+    document.documentElement.classList.add('ge-loading');
+    document.documentElement.classList.toggle('ge-loading-event', !!(opts && opts.toEvent));
+    var el = pageLoaderEl();
+    if (el) {
+      el.classList.add('is-on');
+      el.setAttribute('aria-busy', 'true');
+    }
+  }
+
+  function hideBusyLoader() {
+    hidePageLoader(true);
+  }
+
+  function setDownloadStatus(on, text) {
+    qsa('[data-ge-dl-status]').forEach(function (el) {
+      el.hidden = !on;
+      el.textContent = on ? (text || '') : '';
+    });
+  }
+
+  function markDownloadLabel(a, busy) {
+    var label = a.querySelector('span') || a;
+    if (busy) {
+      if (!a.getAttribute('data-ge-label')) a.setAttribute('data-ge-label', label.textContent.trim());
+      label.textContent = 'Préparation…';
+    } else if (a.getAttribute('data-ge-label')) {
+      label.textContent = a.getAttribute('data-ge-label');
+    }
   }
 
   function filenameFromDisposition(header, fallback) {
@@ -509,9 +562,16 @@
       var a = e.target.closest('a[data-ge-download]');
       if (!a || !a.href || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault();
-      hidePageLoader(true);
-      a.classList.add('is-busy');
       var fallbackName = a.getAttribute('download') || 'invitation';
+      var isTicket = /carte|invitation|fmt=(png|pdf)/i.test(a.href + ' ' + fallbackName);
+      var msg = a.getAttribute('data-ge-dl-msg') || (isTicket
+        ? 'Préparation de votre billet…'
+        : 'Téléchargement en cours…');
+      showBusyLoader(msg, { toEvent: document.body.classList.contains('page-event') });
+      setDownloadStatus(true, msg);
+      a.classList.add('is-busy');
+      a.setAttribute('aria-busy', 'true');
+      markDownloadLabel(a, true);
       fetch(a.href, { credentials: 'same-origin' })
         .then(function (res) {
           if (!res.ok) throw new Error('download');
@@ -543,7 +603,10 @@
         })
         .then(function () {
           a.classList.remove('is-busy');
-          hidePageLoader(true);
+          a.removeAttribute('aria-busy');
+          markDownloadLabel(a, false);
+          setDownloadStatus(false);
+          hideBusyLoader();
         });
     });
   }

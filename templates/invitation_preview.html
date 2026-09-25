@@ -31,7 +31,7 @@
       <span class="ge-preview-chip ge-preview-code">{{ invitation.code }}</span>
     </div>
     <div class="ge-action-grid ge-preview-actions">
-      <a class="ok-btn-dark" id="btn-download" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>Télécharger</a>
+      <a class="ok-btn-dark" id="btn-download" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader data-ge-dl-msg="Préparation de votre billet…" download>Télécharger</a>
       <button type="button" class="ge-btn-ghost" id="btn-share">Partager</button>
       <button type="button" class="ge-btn-ghost" onclick="window.print()">Imprimer</button>
     </div>

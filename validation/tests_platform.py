@@ -1439,3 +1439,28 @@ class InvitationCardsPageTests(PlatformBaseTestCase):
         self.assertContains(page, "téléchargent leurs cartes d’invitation")
         self.assertNotContains(page, "alimentent la liste")
 
+    def test_cancel_then_delete_invitation(self):
+        event, invitation, other = self._event_with_cards()
+        self.client.login(username="alice", password="secret123")
+        detail = reverse("invitation_detail", args=[invitation.pk])
+        page = self.client.get(detail)
+        self.assertContains(page, "Annuler cette invitation")
+        self.assertNotContains(page, "Supprimer définitivement")
+
+        blocked = self.client.post(detail, {"action": "delete_invite", "confirm": True})
+        self.assertEqual(blocked.status_code, 302)
+        self.assertTrue(Invitation.objects.filter(pk=invitation.pk).exists())
+
+        cancelled = self.client.post(detail, {"action": "cancel_invite", "confirm": True})
+        self.assertEqual(cancelled.status_code, 302)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.status, Invitation.STATUS_DISABLED)
+        self.assertEqual(lookup_invitation(invitation.code, event=event).status, "invalid")
+
+        after = self.client.get(detail)
+        self.assertContains(after, "Supprimer définitivement")
+        deleted = self.client.post(detail, {"action": "delete_invite", "confirm": True})
+        self.assertEqual(deleted.status_code, 302)
+        self.assertFalse(Invitation.objects.filter(pk=invitation.pk).exists())
+        self.assertTrue(Invitation.objects.filter(pk=other.pk).exists())
+

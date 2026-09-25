@@ -52,6 +52,7 @@
     <a class="ge-tab {% if type_filter == 'VIP' %}is-active{% endif %}" href="?type=VIP&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">VIP</a>
     <a class="ge-tab {% if status_filter == 'present' %}is-active{% endif %}" href="?type={{ type_filter }}&status=present{% if query %}&q={{ query }}{% endif %}">Présents</a>
     <a class="ge-tab {% if status_filter == 'pending' %}is-active{% endif %}" href="?type={{ type_filter }}&status=pending{% if query %}&q={{ query }}{% endif %}">En attente</a>
+    <a class="ge-tab {% if status_filter == 'cancelled' %}is-active{% endif %}" href="?type={{ type_filter }}&status=cancelled{% if query %}&q={{ query }}{% endif %}">Annulées</a>
   </nav>
 
   <div class="ge-card-list">
@@ -69,7 +70,8 @@
         </div>
       </div>
       <span class="ge-status ge-status-{{ g.invitation_lifecycle }}">
-        {% if g.invitation_lifecycle == "present" %}Présent
+        {% if g.invitation_lifecycle == "cancelled" %}Annulée
+        {% elif g.invitation_lifecycle == "present" %}Présent
         {% elif g.invitation_lifecycle == "sent" %}Envoyée
         {% elif g.invitation_lifecycle == "generated" %}Générée
         {% else %}À faire{% endif %}

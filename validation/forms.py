@@ -156,6 +156,20 @@ class CancelValidationForm(forms.Form):
     )
 
 
+class ConfirmInvitationCancelForm(forms.Form):
+    confirm = forms.BooleanField(
+        label="Je confirme l’annulation de cette invitation",
+        required=True,
+    )
+
+
+class ConfirmInvitationDeleteForm(forms.Form):
+    confirm = forms.BooleanField(
+        label="Je confirme la suppression définitive de cette invitation",
+        required=True,
+    )
+
+
 class SignUpForm(UserCreationForm):
     CONTACT_EMAIL = "email"
     CONTACT_PHONE = "phone"

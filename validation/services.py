@@ -32,6 +32,8 @@ __all__ = [
     "validate_invitation",
     "admit_persons",
     "cancel_validation",
+    "cancel_invitation",
+    "delete_invitation",
     "dashboard_stats",
     "event_dashboard_stats",
     "search_invitations",
@@ -604,6 +606,27 @@ def cancel_validation(invitation: Invitation) -> Invitation:
         invitation.validated_at = None
         invitation.save(update_fields=["places_used", "is_validated", "validated_at"])
     return invitation
+
+
+def cancel_invitation(invitation: Invitation) -> Invitation:
+    """Void the ticket: it can no longer be scanned. Admissions are undone."""
+    with transaction.atomic():
+        invitation.admissions.filter(is_cancelled=False).update(is_cancelled=True)
+        invitation.places_used = 0
+        invitation.is_validated = False
+        invitation.validated_at = None
+        invitation.status = Invitation.STATUS_DISABLED
+        invitation.save(
+            update_fields=["places_used", "is_validated", "validated_at", "status"]
+        )
+    return invitation
+
+
+def delete_invitation(invitation: Invitation) -> None:
+    """Hard-delete a previously cancelled invitation."""
+    if invitation.status != Invitation.STATUS_DISABLED:
+        raise ValueError("Annulez l’invitation avant de la supprimer.")
+    invitation.delete()
 
 
 def mark_invitation_sent(invitation: Invitation, sent: bool = True) -> Invitation:

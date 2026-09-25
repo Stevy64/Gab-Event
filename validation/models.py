@@ -827,7 +827,7 @@ class Invitation(models.Model):
     STATUS_CHOICES = [
         (STATUS_VALID, "Valide"),
         (STATUS_INVALID, "Invalide"),
-        (STATUS_DISABLED, "Désactivé"),
+        (STATUS_DISABLED, "Annulée"),
     ]
 
     TYPE_RECIPIENT = PARTICIPANT_RECIPIENT
@@ -936,7 +936,13 @@ class Invitation(models.Model):
         return self.participant_type == self.TYPE_VIP
 
     @property
+    def is_cancelled_ticket(self):
+        return self.status == self.STATUS_DISABLED
+
+    @property
     def invitation_lifecycle(self):
+        if self.status == self.STATUS_DISABLED:
+            return "cancelled"
         if self.is_validated or self.places_used > 0:
             return "present"
         if self.invitation_sent:

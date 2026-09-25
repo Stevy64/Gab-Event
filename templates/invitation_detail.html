@@ -13,7 +13,7 @@
       <p class="ge-kicker">{{ invitation.get_participant_type_display }}</p>
       <h1>{{ invitation.full_name }}</h1>
       <ol class="ge-invite-steps" aria-label="Étapes de l’invitation">
-        <li class="{% if invitation.status == 'valide' %}is-done{% else %}is-off{% endif %}">
+        <li class="{% if invitation.is_cancelled_ticket %}is-off{% elif invitation.status == 'valide' %}is-done{% else %}is-off{% endif %}">
           <span class="ge-invite-step-mark" aria-hidden="true">
             {% if invitation.status == 'valide' %}
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
@@ -21,7 +21,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
             {% endif %}
           </span>
-          <span>{{ invitation.get_status_display }}</span>
+          <span>{% if invitation.is_cancelled_ticket %}Annulée{% else %}{{ invitation.get_status_display }}{% endif %}</span>
         </li>
         <li class="{% if invitation.invitation_sent or invitation.invitation_generated %}is-done{% else %}is-todo{% endif %}">
           <span class="ge-invite-step-mark" aria-hidden="true">
@@ -69,11 +69,11 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
           <span>Aperçu</span>
         </a>
-        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>
+        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PNG…" download>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-4.5-4.5L9 19"/></svg>
           <span>PNG</span>
         </a>
-        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}?fmt=pdf" data-ge-download data-no-loader download>
+        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}?fmt=pdf" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PDF…" download>
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
           <span>PDF</span>
         </a>
@@ -82,6 +82,7 @@
           <span>QR</span>
         </a>
       </div>
+      {% if not invitation.is_cancelled_ticket %}
       <form method="post" class="ge-sent-form">
         {% csrf_token %}
         {% if invitation.invitation_sent %}
@@ -95,6 +96,7 @@
           </button>
         {% endif %}
       </form>
+      {% endif %}
     </div>
 
     <div class="ge-invite-fiche-log">
@@ -114,10 +116,10 @@
     </div>
   </section>
 
-  {% if invitation.places_used > 0 %}
+  {% if invitation.places_used > 0 and not invitation.is_cancelled_ticket %}
   <section class="ge-form-card ge-invite-fiche-undo">
     <h2 class="ge-form-section-title">Annuler les entrées</h2>
-    <p class="ge-muted">Remet les places à zéro en cas d’erreur.</p>
+    <p class="ge-muted">Remet les places à zéro en cas d’erreur de scan.</p>
     <form method="post" onsubmit="return confirm('Confirmer l\'annulation des entrées ?');">
       {% csrf_token %}
       <input type="hidden" name="action" value="cancel">
@@ -129,5 +131,33 @@
     </form>
   </section>
   {% endif %}
+
+  <section class="ge-form-card ge-invite-fiche-undo ge-invite-fiche-void">
+    {% if invitation.is_cancelled_ticket %}
+    <h2 class="ge-form-section-title">Invitation annulée</h2>
+    <p class="ge-muted">Ce billet n’est plus scannable. La suppression libère une place dans le quota.</p>
+    <form method="post" onsubmit="return confirm('Supprimer définitivement cette invitation ?');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="delete_invite">
+      <label class="ge-check-card">
+        <span class="ge-check-input">{{ delete_form.confirm }}</span>
+        <span class="ge-check-body"><strong>{{ delete_form.confirm.label }}</strong></span>
+      </label>
+      <button type="submit" class="ge-invite-danger-btn">Supprimer définitivement</button>
+    </form>
+    {% else %}
+    <h2 class="ge-form-section-title">Annuler l’invitation</h2>
+    <p class="ge-muted">Le QR ne sera plus accepté à l’entrée. Vous pourrez ensuite supprimer la fiche.</p>
+    <form method="post" onsubmit="return confirm('Annuler cette invitation ? Elle ne pourra plus être scannée.');">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="cancel_invite">
+      <label class="ge-check-card">
+        <span class="ge-check-input">{{ void_form.confirm }}</span>
+        <span class="ge-check-body"><strong>{{ void_form.confirm.label }}</strong></span>
+      </label>
+      <button type="submit" class="ge-btn-ghost ge-invite-fiche-undo-btn">Annuler cette invitation</button>
+    </form>
+    {% endif %}
+  </section>
 </main>
 {% endblock %}
