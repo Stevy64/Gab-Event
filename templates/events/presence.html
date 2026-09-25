@@ -33,11 +33,11 @@
       <strong data-ge-count="{{ stats.places_expected }}">0</strong>
       <span>Attendues</span>
     </article>
-    <article class="ge-dash-card">
+    <article class="ge-dash-card" data-ge-presence="{{ stats.presence_rate|default:0|stringformat:'.1f' }}" data-presence-tone="{{ stats.presence_tone|default:'red' }}">
       <span class="ge-dash-card-ico" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
       </span>
-      <strong data-ge-count="{{ stats.presence_rate|default:0 }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
+      <strong data-ge-count="{{ stats.presence_rate|default:0|stringformat:'.1f' }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
       <span>Taux</span>
     </article>
   </div>

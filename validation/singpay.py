@@ -18,12 +18,34 @@ def _base_url() -> str:
 
 
 def credentials() -> dict[str, str]:
-    return {
+    creds = {
         "api_key": getattr(settings, "SINGPAY_API_KEY", "") or "",
         "api_secret": getattr(settings, "SINGPAY_API_SECRET", "") or "",
         "merchant_id": getattr(settings, "SINGPAY_MERCHANT_ID", "") or "",
         "disbursement_id": getattr(settings, "SINGPAY_DISBURSEMENT_ID", "") or "",
     }
+    try:
+        from .models import SiteSettings
+
+        site = SiteSettings.objects.first()
+    except Exception:
+        site = None
+    if site:
+        if site.singpay_api_key:
+            creds["api_key"] = site.singpay_api_key
+        if site.singpay_api_secret:
+            creds["api_secret"] = site.singpay_api_secret
+        if site.singpay_merchant_id:
+            creds["merchant_id"] = site.singpay_merchant_id
+        if site.singpay_disbursement_id:
+            creds["disbursement_id"] = site.singpay_disbursement_id
+        if site.singpay_environment:
+            creds["environment"] = site.singpay_environment
+    creds.setdefault(
+        "environment",
+        getattr(settings, "SINGPAY_ENVIRONMENT", "sandbox") or "sandbox",
+    )
+    return creds
 
 
 def is_configured() -> bool:

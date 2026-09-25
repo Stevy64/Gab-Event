@@ -4,13 +4,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}Admin — Gab Event{% endblock %}</title>
+  <title>{% block title %}Admin — {{ site_name }}{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% url 'brand_icon' %}?s=192{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/admin_zyz.css' %}?v=7">
-  <link rel="stylesheet" href="{% static 'css/console.css' %}?v=13">
+  <link rel="stylesheet" href="{% static 'css/console.css' %}?v=14">
 </head>
 <body class="cx page-admin">
   <div class="cx-scrim" data-cx-nav-close hidden></div>
@@ -22,7 +22,7 @@
       <span class="cx-brand-mark" aria-hidden="true">{% include "partials/admin_icon.html" with name="spark" %}</span>
       {% endif %}
       <span class="cx-brand-copy">
-        <strong>Gab Event</strong>
+        <strong>{{ site_name }}</strong>
         <small>Console admin</small>
       </span>
     </a>
@@ -57,7 +57,7 @@
         <span class="cx-brand-mark" aria-hidden="true">{% include "partials/admin_icon.html" with name="spark" %}</span>
         {% endif %}
         <span>
-          <strong>Gab Event</strong>
+          <strong>{{ site_name }}</strong>
           <small>Administration</small>
         </span>
       </a>

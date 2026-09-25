@@ -1,0 +1,59 @@
+# Copiez ce fichier en gabevent-ssl.conf après avoir obtenu les certificats Let's Encrypt.
+# Laissez gabevent.conf en HTTP le temps du challenge, puis activez HTTPS.
+
+upstream django_app {
+    server gabevent-web:8000;
+    keepalive 32;
+}
+
+server {
+    listen 80;
+    server_name VOTRE_DOMAINE;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name VOTRE_DOMAINE;
+
+    ssl_certificate     /etc/letsencrypt/live/VOTRE_DOMAINE/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/VOTRE_DOMAINE/privkey.pem;
+
+    client_max_body_size 20M;
+
+    location /static/ {
+        alias /app/staticfiles/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /media/ {
+        alias /app/media/;
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    location /health/ {
+        proxy_pass http://django_app;
+        proxy_set_header Host $host;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+    }
+
+    location / {
+        proxy_pass http://django_app;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_redirect off;
+        proxy_read_timeout 120s;
+    }
+}

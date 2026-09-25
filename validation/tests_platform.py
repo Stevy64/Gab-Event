@@ -265,6 +265,23 @@ class PlanCapacityTests(PlatformBaseTestCase):
         self.assertEqual(r["Location"], reverse("event_plans"))
         self.assertFalse(Event.objects.filter(name="Trop grand").exists())
 
+    def test_plans_page_asks_before_payment(self):
+        client = Client()
+        client.force_login(self.user_a)
+        session = client.session
+        session["event_wizard"] = {
+            "name": "Gala payant",
+            "event_type": Event.TYPE_GALA,
+            "expected_guests": 40,
+        }
+        session.save()
+        r = client.get(reverse("event_plans"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Vous allez être dirigé vers l’espace de paiement")
+        self.assertContains(r, "data-plan-pay-yes")
+        self.assertContains(r, ">Non<")
+        self.assertContains(r, "data-paid=")
+
 
 class PaidEventTests(PlatformBaseTestCase):
     @override_settings(DEBUG=True, ALLOW_MOCK_PAYMENTS=True)
@@ -308,6 +325,8 @@ class PaidEventTests(PlatformBaseTestCase):
         page = self.client.get(pay_url)
         self.assertEqual(page.status_code, 200)
         self.assertContains(page, "Finaliser le paiement")
+        self.assertContains(page, "Continuer vers le paiement")
+        self.assertContains(page, "Vous allez être dirigé vers l’espace de paiement")
         self.assertContains(page, "Supprimer")
 
     def test_free_event_workspace_stays_open(self):
@@ -351,22 +370,22 @@ class PlanLimitsTests(PlatformBaseTestCase):
         event.save()
         return event
 
-    def test_petit_100_10(self):
+    def test_petit_100_20(self):
         e = self._event_with_plan("petit")
         self.assertEqual(e.regular_limit, 100)
-        self.assertEqual(e.vip_limit, 10)
+        self.assertEqual(e.vip_limit, 20)
 
-    def test_moyen_250_25(self):
+    def test_moyen_250_50(self):
         e = self._event_with_plan("moyen")
-        self.assertEqual((e.regular_limit, e.vip_limit), (250, 25))
+        self.assertEqual((e.regular_limit, e.vip_limit), (250, 50))
 
     def test_mariage_350_50(self):
         e = self._event_with_plan("mariage")
         self.assertEqual((e.regular_limit, e.vip_limit), (350, 50))
 
-    def test_grand_500_200(self):
+    def test_grand_500_90(self):
         e = self._event_with_plan("grand")
-        self.assertEqual((e.regular_limit, e.vip_limit), (500, 200))
+        self.assertEqual((e.regular_limit, e.vip_limit), (500, 90))
 
     def test_overflow_regular_refused(self):
         e = self._event_with_plan("petit")
@@ -382,7 +401,7 @@ class PlanLimitsTests(PlatformBaseTestCase):
 
     def test_overflow_vip_refused(self):
         e = self._event_with_plan("petit")
-        for i in range(10):
+        for i in range(20):
             Invitation.objects.create(
                 event=e,
                 code=f"VIPX-{i:05d}",
@@ -1027,6 +1046,15 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
             {
                 "site_name": site.site_name,
                 "tagline": site.tagline,
+                "hero_line1": site.hero_line1,
+                "hero_line2": site.hero_line2,
+                "hero_lead": site.hero_lead,
+                "hero_cta_guest": site.hero_cta_guest,
+                "hero_cta_user": site.hero_cta_user,
+                "banner_link_label": site.banner_link_label,
+                "whatsapp_message": site.whatsapp_message,
+                "singpay_environment": site.singpay_environment,
+                "allow_mock_payments": "on",
                 "commission_regular_pct": "12.5",
                 "commission_vip_pct": "25",
             },
@@ -1035,6 +1063,59 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
         site.refresh_from_db()
         self.assertEqual(site.commission_regular_pct, Decimal("12.50"))
         self.assertEqual(site.commission_vip_pct, Decimal("25.00"))
+
+    def test_admin_saves_central_site_config(self):
+        site = SiteSettings.load()
+        self.client.login(username="root", password="secret123")
+        page = self.client.get(reverse("platform_admin_settings"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "API SingPay")
+        self.assertContains(page, "WhatsApp")
+        r = self.client.post(
+            reverse("platform_admin_settings"),
+            {
+                "site_name": "Gab Event Test",
+                "tagline": "Accroche test",
+                "hero_line1": "Titre un",
+                "hero_line2": "Titre deux",
+                "hero_lead": "Lead public",
+                "hero_cta_guest": "Go",
+                "hero_cta_user": "Créer",
+                "banner_enabled": "on",
+                "banner_text": "Promo test",
+                "banner_link": "https://example.com/offre",
+                "banner_link_label": "Voir",
+                "support_email": "hello@gabevent.test",
+                "whatsapp_number": "077012345",
+                "whatsapp_message": "Bonjour",
+                "instagram_url": "https://instagram.com/gabevent",
+                "public_base_url": "https://gabevent.test",
+                "singpay_api_key": "key-from-console",
+                "singpay_api_secret": "secret-from-console",
+                "singpay_merchant_id": "wallet-1",
+                "singpay_disbursement_id": "disb-1",
+                "singpay_environment": "sandbox",
+                "allow_mock_payments": "on",
+                "meta_description": "Plateforme test",
+                "default_from_email": "noreply@gabevent.test",
+                "commission_regular_pct": "10",
+                "commission_vip_pct": "20",
+            },
+        )
+        self.assertEqual(r.status_code, 302)
+        site.refresh_from_db()
+        self.assertEqual(site.site_name, "Gab Event Test")
+        self.assertTrue(site.banner_enabled)
+        self.assertEqual(site.whatsapp_number, "077012345")
+        self.assertIn("wa.me/24177012345", site.whatsapp_href())
+        self.assertEqual(site.meta_description, "Plateforme test")
+        self.assertEqual(site.default_from_email, "noreply@gabevent.test")
+        self.assertEqual(site.singpay_api_key, "key-from-console")
+        from . import singpay as singpay_api
+
+        creds = singpay_api.credentials()
+        self.assertEqual(creds["api_key"], "key-from-console")
+        self.assertEqual(creds["merchant_id"], "wallet-1")
 
     def test_paid_publish_requires_confirmed_momo(self):
         plan = _custom_plan()

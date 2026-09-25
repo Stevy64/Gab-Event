@@ -7,6 +7,7 @@ Hiérarchie :
 """
 from __future__ import annotations
 
+import re
 import string
 from datetime import datetime, time, timedelta
 
@@ -1280,7 +1281,14 @@ class AdminAuditLog(models.Model):
 
 
 class SiteSettings(models.Model):
-    """Singleton — identité publique de Gab Event."""
+    """Singleton — configuration centralisée de Gab Event."""
+
+    SINGPAY_SANDBOX = "sandbox"
+    SINGPAY_PRODUCTION = "production"
+    SINGPAY_ENV_CHOICES = (
+        (SINGPAY_SANDBOX, "Sandbox (tests)"),
+        (SINGPAY_PRODUCTION, "Production"),
+    )
 
     site_name = models.CharField("Nom du site", max_length=80, default="Gab Event")
     tagline = models.CharField(
@@ -1296,10 +1304,136 @@ class SiteSettings(models.Model):
         null=True,
     )
     default_cover = models.ImageField(
-        "Image par défaut des événements",
+        "Image par défaut / bannière",
         upload_to="site/",
         blank=True,
         null=True,
+    )
+    hero_image = models.ImageField(
+        "Image hero (accueil)",
+        upload_to="site/",
+        blank=True,
+        null=True,
+    )
+    hero_line1 = models.CharField(
+        "Titre hero — ligne 1",
+        max_length=120,
+        blank=True,
+        default="Vos invitations électroniques",
+    )
+    hero_line2 = models.CharField(
+        "Titre hero — ligne 2",
+        max_length=120,
+        blank=True,
+        default="en une minute",
+    )
+    hero_lead = models.TextField(
+        "Sous-titre hero",
+        blank=True,
+        default=(
+            "Créez votre événement, envoyez vos billets électroniques "
+            "et gérez vos invités depuis votre smartphone."
+        ),
+    )
+    hero_cta_guest = models.CharField(
+        "Bouton hero (visiteur)",
+        max_length=80,
+        blank=True,
+        default="Commencer gratuitement",
+    )
+    hero_cta_user = models.CharField(
+        "Bouton hero (connecté)",
+        max_length=80,
+        blank=True,
+        default="Créer un événement",
+    )
+    banner_enabled = models.BooleanField("Afficher la bannière promo", default=False)
+    banner_text = models.CharField("Texte de la bannière", max_length=200, blank=True, default="")
+    banner_link = models.URLField("Lien de la bannière", blank=True, default="")
+    banner_link_label = models.CharField(
+        "Libellé du lien bannière",
+        max_length=40,
+        blank=True,
+        default="Voir",
+    )
+    support_email = models.EmailField("E-mail support", blank=True, default="")
+    support_phone = models.CharField("Téléphone support", max_length=32, blank=True, default="")
+    whatsapp_number = models.CharField(
+        "Numéro WhatsApp",
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="Ex. 077012345 ou +24177012345",
+    )
+    whatsapp_message = models.CharField(
+        "Message WhatsApp prérempli",
+        max_length=180,
+        blank=True,
+        default="Bonjour, j’ai une question sur Gab Event.",
+    )
+    facebook_url = models.URLField("Facebook", blank=True, default="")
+    instagram_url = models.URLField("Instagram", blank=True, default="")
+    tiktok_url = models.URLField("TikTok", blank=True, default="")
+    youtube_url = models.URLField("YouTube", blank=True, default="")
+    linkedin_url = models.URLField("LinkedIn", blank=True, default="")
+    x_url = models.URLField("X (Twitter)", blank=True, default="")
+    public_base_url = models.URLField(
+        "URL publique du site",
+        blank=True,
+        default="",
+        help_text="Retours de paiement SingPay. Ex. https://gabevent.com",
+    )
+    play_store_url = models.URLField("Lien Google Play", blank=True, default="")
+    app_store_url = models.URLField("Lien App Store", blank=True, default="")
+    extra_link_label = models.CharField(
+        "Lien personnalisé — libellé",
+        max_length=40,
+        blank=True,
+        default="",
+    )
+    extra_link_url = models.URLField("Lien personnalisé — URL", blank=True, default="")
+    meta_description = models.CharField(
+        "Description SEO",
+        max_length=220,
+        blank=True,
+        default="",
+        help_text="Balise meta des pages publiques. Vide = accroche.",
+    )
+    default_from_email = models.EmailField(
+        "E-mail d’expédition",
+        blank=True,
+        default="",
+        help_text="Expéditeur des e-mails (mot de passe oublié…). Vide = e-mail support.",
+    )
+    allow_mock_payments = models.BooleanField(
+        "Autoriser les paiements de test",
+        default=True,
+        help_text="Uniquement en DEBUG. Décochez pour forcer SingPay.",
+    )
+    singpay_api_key = models.CharField("SingPay — clé API", max_length=200, blank=True, default="")
+    singpay_api_secret = models.CharField(
+        "SingPay — secret API",
+        max_length=300,
+        blank=True,
+        default="",
+    )
+    singpay_merchant_id = models.CharField(
+        "SingPay — portefeuille",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+    singpay_disbursement_id = models.CharField(
+        "SingPay — disbursement",
+        max_length=120,
+        blank=True,
+        default="",
+    )
+    singpay_environment = models.CharField(
+        "Environnement SingPay",
+        max_length=20,
+        choices=SINGPAY_ENV_CHOICES,
+        default=SINGPAY_SANDBOX,
     )
     updated_at = models.DateTimeField(auto_now=True)
     commission_regular_pct = models.DecimalField(
@@ -1328,6 +1462,41 @@ class SiteSettings(models.Model):
         if obj is None:
             obj = cls.objects.create()
         return obj
+
+    def whatsapp_href(self) -> str:
+        raw = (self.whatsapp_number or "").strip()
+        if not raw:
+            return ""
+        digits = re.sub(r"\D", "", raw)
+        if digits.startswith("00"):
+            digits = digits[2:]
+        if digits.startswith("0") and 8 <= len(digits) <= 10:
+            digits = "241" + digits.lstrip("0")
+        if not digits:
+            return ""
+        text = (self.whatsapp_message or "").strip() or f"Bonjour, j’ai une question sur {self.site_name}."
+        from urllib.parse import quote
+
+        return f"https://wa.me/{digits}?text={quote(text)}"
+
+    def social_items(self) -> list[dict]:
+        mapping = (
+            ("facebook_url", "Facebook"),
+            ("instagram_url", "Instagram"),
+            ("tiktok_url", "TikTok"),
+            ("youtube_url", "YouTube"),
+            ("linkedin_url", "LinkedIn"),
+            ("x_url", "X"),
+        )
+        items = []
+        for field, label in mapping:
+            url = (getattr(self, field) or "").strip()
+            if url:
+                items.append({"key": field.replace("_url", ""), "label": label, "url": url})
+        return items
+
+    def has_singpay_keys(self) -> bool:
+        return bool(self.singpay_api_key and self.singpay_api_secret and self.singpay_merchant_id)
 
 
 class GalleryImage(models.Model):

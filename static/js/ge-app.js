@@ -290,8 +290,13 @@
 
   function easeOut(p) { return 1 - Math.pow(1 - p, 3); }
 
+  function parsePct(value) {
+    var n = parseFloat(String(value == null ? '' : value).replace(',', '.'));
+    return isFinite(n) ? n : 0;
+  }
+
   function animateCount(el) {
-    var target = parseFloat(el.getAttribute('data-ge-count'));
+    var target = parsePct(el.getAttribute('data-ge-count'));
     if (isNaN(target)) return;
     var suffix = el.getAttribute('data-ge-suffix') || '';
     var decimals = parseInt(el.getAttribute('data-ge-decimals') || '0', 10);
@@ -312,11 +317,26 @@
     requestAnimationFrame(tick);
   }
 
+  function presenceTone(pct) {
+    var n = parsePct(pct);
+    if (n < 20) return 'red';
+    if (n <= 50) return 'orange';
+    if (n <= 90) return 'blue';
+    return 'green';
+  }
+
+  function applyPresenceTone(host, pct) {
+    if (!host) return;
+    host.setAttribute('data-presence-tone', presenceTone(pct));
+  }
+
   function animateRing(el) {
-    var pct = Math.max(0, Math.min(100, parseFloat(el.getAttribute('data-ge-ring')) || 0));
+    var pct = Math.max(0, Math.min(100, parsePct(el.getAttribute('data-ge-ring'))));
     var radius = parseFloat(el.getAttribute('r')) || 56;
     var circ = 2 * Math.PI * radius;
+    var host = el.closest('[data-ge-presence], .ge-dash-orb');
     el.style.strokeDasharray = String(circ);
+    applyPresenceTone(host, pct);
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) {
       el.style.strokeDashoffset = String(circ * (1 - pct / 100));
@@ -328,7 +348,8 @@
     function tick(now) {
       if (!t0) t0 = now;
       var p = Math.min(1, (now - t0) / duration);
-      el.style.strokeDashoffset = String(circ * (1 - (pct / 100) * easeOut(p)));
+      var current = pct * easeOut(p);
+      el.style.strokeDashoffset = String(circ * (1 - current / 100));
       if (p < 1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -337,6 +358,10 @@
   function initDashboardMotion() {
     qsa('[data-ge-count]').forEach(animateCount);
     qsa('[data-ge-ring]').forEach(animateRing);
+    qsa('[data-ge-presence]').forEach(function (el) {
+      if (el.querySelector('[data-ge-ring]')) return;
+      applyPresenceTone(el, el.getAttribute('data-ge-presence'));
+    });
   }
 
   function previewFile(input, targets, opts) {
@@ -502,6 +527,10 @@
           link.click();
           link.remove();
           setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
+          var eventId = window.GERoster && window.GERoster.eventId();
+          if (eventId && /export|xlsx|excel/i.test(a.href + fallbackName)) {
+            window.GERoster.sync(eventId);
+          }
         })
         .catch(function () {
           var link = document.createElement('a');
@@ -643,6 +672,148 @@
       });
     });
   }
+
+  window.GERoster = {
+    queueKey: 'ge-admit-queue',
+    key: function (eventId) {
+      return 'ge-roster-' + String(eventId || '');
+    },
+    compact: function (code) {
+      return String(code || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    },
+    load: function (eventId) {
+      try {
+        return JSON.parse(localStorage.getItem(this.key(eventId)) || 'null');
+      } catch (err) {
+        return null;
+      }
+    },
+    save: function (eventId, data) {
+      try {
+        localStorage.setItem(this.key(eventId), JSON.stringify(data));
+      } catch (err) {}
+    },
+    findGuest: function (eventId, code) {
+      var pack = this.load(eventId);
+      if (!pack || !pack.guests) return null;
+      var needle = this.compact(code);
+      if (!needle) return null;
+      for (var i = 0; i < pack.guests.length; i += 1) {
+        if (this.compact(pack.guests[i].code) === needle) return pack.guests[i];
+      }
+      return null;
+    },
+    lookup: function (eventId, code) {
+      var guest = this.findGuest(eventId, code);
+      if (!guest) {
+        return { status: 'invalid', message: 'Ce code n’est pas dans la liste locale (Excel / base synchronisée).' };
+      }
+      if (guest.is_active === false) {
+        return { status: 'invalid', message: 'Invitation désactivée.', guest: guest };
+      }
+      if ((guest.places_remaining || 0) <= 0 || (guest.places_used || 0) >= (guest.places || 1)) {
+        return { status: 'already_used', guest: guest };
+      }
+      return { status: 'recognized', guest: guest, offline: true };
+    },
+    markLocalAdmit: function (eventId, code) {
+      var pack = this.load(eventId);
+      if (!pack || !pack.guests) return null;
+      var needle = this.compact(code);
+      for (var i = 0; i < pack.guests.length; i += 1) {
+        var guest = pack.guests[i];
+        if (this.compact(guest.code) !== needle) continue;
+        guest.places_used = (guest.places_used || 0) + 1;
+        guest.places_remaining = Math.max(0, (guest.places || 1) - guest.places_used);
+        this.save(eventId, pack);
+        return guest;
+      }
+      return null;
+    },
+    queueAdmit: function (eventId, code) {
+      var queue = [];
+      try { queue = JSON.parse(localStorage.getItem(this.queueKey) || '[]'); } catch (err) {}
+      queue.push({ event_id: eventId, code: code, at: Date.now() });
+      try { localStorage.setItem(this.queueKey, JSON.stringify(queue)); } catch (err) {}
+    },
+    pendingCount: function (eventId) {
+      var queue = [];
+      try { queue = JSON.parse(localStorage.getItem(this.queueKey) || '[]'); } catch (err) {}
+      if (!eventId) return queue.length;
+      return queue.filter(function (row) { return String(row.event_id) === String(eventId); }).length;
+    },
+    sync: function (eventId) {
+      var self = this;
+      if (!eventId || !navigator.onLine) return Promise.resolve(null);
+      return fetch('/api/scan-roster/?event_id=' + encodeURIComponent(eventId), {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      })
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (data) {
+          if (!data || !data.guests) return null;
+          data.synced_at = Date.now();
+          self.save(eventId, data);
+          return data;
+        })
+        .catch(function () { return null; });
+    },
+    flush: function () {
+      var self = this;
+      if (!navigator.onLine) return Promise.resolve();
+      var queue = [];
+      try { queue = JSON.parse(localStorage.getItem(this.queueKey) || '[]'); } catch (err) {}
+      if (!queue.length) return Promise.resolve();
+      var token = '';
+      var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+      if (csrf) token = csrf.value;
+      else {
+        var match = document.cookie.match(/csrftoken=([^;]+)/);
+        token = match ? match[1] : '';
+      }
+      var left = queue.slice();
+      function next() {
+        if (!left.length) {
+          try { localStorage.setItem(self.queueKey, '[]'); } catch (err) {}
+          return Promise.resolve();
+        }
+        var row = left.shift();
+        return fetch('/api/admit/', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': token,
+          },
+          body: JSON.stringify({ code: row.code, persons: 1, event_id: row.event_id }),
+        })
+          .then(function () { return next(); })
+          .catch(function () {
+            left.unshift(row);
+            try { localStorage.setItem(self.queueKey, JSON.stringify(left)); } catch (err) {}
+          });
+      }
+      return next();
+    },
+    eventId: function () {
+      if (window.__SCAN_EVENT_ID__) return window.__SCAN_EVENT_ID__;
+      var host = document.querySelector('[data-event-id]');
+      if (host) return parseInt(host.getAttribute('data-event-id'), 10) || null;
+      var q = new URLSearchParams(location.search).get('event');
+      return q ? parseInt(q, 10) || null : null;
+    },
+    boot: function () {
+      var self = this;
+      var eventId = this.eventId();
+      if (eventId) this.sync(eventId);
+      this.flush();
+      window.addEventListener('online', function () {
+        self.flush();
+        var id = self.eventId();
+        if (id) self.sync(id);
+      });
+    },
+  };
 
   function persistRecentPage() {
     try {
@@ -786,6 +957,7 @@
     initEventLifeMenu();
     persistRecentPage();
     prefetchWarm();
+    window.GERoster.boot();
     qsa('.ge-bottom-sheet, .ok-event-sheet').forEach(bindSheetDrag);
     var autoSheet = qs('.ge-bottom-sheet[data-open]');
     if (autoSheet) openSheet(autoSheet);

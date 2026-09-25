@@ -1,42 +1,165 @@
 {% extends "platform_admin/base_admin.html" %}
-{% block title %}Site — Console{% endblock %}
+{% block title %}Configuration — Console{% endblock %}
 {% block content %}
 <header class="cx-top">
   <div>
     <p class="cx-kicker">Système</p>
-    <h1>Identité du site</h1>
-    <p class="cx-lead">Logo, nom, visuel par défaut, et commissions prélevées sur les invitations payantes.</p>
+    <h1>Configuration</h1>
+    <p class="cx-lead">Identité, accueil, contacts, réseaux et SingPay — tout au même endroit.</p>
   </div>
 </header>
-<div class="cx-grid-2">
-  <section class="cx-card">
-    <form method="post" enctype="multipart/form-data">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="cx-field">
-        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
-        {{ field.errors }}
-      </div>
-      {% endfor %}
-      <button class="cx-btn" type="submit">Enregistrer</button>
-    </form>
-  </section>
-  <section class="cx-card">
-    <h2>Aperçu actuel</h2>
-    <div class="cx-preview">
-      {% if site.logo %}
-      <p><strong>Logo</strong></p>
-      <img class="cx-preview-logo" src="{{ site.logo.url }}" alt="{{ site.site_name }}">
-      {% endif %}
-      {% if site.default_cover %}
-      <p><strong>Couverture par défaut</strong></p>
-      <img class="cx-preview-cover" src="{{ site.default_cover.url }}" alt="">
-      {% endif %}
-      <p><strong>{{ site.site_name }}</strong></p>
-      <small>{{ site.tagline }}</small>
+
+<nav class="cx-jump" aria-label="Rubriques">
+  <a href="#identite">Identité</a>
+  <a href="#accueil">Accueil</a>
+  <a href="#contact">Contact</a>
+  <a href="#reseaux">Réseaux</a>
+  <a href="#liens">Liens</a>
+  <a href="#singpay">SingPay</a>
+  <a href="#commissions">Commissions</a>
+</nav>
+
+<form method="post" enctype="multipart/form-data" class="cx-settings">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+
+  <div class="cx-grid-2">
+    <div>
+      <section class="cx-card" id="identite">
+        <h2>Identité</h2>
+        {% include "platform_admin/_field.html" with field=form.site_name %}
+        {% include "platform_admin/_field.html" with field=form.tagline %}
+        {% include "platform_admin/_field.html" with field=form.logo %}
+        {% include "platform_admin/_field.html" with field=form.default_cover %}
+        {% include "platform_admin/_field.html" with field=form.meta_description %}
+      </section>
+
+      <section class="cx-card" id="accueil">
+        <h2>Page d’accueil — hero &amp; bannière</h2>
+        {% include "platform_admin/_field.html" with field=form.hero_image %}
+        {% include "platform_admin/_field.html" with field=form.hero_line1 %}
+        {% include "platform_admin/_field.html" with field=form.hero_line2 %}
+        {% include "platform_admin/_field.html" with field=form.hero_lead %}
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.hero_cta_guest %}
+          {% include "platform_admin/_field.html" with field=form.hero_cta_user %}
+        </div>
+        {% include "platform_admin/_field.html" with field=form.banner_enabled %}
+        {% include "platform_admin/_field.html" with field=form.banner_text %}
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.banner_link %}
+          {% include "platform_admin/_field.html" with field=form.banner_link_label %}
+        </div>
+      </section>
+
+      <section class="cx-card" id="contact">
+        <h2>Contact &amp; WhatsApp</h2>
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.support_email %}
+          {% include "platform_admin/_field.html" with field=form.support_phone %}
+        </div>
+        {% include "platform_admin/_field.html" with field=form.whatsapp_number %}
+        {% include "platform_admin/_field.html" with field=form.whatsapp_message %}
+        {% include "platform_admin/_field.html" with field=form.default_from_email %}
+      </section>
+
+      <section class="cx-card" id="reseaux">
+        <h2>Réseaux sociaux</h2>
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.facebook_url %}
+          {% include "platform_admin/_field.html" with field=form.instagram_url %}
+          {% include "platform_admin/_field.html" with field=form.tiktok_url %}
+          {% include "platform_admin/_field.html" with field=form.youtube_url %}
+          {% include "platform_admin/_field.html" with field=form.linkedin_url %}
+          {% include "platform_admin/_field.html" with field=form.x_url %}
+        </div>
+      </section>
+
+      <section class="cx-card" id="liens">
+        <h2>Liens &amp; URL publique</h2>
+        {% include "platform_admin/_field.html" with field=form.public_base_url %}
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.play_store_url %}
+          {% include "platform_admin/_field.html" with field=form.app_store_url %}
+        </div>
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.extra_link_label %}
+          {% include "platform_admin/_field.html" with field=form.extra_link_url %}
+        </div>
+      </section>
+
+      <section class="cx-card" id="singpay">
+        <h2>API SingPay</h2>
+        <p class="cx-card-note">
+          {% if singpay_ready %}
+          <span class="cx-pill is-ok">Paiements actifs</span>
+          {% else %}
+          <span class="cx-pill is-warn">Paiements inactifs</span>
+          {% endif %}
+          {% if singpay_from_console %}
+          Identifiants lus depuis cette page.
+          {% elif singpay_ready %}
+          Identifiants lus depuis le fichier .env.
+          {% else %}
+          Renseignez les clés ici pour activer Airtel / Moov Money.
+          {% endif %}
+        </p>
+        {% include "platform_admin/_field.html" with field=form.singpay_api_key %}
+        {% include "platform_admin/_field.html" with field=form.singpay_api_secret %}
+        {% include "platform_admin/_field.html" with field=form.singpay_merchant_id %}
+        {% include "platform_admin/_field.html" with field=form.singpay_disbursement_id %}
+        {% include "platform_admin/_field.html" with field=form.singpay_environment %}
+        {% include "platform_admin/_field.html" with field=form.allow_mock_payments %}
+      </section>
+
+      <section class="cx-card" id="commissions">
+        <h2>Commissions</h2>
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.commission_regular_pct %}
+          {% include "platform_admin/_field.html" with field=form.commission_vip_pct %}
+        </div>
+      </section>
     </div>
-  </section>
-</div>
+
+    <aside class="cx-settings-side">
+      <section class="cx-card">
+        <h2>Aperçu</h2>
+        <div class="cx-preview">
+          {% if site.logo %}
+          <p><strong>Logo</strong></p>
+          <img class="cx-preview-logo" src="{{ site.logo.url }}" alt="{{ site.site_name }}">
+          {% endif %}
+          {% if site.hero_image %}
+          <p><strong>Hero</strong></p>
+          <img class="cx-preview-cover" src="{{ site.hero_image.url }}" alt="">
+          {% endif %}
+          {% if site.default_cover %}
+          <p><strong>Couverture</strong></p>
+          <img class="cx-preview-cover" src="{{ site.default_cover.url }}" alt="">
+          {% endif %}
+          <p><strong>{{ site.site_name }}</strong></p>
+          <small>{{ site.tagline }}</small>
+        </div>
+      </section>
+      <section class="cx-card">
+        <h2>État</h2>
+        <ul class="cx-status-list">
+          <li>{% if site.logo %}<span class="cx-pill is-ok">Logo</span>{% else %}<span class="cx-pill is-muted">Logo manquant</span>{% endif %}</li>
+          <li>{% if site.whatsapp_number %}<span class="cx-pill is-ok">WhatsApp</span>{% else %}<span class="cx-pill is-muted">WhatsApp vide</span>{% endif %}</li>
+          <li>{% if site.banner_enabled %}<span class="cx-pill is-ok">Bannière on</span>{% else %}<span class="cx-pill is-muted">Bannière off</span>{% endif %}</li>
+          <li>{% if singpay_ready %}<span class="cx-pill is-ok">SingPay</span>{% else %}<span class="cx-pill is-warn">SingPay</span>{% endif %}</li>
+          <li>{% if site.support_email or site.default_from_email %}<span class="cx-pill is-ok">E-mail</span>{% else %}<span class="cx-pill is-muted">E-mail vide</span>{% endif %}</li>
+          <li>{% if site.social_items %}<span class="cx-pill is-ok">Réseaux</span>{% else %}<span class="cx-pill is-muted">Réseaux vides</span>{% endif %}</li>
+        </ul>
+        {% if site.whatsapp_href %}
+        <a class="cx-btn cx-btn-ghost" href="{{ site.whatsapp_href }}" target="_blank" rel="noopener">Tester WhatsApp</a>
+        {% endif %}
+      </section>
+    </aside>
+  </div>
+
+  <div class="cx-sticky-save">
+    <button class="cx-btn" type="submit">Enregistrer la configuration</button>
+  </div>
+</form>
 {% endblock %}

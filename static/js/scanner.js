@@ -103,9 +103,141 @@
     setHidden(errorMsg, true);
   }
 
+  function createRoster() {
+    return {
+      queueKey: "ge-admit-queue",
+      key: function (eventId) {
+        return "ge-roster-" + String(eventId || "");
+      },
+      compact: function (code) {
+        return String(code || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
+      },
+      load: function (eventId) {
+        try {
+          return JSON.parse(localStorage.getItem(this.key(eventId)) || "null");
+        } catch (err) {
+          return null;
+        }
+      },
+      save: function (eventId, data) {
+        try {
+          localStorage.setItem(this.key(eventId), JSON.stringify(data));
+        } catch (err) {}
+      },
+      findGuest: function (eventId, code) {
+        var pack = this.load(eventId);
+        if (!pack || !pack.guests) return null;
+        var needle = this.compact(code);
+        if (!needle) return null;
+        for (var i = 0; i < pack.guests.length; i += 1) {
+          if (this.compact(pack.guests[i].code) === needle) return pack.guests[i];
+        }
+        return null;
+      },
+      lookup: function (eventId, code) {
+        var guest = this.findGuest(eventId, code);
+        if (!guest) {
+          return {
+            status: "invalid",
+            message: "Ce code n’est pas dans la liste locale (Excel / base synchronisée).",
+          };
+        }
+        if (guest.is_active === false) {
+          return { status: "invalid", message: "Invitation désactivée.", guest: guest };
+        }
+        if ((guest.places_remaining || 0) <= 0 || (guest.places_used || 0) >= (guest.places || 1)) {
+          return { status: "already_used", guest: guest };
+        }
+        return { status: "recognized", guest: guest, offline: true };
+      },
+      markLocalAdmit: function (eventId, code) {
+        var pack = this.load(eventId);
+        if (!pack || !pack.guests) return null;
+        var needle = this.compact(code);
+        for (var i = 0; i < pack.guests.length; i += 1) {
+          var guest = pack.guests[i];
+          if (this.compact(guest.code) !== needle) continue;
+          guest.places_used = (guest.places_used || 0) + 1;
+          guest.places_remaining = Math.max(0, (guest.places || 1) - guest.places_used);
+          this.save(eventId, pack);
+          return guest;
+        }
+        return null;
+      },
+      queueAdmit: function (eventId, code) {
+        var queue = [];
+        try {
+          queue = JSON.parse(localStorage.getItem(this.queueKey) || "[]");
+        } catch (err) {}
+        queue.push({ event_id: eventId, code: code, at: Date.now() });
+        try {
+          localStorage.setItem(this.queueKey, JSON.stringify(queue));
+        } catch (err) {}
+      },
+      pendingCount: function (eventId) {
+        var queue = [];
+        try {
+          queue = JSON.parse(localStorage.getItem(this.queueKey) || "[]");
+        } catch (err) {}
+        if (!eventId) return queue.length;
+        return queue.filter(function (row) {
+          return String(row.event_id) === String(eventId);
+        }).length;
+      },
+      sync: function (eventId) {
+        var self = this;
+        if (!eventId || !navigator.onLine) return Promise.resolve(null);
+        return fetch("/api/scan-roster/?event_id=" + encodeURIComponent(eventId), {
+          credentials: "same-origin",
+          headers: { Accept: "application/json" },
+        })
+          .then(function (res) {
+            return res.ok ? res.json() : null;
+          })
+          .then(function (data) {
+            if (!data || !data.guests) return null;
+            data.synced_at = Date.now();
+            self.save(eventId, data);
+            return data;
+          })
+          .catch(function () {
+            return null;
+          });
+      },
+    };
+  }
+
+  function roster() {
+    return window.GERoster || createRoster();
+  }
+
+  function updateRosterHint() {
+    const help = document.getElementById("scan-roster-hint");
+    if (!help) return;
+    const store = roster();
+    const eventId = resolveEventId();
+    const pack = store && eventId ? store.load(eventId) : null;
+    const count = pack && pack.guests ? pack.guests.length : 0;
+    const pending = store && eventId ? store.pendingCount(eventId) : 0;
+    if (!navigator.onLine) {
+      help.textContent = count
+        ? "Hors-ligne · " + count + " invités synchronisés (liste Excel)."
+        : "Hors-ligne · aucune liste locale. Ouvrez l’événement une fois en ligne pour synchroniser l’Excel.";
+    } else if (count) {
+      help.textContent =
+        count +
+        " invités en mémoire pour le scan hors-ligne" +
+        (pending ? " · " + pending + " entrée(s) à synchroniser" : "") +
+        ".";
+    } else {
+      help.textContent = "La liste des invités (même contenu que l’Excel) se synchronise pour le scan hors-ligne.";
+    }
+  }
+
   function setOnlineUI() {
     if (!netDot) return;
     netDot.classList.toggle("offline", !navigator.onLine);
+    updateRosterHint();
   }
 
   function showLoader(text) {
@@ -304,6 +436,29 @@
   }
 
   async function confirmAdmit(code) {
+    if (!navigator.onLine) {
+      const store = roster();
+      const eventId = resolveEventId();
+      if (!store || !eventId) {
+        showError("Connexion indisponible. Réessayez une fois en ligne.");
+        locked = false;
+        return;
+      }
+      const guest = store.markLocalAdmit(eventId, code) || store.findGuest(eventId, code);
+      store.queueAdmit(eventId, code);
+      hideLoader();
+      openResultModal({
+        status: "admitted",
+        offline: true,
+        guest: guest,
+        welcome: guest
+          ? "Entrée enregistrée hors-ligne. Elle sera synchronisée dès le retour du réseau."
+          : "Entrée enregistrée hors-ligne.",
+        message: "Entrée enregistrée hors-ligne.",
+      });
+      updateRosterHint();
+      return;
+    }
     showLoader("Enregistrement de l'entrée…");
     try {
       const response = await fetch(ADMIT_URL, {
@@ -335,6 +490,20 @@
       }
     } catch (_) {
       hideLoader();
+      const store = roster();
+      const eventId = resolveEventId();
+      if (store && eventId && store.findGuest(eventId, code)) {
+        const guest = store.markLocalAdmit(eventId, code) || store.findGuest(eventId, code);
+        store.queueAdmit(eventId, code);
+        openResultModal({
+          status: "admitted",
+          offline: true,
+          guest: guest,
+          welcome: "Entrée enregistrée hors-ligne. Elle sera synchronisée dès le retour du réseau.",
+        });
+        updateRosterHint();
+        return;
+      }
       showError("Connexion indisponible. Réessayez.");
       locked = false;
     }
@@ -371,10 +540,15 @@
   }
 
   function extractScannedCode(raw) {
-    const text = String(raw || "").trim();
+    let text = String(raw || "").trim();
     if (!text) return "";
+    try {
+      const url = new URL(text);
+      const parts = url.pathname.split("/").filter(Boolean);
+      if (parts.length) text = decodeURIComponent(parts[parts.length - 1]);
+    } catch (_) {}
     const compact = text.replace(/\s+/g, "").toUpperCase();
-    const match = compact.match(/(ATC24|VIP)[-_]?([A-Z0-9]{6})/);
+    const match = compact.match(/([A-Z0-9]{2,8})[-_]?([A-Z0-9]{6,12})/);
     if (match) return match[1] + "-" + match[2];
     return compact;
   }
@@ -416,10 +590,6 @@
 
   async function startCamera() {
     clearError();
-    if (!navigator.onLine) {
-      showError("Connexion indisponible.");
-      return;
-    }
     if (typeof Html5Qrcode === "undefined") {
       showError("Bibliothèque de scan indisponible. Utilisez la saisie manuelle.");
       return;
@@ -505,9 +675,24 @@
     clearError();
     const normalized = extractScannedCode(code);
     if (!navigator.onLine) {
-      showError("Connexion indisponible. Vérifiez votre connexion puis réessayez.");
-      locked = false;
+      const store = roster();
+      const eventId = resolveEventId();
+      if (!store || !eventId) {
+        showError("Connexion indisponible. Ouvrez d’abord l’événement en ligne pour synchroniser la liste.");
+        locked = false;
+        showPanel(idlePanel);
+        return;
+      }
+      showLoader("Vérification hors-ligne…");
+      const data = store.lookup(eventId, normalized);
+      hideLoader();
       showPanel(idlePanel);
+      if (data.status === "invalid" && !store.load(eventId)) {
+        showError(data.message);
+        locked = false;
+        return;
+      }
+      openResultModal(data);
       return;
     }
     showLoader("Vérification de l'invitation…");
@@ -569,12 +754,29 @@
       }
     } catch (err) {
       hideLoader();
-      locked = false;
       showPanel(idlePanel);
+      const store = roster();
+      const eventId = resolveEventId();
+      if (store && eventId) {
+        const local = store.lookup(eventId, normalized);
+        if (local && local.status !== "invalid") {
+          openResultModal(local);
+          return;
+        }
+        if (local && local.status === "invalid" && store.findGuest(eventId, normalized)) {
+          openResultModal(local);
+          return;
+        }
+        if (store.load(eventId)) {
+          openResultModal(local);
+          return;
+        }
+      }
+      locked = false;
       showError(
         err && err.name === "AbortError"
           ? "Délai dépassé. Réessayez."
-          : "Impossible de vérifier cette invitation."
+          : "Impossible de vérifier cette invitation. Synchronisez la liste une fois en ligne."
       );
     } finally {
       clearTimeout(timeout);
@@ -700,6 +902,12 @@
   window.addEventListener("online", setOnlineUI);
   window.addEventListener("offline", setOnlineUI);
   setOnlineUI();
+  const eventId = resolveEventId();
+  if (roster() && eventId) {
+    roster()
+      .sync(eventId)
+      .then(updateRosterHint);
+  }
 
   (function syncEventLabel() {
     const help = document.getElementById("scan-event-help");

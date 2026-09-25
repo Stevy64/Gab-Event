@@ -48,6 +48,7 @@ def normalize_code(raw: str | None) -> str:
 
     candidates: list[tuple[str, str]] = []
     recipient = RECIPIENT_CODE_PREFIX.upper()
+    known_prefixes = {recipient, "ATC24", "GAE24", "GAE25", "GAE26"}
     for hm in SUFFIX_RE.finditer(compact):
         suffix = hm.group(1).upper()
         before = compact[: hm.start()]
@@ -56,15 +57,16 @@ def normalize_code(raw: str | None) -> str:
             continue
         full_pref = m.group(1)
         candidates.append((full_pref, suffix))
-        # Compat bruit avant préfixe legacy (ex. XXATC24-…)
-        if full_pref.endswith(recipient) and full_pref != recipient:
-            candidates.append((recipient, suffix))
+        # Compat bruit avant préfixe connu (ex. XXATC24-…, url/ATC24-…)
+        for known in known_prefixes:
+            if full_pref.endswith(known) and full_pref != known:
+                candidates.append((known, suffix))
 
     if not candidates:
         return compact
 
     for pref, suf in candidates:
-        if pref == recipient:
+        if pref in known_prefixes:
             return f"{pref}-{suf}"
 
     # Préfixe maximal juste avant le séparateur (premier candidat de la dernière occurrence)

@@ -1,0 +1,10 @@
+<div class="cx-field{% if field.field.widget.input_type == 'checkbox' %} is-check{% endif %}">
+  {% if field.field.widget.input_type == 'checkbox' %}
+  <label class="cx-check" for="{{ field.id_for_label }}">{{ field }} <span>{{ field.label }}</span></label>
+  {% else %}
+  <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+  {{ field }}
+  {% endif %}
+  {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+  {{ field.errors }}
+</div>

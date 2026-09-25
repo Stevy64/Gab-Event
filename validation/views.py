@@ -248,9 +248,23 @@ def landing(request):
     }
 
     from .branding import gallery_slides
+    from .models import SiteSettings
 
     # Carrousel : visuels Gab Event + flyers des événements opt-in
     carousel = gallery_slides()
+    site = SiteSettings.objects.first()
+    if site and site.hero_image:
+        try:
+            carousel.insert(
+                0,
+                {
+                    "url": site.hero_image.url,
+                    "label": site.site_name,
+                    "caption": site.tagline,
+                },
+            )
+        except ValueError:
+            pass
     featured = (
         Event.objects.filter(
             status=Event.STATUS_ACTIVE,
@@ -519,6 +533,43 @@ def api_admit(request):
     return JsonResponse(result.to_dict(), status=http)
 
 
+@require_GET
+def api_scan_roster(request):
+    """Liste locale des invités (même contenu que l’Excel) pour le scan hors-ligne."""
+    denied = _require_scanner_user(request)
+    if denied:
+        return denied
+    event = _resolve_scan_event(request, request.GET.get("event_id"))
+    if event is None:
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Ouvrez le scan depuis un événement pour synchroniser la liste.",
+            },
+            status=400,
+        )
+    if event.needs_payment:
+        return JsonResponse(
+            {"status": "error", "message": "Paiement non finalisé : liste indisponible."},
+            status=403,
+        )
+    from .services import guest_payload
+
+    guests = []
+    for inv in Invitation.objects.filter(event=event).iterator():
+        row = guest_payload(inv)
+        row["is_active"] = inv.is_active_ticket
+        guests.append(row)
+    return JsonResponse(
+        {
+            "event_id": event.pk,
+            "event_name": event.name,
+            "count": len(guests),
+            "guests": guests,
+        }
+    )
+
+
 # ---------------------------------------------------------------------------
 # Auth / profil
 # ---------------------------------------------------------------------------
@@ -560,8 +611,10 @@ def login_view(request):
 
 
 def _reset_email_context():
-    extra = {"site_name": "Gab Event"}
-    base = getattr(settings, "PUBLIC_BASE_URL", "") or ""
+    from .siteconfig import display_name, public_base_url
+
+    extra = {"site_name": display_name()}
+    base = public_base_url()
     parsed = urlparse(base)
     if parsed.netloc:
         extra["domain"] = parsed.netloc
@@ -579,7 +632,10 @@ class GabPasswordResetView(PasswordResetView):
     extra_email_context = None
 
     def form_valid(self, form):
+        from .siteconfig import outgoing_from_email
+
         self.extra_email_context = _reset_email_context()
+        self.from_email = outgoing_from_email()
         return super().form_valid(form)
 
 

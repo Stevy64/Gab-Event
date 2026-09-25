@@ -30,6 +30,7 @@
                data-capacity="{{ plan.potential_total }}"
                data-unlimited="{% if plan.is_custom %}1{% else %}0{% endif %}"
                data-custom="{% if plan.is_custom %}1{% else %}0{% endif %}"
+               data-paid="{% if plan.is_free or plan.is_custom or plan.price == 0 %}0{% else %}1{% endif %}"
                data-price="{% if plan.is_custom %}{{ plan.price_per_regular|floatformat:0 }} FCFA / std{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} FCFA{% endif %}">
           <input type="radio" name="plan" value="{{ plan.id }}" required>
           <header class="ge-plan-head">
@@ -72,14 +73,22 @@
   <div class="ge-sheet-handle" aria-hidden="true"></div>
   <header class="ge-sheet-head">
     <div>
-      <p class="ge-kicker">Confirmer</p>
+      <p class="ge-kicker" data-plan-kicker>Confirmer</p>
       <h2 id="ge-sheet-plan-title">Formule</h2>
     </div>
     <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </header>
-  <p class="ge-sheet-lead"><strong data-plan-name>—</strong> · <span data-plan-price>—</span></p>
+  <p class="ge-sheet-lead" data-plan-free-copy>
+    <strong data-plan-name>—</strong> · <span data-plan-price>—</span>
+  </p>
+  <p class="ge-sheet-lead" data-plan-pay-copy hidden>
+    Vous allez être dirigé vers l’espace de paiement pour la formule
+    <strong data-plan-name-pay>—</strong>
+    (<span data-plan-price-pay>—</span>).
+    Souhaitez-vous continuer&nbsp;?
+  </p>
   <div class="ge-custom-window" id="ge-custom-window" hidden>
     <p class="ge-muted">Définissez la fenêtre de validité de cet événement personnalisé. Il sera supprimé automatiquement à la date de fin.</p>
     <div class="ge-studio-split">
@@ -93,11 +102,17 @@
       </div>
     </div>
   </div>
-  <div class="ge-sheet-actions">
+  <div class="ge-sheet-actions" data-plan-free-actions>
     <button type="button" class="ge-btn-ghost" data-sheet-close>Changer</button>
     <button type="submit" form="ge-plans-form" class="ok-btn-dark">
       Confirmer
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
+    </button>
+  </div>
+  <div class="ge-sheet-actions" data-plan-pay-actions hidden>
+    <button type="button" class="ge-btn-ghost" data-sheet-close>Non</button>
+    <button type="submit" form="ge-plans-form" class="ok-btn-dark" data-plan-pay-yes>
+      Oui
     </button>
   </div>
 </div>
@@ -131,6 +146,14 @@
   var expected = parseInt(form.getAttribute('data-expected') || '0', 10) || 0;
   var nameEl = sheet.querySelector('[data-plan-name]');
   var priceEl = sheet.querySelector('[data-plan-price]');
+  var namePay = sheet.querySelector('[data-plan-name-pay]');
+  var pricePay = sheet.querySelector('[data-plan-price-pay]');
+  var kicker = sheet.querySelector('[data-plan-kicker]');
+  var title = document.getElementById('ge-sheet-plan-title');
+  var freeCopy = sheet.querySelector('[data-plan-free-copy]');
+  var payCopy = sheet.querySelector('[data-plan-pay-copy]');
+  var freeActions = sheet.querySelector('[data-plan-free-actions]');
+  var payActions = sheet.querySelector('[data-plan-pay-actions]');
   var copyEl = tight ? tight.querySelector('[data-tight-copy]') : null;
 
   document.querySelectorAll('.ge-plan-card').forEach(function (card) {
@@ -159,8 +182,19 @@
           inp.required = isCustom;
         });
       }
-      if (nameEl) nameEl.textContent = card.getAttribute('data-name') || '';
-      if (priceEl) priceEl.textContent = card.getAttribute('data-price') || '';
+      var paid = card.getAttribute('data-paid') === '1';
+      var planName = card.getAttribute('data-name') || '';
+      var planPrice = card.getAttribute('data-price') || '';
+      if (nameEl) nameEl.textContent = planName;
+      if (priceEl) priceEl.textContent = planPrice;
+      if (namePay) namePay.textContent = planName;
+      if (pricePay) pricePay.textContent = planPrice;
+      if (kicker) kicker.textContent = paid ? 'Paiement' : 'Confirmer';
+      if (title) title.textContent = paid ? 'Continuer vers le paiement ?' : (planName || 'Formule');
+      if (freeCopy) freeCopy.hidden = paid;
+      if (payCopy) payCopy.hidden = !paid;
+      if (freeActions) freeActions.hidden = paid;
+      if (payActions) payActions.hidden = !paid;
       if (window.GeSheets) window.GeSheets.open(sheet);
     }
     input.addEventListener('change', select);

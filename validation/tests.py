@@ -13,13 +13,19 @@ from PIL import Image
 
 from validation.card_service import generate_invitation_card, invitation_filename
 from validation.code_service import generate_invitation_code, normalize_code
-from validation.constants import CODE_ALPHABET, PARTICIPANT_RECIPIENT, PARTICIPANT_VIP
+from validation.constants import (
+    CODE_ALPHABET,
+    PARTICIPANT_RECIPIENT,
+    PARTICIPANT_VIP,
+    RECIPIENT_CODE_PREFIX,
+)
 from validation.models import Admission, Invitation
 from validation.qr_service import build_qr_image, qr_png_bytes
 from validation.services import (
     admit_persons,
     import_invitations_from_path,
     lookup_invitation,
+    presence_tone,
 )
 
 
@@ -33,10 +39,24 @@ def make_xlsx(path: Path, rows, headers=None):
     wb.close()
 
 
+class PresenceToneTests(TestCase):
+    def test_thresholds(self):
+        self.assertEqual(presence_tone(0), "red")
+        self.assertEqual(presence_tone(19.9), "red")
+        self.assertEqual(presence_tone(20), "orange")
+        self.assertEqual(presence_tone(25), "orange")
+        self.assertEqual(presence_tone(44.9), "orange")
+        self.assertEqual(presence_tone(50), "orange")
+        self.assertEqual(presence_tone(50.1), "blue")
+        self.assertEqual(presence_tone(90), "blue")
+        self.assertEqual(presence_tone(90.1), "green")
+        self.assertEqual(presence_tone(100), "green")
+
+
 class CodeGenerationTests(TestCase):
     def test_recipient_format(self):
         code = generate_invitation_code(PARTICIPANT_RECIPIENT)
-        self.assertTrue(code.startswith("ATC24-"))
+        self.assertTrue(code.startswith(f"{RECIPIENT_CODE_PREFIX}-"))
         suffix = code.split("-", 1)[1]
         self.assertEqual(len(suffix), 6)
         self.assertTrue(all(c in CODE_ALPHABET for c in suffix))
@@ -79,7 +99,7 @@ class ImportPhase2Tests(TestCase):
             self.assertEqual(result.created, 1)
             inv = Invitation.objects.get(first_name="Abdou")
             self.assertEqual(inv.participant_type, PARTICIPANT_RECIPIENT)
-            self.assertTrue(inv.code.startswith("ATC24-"))
+            self.assertTrue(inv.code.startswith(f"{RECIPIENT_CODE_PREFIX}-"))
 
     def test_import_vip_generates_vip(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -254,6 +274,16 @@ class LookupAdmitTests(TransactionTestCase):
         self.assertEqual(body["status"], "admitted")
         self.assertIn("Bienvenue", body.get("welcome", body.get("message", "")))
         self.assertEqual(Admission.objects.count(), 1)
+
+    def test_scan_roster_matches_event_guests(self):
+        client = Client()
+        client.login(username="agent", password="secret123")
+        r = client.get(reverse("api_scan_roster"), {"event_id": self.event.pk})
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["count"], 2)
+        codes = {row["code"] for row in body["guests"]}
+        self.assertEqual(codes, {"ATC24-A7K9P2", "VIP-H8K2M4"})
 
 
 class ZipAndPermissionTests(TestCase):

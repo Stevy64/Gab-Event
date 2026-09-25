@@ -2,5 +2,7 @@
   <a href="{% url 'landing' %}">Accueil</a>
   <a href="{% url 'faq' %}">FAQ</a>
   <a href="{% url 'terms' %}" title="Conditions générales d’utilisation">CGU</a>
-  <span>© 2026 Gab Event</span>
+  {% if site and site.whatsapp_href %}<a href="{{ site.whatsapp_href }}" target="_blank" rel="noopener">WhatsApp</a>{% endif %}
+  {% if site and site.support_email %}<a href="mailto:{{ site.support_email }}">Contact</a>{% endif %}
+  <span>© {% now "Y" %} {{ site_name }}</span>
 </footer>

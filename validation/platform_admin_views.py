@@ -13,7 +13,9 @@ from django.views.decorators.http import require_GET, require_http_methods
 from datetime import timedelta
 
 from .access import require_platform_admin
+from . import singpay as singpay_api
 from .branding import site_brand
+from .siteconfig import display_name
 from .forms import (
     EventCategoryForm,
     EventLimitAdjustForm,
@@ -52,7 +54,11 @@ def _admin_required(view):
 
 def _ctx(extra: dict | None = None) -> dict:
     brand = site_brand()
-    data = {"site_logo": brand["logo_url"], "site_logo_version": brand["version"]}
+    data = {
+        "site_logo": brand["logo_url"],
+        "site_logo_version": brand["version"],
+        "site_name": display_name(),
+    }
     if extra:
         data.update(extra)
     return data
@@ -478,13 +484,21 @@ def settings_page(request):
     form = SiteSettingsForm(request.POST or None, request.FILES or None, instance=site)
     if request.method == "POST" and form.is_valid():
         form.save()
-        _audit(request.user, AdminAuditLog.ACTION_OTHER, "Mise à jour identité du site", "site")
-        messages.success(request, "Identité du site enregistrée.")
+        _audit(request.user, AdminAuditLog.ACTION_OTHER, "Mise à jour configuration du site", "site")
+        messages.success(request, "Configuration enregistrée.")
         return redirect("platform_admin_settings")
     return render(
         request,
         "platform_admin/settings.html",
-        _ctx({"nav_active": "settings", "form": form, "site": site}),
+        _ctx(
+            {
+                "nav_active": "settings",
+                "form": form,
+                "site": site,
+                "singpay_ready": singpay_api.is_configured(),
+                "singpay_from_console": site.has_singpay_keys(),
+            }
+        ),
     )
 
 

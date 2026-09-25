@@ -1,5 +1,5 @@
 {% comment %}Navigation dans un événement{% endcomment %}
-<header class="ge-app-top ge-event-bar" id="ge-app-top">
+<header class="ge-app-top ge-event-bar" id="ge-app-top" data-event-id="{{ event.id }}">
   <a class="ge-app-brand ge-app-back" href="{% if back_url %}{{ back_url }}{% else %}{% url 'my_events' %}{% endif %}" aria-label="Retour{% if back_label %} — {{ back_label }}{% endif %}" title="Retour{% if back_label %} — {{ back_label }}{% endif %}">
     <span class="ge-app-back-ico" aria-hidden="true">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
@@ -138,3 +138,18 @@
     </a>
   </div>
 </div>
+<script>
+(function () {
+  var id = {{ event.id }};
+  if (!id || !navigator.onLine) return;
+  fetch("/api/scan-roster/?event_id=" + encodeURIComponent(id), {
+    credentials: "same-origin",
+    headers: { Accept: "application/json" }
+  }).then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      if (!data || !data.guests) return;
+      data.synced_at = Date.now();
+      try { localStorage.setItem("ge-roster-" + id, JSON.stringify(data)); } catch (err) {}
+    }).catch(function () {});
+})();
+</script>

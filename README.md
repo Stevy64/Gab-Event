@@ -45,12 +45,20 @@ python manage.py runserver
 
 ---
 
-## Tests
+## Tests et CI/CD
+
+Chaque push sur `main` lance GitHub Actions : contrôles Django, tests SQLite, tests Postgres, puis (si les secrets sont en place) le déploiement PythonAnywhere.
 
 ```bash
-python manage.py check
-python manage.py test
+python manage.py check --settings=config.test_settings
+python manage.py test --settings=config.test_settings
+python manage.py collectstatic --noinput
 ```
+
+| Document | Usage |
+|----------|--------|
+| [DEPLOY_PYTHONANYWHERE.md](DEPLOY_PYTHONANYWHERE.md) | Production actuelle via GitHub → PythonAnywhere |
+| [docs/DEPLOY_OVH.md](docs/DEPLOY_OVH.md) | Livraison VPS OVH Cloud (Docker, domaine, HTTPS) |
 
 ---
 
@@ -63,4 +71,4 @@ La migration crée l'événement historique **Ancienne cérémonie ATC** et y ra
 
 ## Stack
 
-Python 3.10+ / Django 5 / SQLite · openpyxl · qrcode · Pillow · WhiteNoise
+Python 3.10+ / Django 5 / SQLite ou Postgres · openpyxl · qrcode · Pillow · WhiteNoise · GitHub Actions

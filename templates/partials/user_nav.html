@@ -2,7 +2,7 @@
 <header class="ge-app-top" id="ge-app-top">
   <a class="ge-app-brand" href="{% url 'my_events' %}">
     {% include "partials/brand_mark.html" with mark_class="ge-app-brand-logo" %}
-    <span class="ge-app-brand-name">Gab Event</span>
+    <span class="ge-app-brand-name">{{ site_name }}</span>
   </a>
   <p class="ge-app-top-title">{{ admin_title|default:"Mon espace" }}</p>
   <nav class="ge-app-nav-desktop" aria-label="Navigation">

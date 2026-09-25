@@ -1,16 +1,26 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Gab Event — Gérez vos invitations simplement{% endblock %}
+{% block title %}{{ site_name }} — Gérez vos invitations simplement{% endblock %}
 {% block body_class %}page-landing{% endblock %}
 
 
 {% block content %}
 <div class="ok-landing">
+  {% if site and site.banner_enabled and site.banner_text %}
+  <div class="ok-promo">
+    <p>
+      {{ site.banner_text }}
+      {% if site.banner_link %}
+      <a href="{{ site.banner_link }}">{{ site.banner_link_label|default:"Voir" }}</a>
+      {% endif %}
+    </p>
+  </div>
+  {% endif %}
   <header class="ok-nav" id="ok-nav">
     <a class="ok-logo" href="{% url 'landing' %}#accueil">
       {% include "partials/brand_mark.html" %}
-      <span class="ok-logo-text">Gab Event</span>
+      <span class="ok-logo-text">{{ site_name }}</span>
     </a>
 
     <nav class="ok-nav-center" aria-label="Navigation">
@@ -134,18 +144,17 @@
     <div class="ok-hero-body">
       <div class="ok-hero-copy">
         <h1>
-          <span class="ok-hero-line">Vos invitations <em>électroniques</em></span>
-          <span class="ok-hero-line">en une minute</span>
+          <span class="ok-hero-line">{{ site.hero_line1|default:"Vos invitations électroniques" }}</span>
+          {% if site.hero_line2 %}<span class="ok-hero-line">{{ site.hero_line2 }}</span>{% endif %}
         </h1>
         <p class="ok-lead">
-          <span>Créez votre événement, envoyez vos billets électroniques</span>
-          <span>et gérez vos invités depuis votre smartphone.</span>
+          {{ site.hero_lead|default:"Créez votre événement, envoyez vos billets électroniques et gérez vos invités depuis votre smartphone." }}
         </p>
         <div class="ok-cta-row">
           {% if user.is_authenticated %}
-          <a class="ok-btn-light" href="{% url 'event_create' %}">Créer un événement</a>
+          <a class="ok-btn-light" href="{% url 'event_create' %}">{{ site.hero_cta_user|default:"Créer un événement" }}</a>
           {% else %}
-          <a class="ok-btn-light" href="{% url 'signup' %}">Commencer gratuitement</a>
+          <a class="ok-btn-light" href="{% url 'signup' %}">{{ site.hero_cta_guest|default:"Commencer gratuitement" }}</a>
           {% endif %}
         </div>
       </div>
@@ -390,9 +399,9 @@
       <div class="ok-footer-brand">
         <a class="ok-logo ok-logo-dark" href="{% url 'landing' %}">
           {% include "partials/brand_mark.html" %}
-          <span class="ok-logo-text">Gab Event</span>
+          <span class="ok-logo-text">{{ site_name }}</span>
         </a>
-        <p class="ok-footer-tag">Invitations électroniques, avec élégance.</p>
+        <p class="ok-footer-tag">{{ site.tagline|default:"Invitations électroniques, avec élégance." }}</p>
       </div>
       <nav class="ok-footer-links" aria-label="Pied de page">
         <a href="#accueil">Accueil</a>
@@ -400,6 +409,10 @@
         <a href="#offres">Offres</a>
         <a href="{% url 'faq' %}">FAQ</a>
         <a href="{% url 'terms' %}" title="Conditions générales d’utilisation">CGU</a>
+        {% if site.support_email %}<a href="mailto:{{ site.support_email }}">Contact</a>{% endif %}
+        {% if site.extra_link_url and site.extra_link_label %}<a href="{{ site.extra_link_url }}">{{ site.extra_link_label }}</a>{% endif %}
+        {% if site.play_store_url %}<a href="{{ site.play_store_url }}">Play Store</a>{% endif %}
+        {% if site.app_store_url %}<a href="{{ site.app_store_url }}">App Store</a>{% endif %}
         {% if user.is_authenticated %}
         <a href="{% url 'my_events' %}">Mon espace</a>
         <a href="{% url 'event_create' %}">Créer</a>
@@ -408,9 +421,24 @@
         <a href="{% url 'signup' %}">Créer un compte</a>
         {% endif %}
       </nav>
-      <p class="ok-footer-copy">© 2026 Gab Event</p>
+      {% if site.social_items %}
+      <nav class="ok-social" aria-label="Réseaux sociaux">
+        {% for item in site.social_items %}
+        <a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.label }}</a>
+        {% endfor %}
+        {% if site.whatsapp_href %}
+        <a href="{{ site.whatsapp_href }}" target="_blank" rel="noopener">WhatsApp</a>
+        {% endif %}
+      </nav>
+      {% elif site.whatsapp_href %}
+      <nav class="ok-social" aria-label="Contact">
+        <a href="{{ site.whatsapp_href }}" target="_blank" rel="noopener">WhatsApp</a>
+      </nav>
+      {% endif %}
+      <p class="ok-footer-copy">© {% now "Y" %} {{ site_name }}{% if site.support_email %} · {{ site.support_email }}{% endif %}{% if site.support_phone %} · {{ site.support_phone }}{% endif %}</p>
     </div>
   </footer>
+  {% include "partials/whatsapp_fab.html" %}
 </div>
 {% endblock %}
 

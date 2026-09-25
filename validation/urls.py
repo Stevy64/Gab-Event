@@ -20,6 +20,7 @@ urlpatterns = [
     path("scanner/", views.scanner, name="scanner"),
     path("api/validate/", views.api_validate, name="api_validate"),
     path("api/admit/", views.api_admit, name="api_admit"),
+    path("api/scan-roster/", views.api_scan_roster, name="api_scan_roster"),
     path("accounts/signup/", views.signup, name="signup"),
     path("accounts/login/", views.login_view, name="login"),
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),

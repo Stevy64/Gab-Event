@@ -896,6 +896,24 @@ class EventLimitAdjustForm(forms.Form):
 
 
 class SiteSettingsForm(forms.ModelForm):
+    singpay_api_key = forms.CharField(
+        label="SingPay — clé API",
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={"autocomplete": "new-password", "placeholder": "Laisser vide pour conserver"},
+        ),
+        help_text="Remplace la valeur .env dès qu’elle est enregistrée ici.",
+    )
+    singpay_api_secret = forms.CharField(
+        label="SingPay — secret API",
+        required=False,
+        widget=forms.PasswordInput(
+            render_value=False,
+            attrs={"autocomplete": "new-password", "placeholder": "Laisser vide pour conserver"},
+        ),
+    )
+
     class Meta:
         model = SiteSettings
         fields = (
@@ -903,6 +921,37 @@ class SiteSettingsForm(forms.ModelForm):
             "tagline",
             "logo",
             "default_cover",
+            "hero_image",
+            "hero_line1",
+            "hero_line2",
+            "hero_lead",
+            "hero_cta_guest",
+            "hero_cta_user",
+            "banner_enabled",
+            "banner_text",
+            "banner_link",
+            "banner_link_label",
+            "support_email",
+            "support_phone",
+            "whatsapp_number",
+            "whatsapp_message",
+            "facebook_url",
+            "instagram_url",
+            "tiktok_url",
+            "youtube_url",
+            "linkedin_url",
+            "x_url",
+            "public_base_url",
+            "play_store_url",
+            "app_store_url",
+            "extra_link_label",
+            "extra_link_url",
+            "meta_description",
+            "default_from_email",
+            "allow_mock_payments",
+            "singpay_merchant_id",
+            "singpay_disbursement_id",
+            "singpay_environment",
             "commission_regular_pct",
             "commission_vip_pct",
         )
@@ -910,11 +959,65 @@ class SiteSettingsForm(forms.ModelForm):
             "tagline": forms.TextInput(attrs={"placeholder": "Accroche publique"}),
             "logo": StyledImageInput(),
             "default_cover": StyledImageInput(),
+            "hero_image": StyledImageInput(),
+            "hero_lead": forms.Textarea(attrs={"rows": 3}),
+            "meta_description": forms.TextInput(attrs={"placeholder": "Gérez vos invitations avec QR Code"}),
+            "banner_text": forms.TextInput(attrs={"placeholder": "Offre de lancement, nouveau plan…"}),
+            "whatsapp_number": forms.TextInput(attrs={"placeholder": "077012345"}),
+            "public_base_url": forms.URLInput(attrs={"placeholder": "https://gabevent.com"}),
         }
         help_texts = {
             "commission_regular_pct": "Prélevée sur chaque invitation standard payante (formule Personnalisé).",
             "commission_vip_pct": "Prélevée sur chaque invitation VIP payante, avant reversement à l’organisateur.",
+            "public_base_url": "Adresse utilisée pour les retours SingPay. Laissez vide pour garder la valeur .env.",
+            "hero_image": "Si renseignée, elle s’affiche en premier sur le carrousel d’accueil.",
+            "meta_description": "Texte des onglets / Google. Vide = accroche.",
+            "default_from_email": "Ex. noreply@gabevent.com — utilisé pour mot de passe oublié.",
+            "allow_mock_payments": "En local seulement. Décochez une fois SingPay prêt.",
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        inst = self.instance
+        for name in ("logo", "default_cover", "hero_image"):
+            widget = self.fields[name].widget
+            widget.existing_url = ""
+            widget.existing_name = ""
+            image = getattr(inst, name, None) if inst and getattr(inst, "pk", None) else None
+            if image:
+                try:
+                    widget.existing_url = image.url
+                    widget.existing_name = str(image.name).rsplit("/", 1)[-1]
+                except ValueError:
+                    pass
+        if inst and inst.singpay_api_key:
+            self.fields["singpay_api_key"].help_text = "Une clé est déjà enregistrée. Laissez vide pour la garder."
+        if inst and inst.singpay_api_secret:
+            self.fields["singpay_api_secret"].help_text = "Un secret est déjà enregistré. Laissez vide pour le garder."
+        from django.conf import settings as dj_settings
+
+        if inst and not (inst.public_base_url or "").strip():
+            self.fields["public_base_url"].initial = getattr(dj_settings, "PUBLIC_BASE_URL", "") or ""
+        if inst and not (inst.singpay_merchant_id or "").strip():
+            self.fields["singpay_merchant_id"].initial = getattr(dj_settings, "SINGPAY_MERCHANT_ID", "") or ""
+        if inst and not (inst.singpay_disbursement_id or "").strip():
+            self.fields["singpay_disbursement_id"].initial = (
+                getattr(dj_settings, "SINGPAY_DISBURSEMENT_ID", "") or ""
+            )
+        if inst and not (inst.default_from_email or "").strip() and inst.support_email:
+            self.fields["default_from_email"].initial = inst.support_email
+
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        key = (self.cleaned_data.get("singpay_api_key") or "").strip()
+        secret = (self.cleaned_data.get("singpay_api_secret") or "").strip()
+        if key:
+            obj.singpay_api_key = key
+        if secret:
+            obj.singpay_api_secret = secret
+        if commit:
+            obj.save()
+        return obj
 
 
 class GalleryImageForm(forms.ModelForm):

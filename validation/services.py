@@ -518,7 +518,9 @@ def admit_persons(
         return AdmitResult(status="invalid", message="Code vide ou illisible.")
 
     with transaction.atomic():
-        qs = Invitation.objects.select_for_update().select_related("event")
+        # Pas de select_related ici : event est nullable, Postgres refuse
+        # FOR UPDATE sur le côté optionnel d'un LEFT OUTER JOIN.
+        qs = Invitation.objects.select_for_update()
         if event is not None:
             qs = qs.filter(event=event)
         invitation = qs.filter(code__iexact=normalized).first()
@@ -642,6 +644,21 @@ def _type_stats(participant_type: str, event: Event | None = None) -> dict:
     }
 
 
+def presence_tone(rate) -> str:
+    """Couleur du compteur : rouge <20 %, orange ≤50 %, bleu ≤90 %, vert >90 %."""
+    try:
+        n = float(rate or 0)
+    except (TypeError, ValueError):
+        n = 0.0
+    if n < 20:
+        return "red"
+    if n <= 50:
+        return "orange"
+    if n <= 90:
+        return "blue"
+    return "green"
+
+
 def event_dashboard_stats(event: Event) -> dict:
     qs = Invitation.objects.filter(event=event)
     total = qs.count()
@@ -680,6 +697,7 @@ def event_dashboard_stats(event: Event) -> dict:
         "places_admitted": places_admitted,
         "places_remaining": max(0, places_expected - places_admitted),
         "presence_rate": rate,
+        "presence_tone": presence_tone(rate),
         "recent_scans": recent,
         "recipients": _type_stats(PARTICIPANT_RECIPIENT, event),
         "vips": _type_stats(PARTICIPANT_VIP, event),
@@ -729,6 +747,7 @@ def dashboard_stats(event: Event | None = None) -> dict:
         "places_admitted": places_admitted,
         "places_remaining": max(0, places_expected - places_admitted),
         "presence_rate": rate,
+        "presence_tone": presence_tone(rate),
         "recent_scans": recent,
         "recipients": _type_stats(PARTICIPANT_RECIPIENT),
         "vips": _type_stats(PARTICIPANT_VIP),

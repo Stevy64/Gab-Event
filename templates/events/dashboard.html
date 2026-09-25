@@ -3,7 +3,7 @@
 {% block body_class %}page-app page-event page-event-dash{% endblock %}
 {% block content %}
 {% include "partials/event_nav.html" with nav_active="overview" %}
-<main class="ge-dash" style="--event-color: {{ event.display_primary_color }}; --presence: {{ stats.presence_rate|default:0 }};">
+<main class="ge-dash" style="--event-color: {{ event.display_primary_color }}; --presence: {{ stats.presence_rate|default:0|stringformat:'.1f' }};">
   <section class="ge-dash-sky">
     <div class="ge-dash-arc" aria-hidden="true">
       <img class="ge-dash-arc-img" src="{{ event.cover_url }}" alt="">
@@ -16,13 +16,13 @@
       </p>
     </div>
   </section>
-  <div class="ge-dash-orb">
+  <div class="ge-dash-orb" data-ge-presence="{{ stats.presence_rate|default:0|stringformat:'.1f' }}" data-presence-tone="{{ stats.presence_tone|default:'red' }}">
     <svg class="ge-dash-ring" viewBox="0 0 136 136" aria-hidden="true">
       <circle class="ge-dash-ring-track" cx="68" cy="68" r="56"></circle>
-      <circle class="ge-dash-ring-value" data-ge-ring="{{ stats.presence_rate|default:0 }}" cx="68" cy="68" r="56"></circle>
+      <circle class="ge-dash-ring-value" data-ge-ring="{{ stats.presence_rate|default:0|stringformat:'.1f' }}" cx="68" cy="68" r="56"></circle>
     </svg>
     <div class="ge-dash-orb-label">
-      <strong data-ge-count="{{ stats.presence_rate|default:0 }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
+      <strong data-ge-count="{{ stats.presence_rate|default:0|stringformat:'.1f' }}" data-ge-decimals="1" data-ge-suffix="%">0</strong>
       <span>Présence</span>
     </div>
   </div>

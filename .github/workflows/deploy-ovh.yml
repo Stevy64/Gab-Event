@@ -1,0 +1,42 @@
+name: Déployer OVH
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: SSH + docker compose
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifier les secrets
+        env:
+          OVH_HOST: ${{ secrets.OVH_SSH_HOST }}
+          OVH_USER: ${{ secrets.OVH_SSH_USER }}
+          OVH_KEY: ${{ secrets.OVH_SSH_KEY }}
+        run: |
+          if [ -z "$OVH_HOST" ] || [ -z "$OVH_USER" ] || [ -z "$OVH_KEY" ]; then
+            echo "Secrets manquants : OVH_SSH_HOST, OVH_SSH_USER, OVH_SSH_KEY"
+            exit 1
+          fi
+
+      - name: Mettre à jour le VPS
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.OVH_SSH_HOST }}
+          username: ${{ secrets.OVH_SSH_USER }}
+          key: ${{ secrets.OVH_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            APP_DIR="/opt/gab-event"
+            cd "$APP_DIR"
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+            docker compose up -d --build
+            docker compose exec -T gabevent-web python manage.py migrate --noinput
+            docker compose exec -T gabevent-web python manage.py collectstatic --noinput
+            curl -fsS "http://127.0.0.1/health/"
+            echo "OVH à jour."

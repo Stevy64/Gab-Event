@@ -24,10 +24,10 @@
       </div>
       <div><span>Statut</span><strong>En attente de paiement</strong></div>
     </div>
-    <form method="post" class="ge-pay-hold-actions">
+    <form method="post" class="ge-pay-hold-actions" id="ge-pay-form">
       {% csrf_token %}
       <input type="hidden" name="action" value="pay">
-      <button type="submit" class="ok-btn-dark ge-auth-submit">Finaliser le paiement</button>
+      <button type="button" class="ok-btn-dark ge-auth-submit" data-sheet="ge-sheet-pay-confirm">Finaliser le paiement</button>
     </form>
   </section>
 
@@ -40,4 +40,31 @@
     </form>
   </section>
 </main>
+
+<div class="ge-bottom-sheet ge-wizard-sheet" id="ge-sheet-pay-confirm" role="dialog" aria-modal="true" aria-labelledby="ge-sheet-pay-confirm-title" hidden>
+  <div class="ge-sheet-handle" aria-hidden="true"></div>
+  <header class="ge-sheet-head">
+    <div>
+      <p class="ge-kicker">Paiement</p>
+      <h2 id="ge-sheet-pay-confirm-title">Continuer vers le paiement ?</h2>
+    </div>
+    <button type="button" class="ge-sheet-x" data-sheet-close aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <p class="ge-sheet-lead">
+    Vous allez être dirigé vers l’espace de paiement pour la formule
+    <strong>{{ plan.name|default:event.plan_name_snapshot|default:"choisie" }}</strong>
+    {% if payment %}
+    ({{ payment.amount|floatformat:0 }} {{ payment.currency }})
+    {% elif event.price_snapshot %}
+    ({{ event.price_snapshot|floatformat:0 }} {{ event.currency_snapshot }})
+    {% endif %}.
+    Souhaitez-vous continuer&nbsp;?
+  </p>
+  <div class="ge-sheet-actions">
+    <button type="button" class="ge-btn-ghost" data-sheet-close>Non</button>
+    <button type="submit" form="ge-pay-form" class="ok-btn-dark">Oui</button>
+  </div>
+</div>
 {% endblock %}

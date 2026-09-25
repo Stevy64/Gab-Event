@@ -2,7 +2,7 @@
  * Gab Event PWA — cache shell, pages visitées et médias.
  * /api/*, paiements et console restent toujours en réseau.
  */
-const VERSION = "gab-event-v5";
+const VERSION = "gab-event-v7";
 const SHELL = VERSION + "-shell";
 const PAGES = VERSION + "-pages";
 const ASSETS = VERSION + "-assets";
@@ -16,6 +16,7 @@ const PRECACHE = [
   "/static/js/ge-app.js",
   "/static/js/pwa.js",
   "/static/js/scanner.js",
+  "https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js",
   "/static/manifest.json",
   "/static/icons/icon-192.png",
   "/static/icons/icon-512.png",
@@ -44,7 +45,8 @@ function isAsset(url) {
     url.pathname.startsWith("/static/icons/") ||
     url.pathname === "/static/manifest.json" ||
     url.hostname === "fonts.googleapis.com" ||
-    url.hostname === "fonts.gstatic.com"
+    url.hostname === "fonts.gstatic.com" ||
+    url.hostname === "unpkg.com"
   );
 }
 
@@ -162,6 +164,10 @@ self.addEventListener("fetch", (event) => {
   if (isBypass(url)) return;
 
   if (isAsset(url)) {
+    if (url.searchParams.has("v")) {
+      event.respondWith(networkFirst(request, ASSETS, 2500));
+      return;
+    }
     event.respondWith(staleWhileRevalidate(request, ASSETS));
     return;
   }

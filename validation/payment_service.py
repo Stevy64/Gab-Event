@@ -18,6 +18,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from . import singpay as singpay_api
+from .siteconfig import active_payment_provider, mock_payments_allowed, public_base_url
 from .code_service import create_invitation_with_unique_code
 from .invite_form import split_amounts
 from .identity import momo_msisdn
@@ -61,12 +62,10 @@ class MockPaymentProvider(PaymentProvider):
     name = "mock"
 
     def create_intent(self, payment: Payment) -> PaymentIntent:
-        if not getattr(settings, "DEBUG", False) or not getattr(
-            settings, "ALLOW_MOCK_PAYMENTS", False
-        ):
+        if not mock_payments_allowed():
             raise RuntimeError(
                 "MockPaymentProvider interdit hors développement "
-                "(DEBUG + ALLOW_MOCK_PAYMENTS requis)."
+                "(DEBUG + paiements de test activés dans Config)."
             )
         ref = payment.provider_reference or f"MOCK-{uuid.uuid4().hex[:16].upper()}"
         payment.provider = self.name
@@ -94,10 +93,10 @@ class SingPayProvider(PaymentProvider):
     def create_intent(self, payment: Payment) -> PaymentIntent:
         if not singpay_api.is_configured():
             raise RuntimeError(
-                "SingPay n’est pas configuré. Renseignez SINGPAY_API_KEY, "
-                "SINGPAY_API_SECRET et SINGPAY_MERCHANT_ID."
+                "SingPay n’est pas configuré. Renseignez les identifiants "
+                "dans la console admin (Site) ou dans le fichier .env."
             )
-        base = (getattr(settings, "PUBLIC_BASE_URL", "") or "http://127.0.0.1:8000").rstrip("/")
+        base = public_base_url()
         return_url = f"{base}{reverse('singpay_return', args=[payment.pk])}"
         reference = payment.provider_reference or f"GE-{payment.pk}"
         ok, payload = singpay_api.init_payment(
@@ -136,7 +135,7 @@ class SingPayProvider(PaymentProvider):
 
 
 def get_payment_provider(name: str | None = None) -> PaymentProvider:
-    provider_name = (name or getattr(settings, "PAYMENT_PROVIDER", "mock")).lower()
+    provider_name = (name or active_payment_provider()).lower()
     if provider_name == "mock":
         return MockPaymentProvider()
     if provider_name == "singpay":
@@ -158,7 +157,7 @@ def create_pending_payment(
         plan=plan,
         amount=amount,
         currency=currency,
-        provider=getattr(settings, "PAYMENT_PROVIDER", "mock"),
+        provider=active_payment_provider(),
         provider_reference=f"PAY-{secrets.token_hex(8).upper()}",
         status=Payment.STATUS_PENDING,
     )
@@ -288,15 +287,15 @@ def create_guest_payment(*, event: Event, payload: dict) -> GuestPayment:
         commission_rate=rate,
         commission_amount=commission,
         net_amount=net,
-        provider=getattr(settings, "PAYMENT_PROVIDER", "mock"),
+        provider=active_payment_provider(),
         provider_reference=f"GINV-{secrets.token_hex(7).upper()}",
         status=GuestPayment.STATUS_PENDING,
     )
 
 
 def start_guest_checkout(payment: GuestPayment) -> PaymentIntent:
-    provider_name = (payment.provider or getattr(settings, "PAYMENT_PROVIDER", "mock")).lower()
-    base = (getattr(settings, "PUBLIC_BASE_URL", "") or "http://127.0.0.1:8000").rstrip("/")
+    provider_name = (payment.provider or active_payment_provider()).lower()
+    base = public_base_url()
     if provider_name == "mock":
         if not getattr(settings, "DEBUG", False) or not getattr(
             settings, "ALLOW_MOCK_PAYMENTS", False
