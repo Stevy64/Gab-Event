@@ -12,7 +12,7 @@
   <section class="cx-card">
     <h2>Liste</h2>
     <div class="cx-table-wrap">
-    <table class="cx-table">
+    <table class="cx-table" data-zyz-kicker="Question">
       <thead><tr><th>Question</th><th>Rubrique</th><th>Visible</th><th></th></tr></thead>
       <tbody>
       {% for item in items %}
@@ -21,10 +21,14 @@
           <td>{{ item.get_section_display }}</td>
           <td>{% if item.is_active %}<span class="cx-pill is-ok">Oui</span>{% else %}<span class="cx-pill is-muted">Non</span>{% endif %}</td>
           <td class="cx-row-actions">
-            <a href="?edit={{ item.id }}#cx-editor">Modifier</a>
-            <form method="post" action="{% url 'platform_admin_faq_delete' item.id %}" onsubmit="return confirm('Supprimer cette question ?');">
+            <a class="cx-ico-btn" href="?edit={{ item.id }}#cx-editor" aria-label="Modifier {{ item.question }}" title="Modifier">
+              {% include "partials/admin_icon.html" with name="pencil" %}
+            </a>
+            <form method="post" action="{% url 'platform_admin_faq_delete' item.id %}" data-cx-confirm="Supprimer cette question ?" data-cx-confirm-ok="Supprimer" data-cx-confirm-title="Supprimer la question">
               {% csrf_token %}
-              <button class="cx-link-btn" type="submit">Supprimer</button>
+              <button class="cx-ico-btn is-danger" type="submit" aria-label="Supprimer {{ item.question }}" title="Supprimer">
+                {% include "partials/admin_icon.html" with name="trash" %}
+              </button>
             </form>
           </td>
         </tr>

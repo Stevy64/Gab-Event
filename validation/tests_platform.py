@@ -1197,6 +1197,77 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
         self.assertEqual(batch.amount, Decimal("8000.00"))
         self.assertEqual(batch.momo_phone, "074112233")
 
+    @override_settings(
+        DEBUG=True,
+        ALLOW_MOCK_PAYMENTS=True,
+        PAYMENT_PROVIDER="mock",
+        SINGPAY_API_KEY="",
+        SINGPAY_API_SECRET="",
+        SINGPAY_MERCHANT_ID="",
+    )
+    def test_payout_can_target_one_event(self):
+        from validation.payment_service import confirm_guest_payment_success, create_guest_payment
+
+        plan = _custom_plan()
+        profile = UserProfile.objects.get(user=self.user_a)
+        profile.momo_operator = UserProfile.MOMO_AIRTEL
+        profile.momo_phone = "074112233"
+        profile.momo_confirmed_at = timezone.now()
+        profile.save()
+        first = Event.objects.create(
+            owner=self.user_a,
+            name="Gala A",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            guest_price_regular=Decimal("5000"),
+            guest_price_vip=Decimal("10000"),
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        first.apply_plan_snapshot(plan)
+        first.save()
+        second = Event.objects.create(
+            owner=self.user_a,
+            name="Second gala",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            guest_price_regular=Decimal("5000"),
+            guest_price_vip=Decimal("10000"),
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        second.apply_plan_snapshot(plan)
+        second.save()
+        payments = []
+        for event, first_name in ((first, "Ivy"), (second, "Nora")):
+            pay = create_guest_payment(
+                event=event,
+                payload={
+                    "first_name": first_name,
+                    "last_name": "Mba",
+                    "participant_type": PARTICIPANT_VIP,
+                    "amount": Decimal("10000"),
+                },
+            )
+            pay.provider = "mock"
+            pay.save(update_fields=["provider"])
+            confirm_guest_payment_success(pay, provider_payload={"mock": True})
+            payments.append(pay)
+        self.client.login(username="root", password="secret123")
+        page = self.client.get(reverse("platform_admin_payments"))
+        self.assertContains(page, "Flux par organisateur")
+        self.assertContains(page, "Second gala")
+        self.assertContains(page, "Journal des mouvements")
+        r = self.client.post(
+            reverse("platform_admin_payments"),
+            {"action": "payout", "organizer_id": self.user_a.pk, "event_id": first.pk},
+        )
+        self.assertEqual(r.status_code, 302)
+        payments[0].refresh_from_db()
+        payments[1].refresh_from_db()
+        self.assertEqual(payments[0].payout_status, GuestPayment.PAYOUT_RECORDED)
+        self.assertEqual(payments[1].payout_status, GuestPayment.PAYOUT_PENDING)
+
 
 class FaqLegalTests(PlatformBaseTestCase):
     def test_terms_and_faq_pages(self):

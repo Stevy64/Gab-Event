@@ -40,7 +40,7 @@
             <td>{{ p.created_at|date:"d/m H:i" }}</td>
             <td>{{ p.full_name }}</td>
             <td>{{ p.get_participant_type_display }}</td>
-            <td>{{ p.amount|floatformat:0 }} {{ p.currency }}</td>
+            <td>{{ p.amount|floatformat:0 }} F CFA</td>
             <td>{{ p.commission_amount|floatformat:0 }} ({{ p.commission_rate }}%)</td>
             <td>{{ p.net_amount|floatformat:0 }}</td>
             <td>{{ p.get_status_display }}</td>

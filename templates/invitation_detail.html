@@ -4,7 +4,7 @@
 {% block content %}
 {% url 'event_invitations' event.id as detail_back %}
 {% include "partials/event_nav.html" with event=event nav_active="guests" back_url=detail_back back_label="Cartes" %}
-<main class="ge-app">
+<main class="ge-app ge-invite-fiche">
   <header class="ge-page-head">
     <a class="ge-level-back" href="{% url 'event_invitations' event.id %}" aria-label="Retour aux cartes">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -12,56 +12,110 @@
     <div>
       <p class="ge-kicker">{{ invitation.get_participant_type_display }}</p>
       <h1>{{ invitation.full_name }}</h1>
-      <p class="ge-lead">Fiche invitation — actions et historique.</p>
+      <ol class="ge-invite-steps" aria-label="Étapes de l’invitation">
+        <li class="{% if invitation.status == 'valide' %}is-done{% else %}is-off{% endif %}">
+          <span class="ge-invite-step-mark" aria-hidden="true">
+            {% if invitation.status == 'valide' %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+            {% endif %}
+          </span>
+          <span>{{ invitation.get_status_display }}</span>
+        </li>
+        <li class="{% if invitation.invitation_sent or invitation.invitation_generated %}is-done{% else %}is-todo{% endif %}">
+          <span class="ge-invite-step-mark" aria-hidden="true">
+            {% if invitation.invitation_sent or invitation.invitation_generated %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H8a2 2 0 00-2 2v14a2 2 0 002 2h8a2 2 0 002-2V8z"/><path d="M14 3v5h5"/></svg>
+            {% endif %}
+          </span>
+          <span>{% if invitation.invitation_sent %}Envoyée{% elif invitation.invitation_generated %}Générée{% else %}À générer{% endif %}</span>
+        </li>
+        <li class="{% if invitation.places_used > 0 %}is-done{% else %}is-wait{% endif %}">
+          <span class="ge-invite-step-mark" aria-hidden="true">
+            {% if invitation.places_used > 0 %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>
+            {% else %}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+            {% endif %}
+          </span>
+          <span>{% if invitation.places_used > 0 %}Présent{% else %}En attente{% endif %}</span>
+        </li>
+      </ol>
     </div>
   </header>
 
-  <div class="ge-form-card">
-    <dl class="ge-dl">
-      <div><dt>Catégorie</dt><dd>{{ invitation.category|default:"—" }}</dd></div>
-      <div><dt>Places</dt><dd>{{ invitation.places_used }} / {{ invitation.places }} (reste {{ invitation.places_remaining }})</dd></div>
-      <div><dt>Code</dt><dd><code>{{ invitation.code }}</code></dd></div>
-      <div><dt>Statut</dt><dd>{{ invitation.get_status_display }}</dd></div>
-      <div><dt>Invitation</dt><dd>{% if invitation.invitation_sent %}Envoyée{% elif invitation.invitation_generated %}Générée{% else %}À générer{% endif %}</dd></div>
-      <div><dt>Présence</dt><dd>{% if invitation.places_used > 0 %}Entré{% if invitation.validated_at %} · {{ invitation.validated_at|date:"d/m/Y H:i" }}{% endif %}{% else %}En attente{% endif %}</dd></div>
+  <section class="ge-form-card ge-invite-fiche-card">
+    <dl class="ge-invite-fiche-dl">
+      <div class="is-code">
+        <dt>Code</dt>
+        <dd><code>{{ invitation.code }}</code></dd>
+      </div>
+      <div>
+        <dt>Places</dt>
+        <dd>{{ invitation.places_used }} / {{ invitation.places }} <small>reste {{ invitation.places_remaining }}</small></dd>
+      </div>
+      <div>
+        <dt>Catégorie</dt>
+        <dd>{{ invitation.category|default:"—" }}</dd>
+      </div>
     </dl>
 
-    <div class="ge-tool-row ge-tool-row-wide" aria-label="Fichier invitation">
-      <a class="ge-text-tool" href="{% url 'invitation_preview' invitation.pk %}">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span>Aperçu</span>
-      </a>
-      <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-4.5-4.5L9 19"/></svg>
-        <span>PNG</span>
-      </a>
-      <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}?fmt=pdf" data-ge-download data-no-loader download>
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
-        <span>PDF</span>
-      </a>
-      <a class="ge-text-tool" href="{% url 'invitation_qr' invitation.pk %}">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>
-        <span>QR</span>
-      </a>
+    <div class="ge-invite-fiche-bar">
+      <div class="ge-tool-row" aria-label="Fichier invitation">
+        <a class="ge-text-tool" href="{% url 'invitation_preview' invitation.pk %}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Aperçu</span>
+        </a>
+        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}" data-ge-download data-no-loader download>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M21 16l-4.5-4.5L9 19"/></svg>
+          <span>PNG</span>
+        </a>
+        <a class="ge-text-tool" href="{% url 'invitation_download' invitation.pk %}?fmt=pdf" data-ge-download data-no-loader download>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
+          <span>PDF</span>
+        </a>
+        <a class="ge-text-tool" href="{% url 'invitation_qr' invitation.pk %}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>
+          <span>QR</span>
+        </a>
+      </div>
+      <form method="post" class="ge-sent-form">
+        {% csrf_token %}
+        {% if invitation.invitation_sent %}
+          <input type="hidden" name="action" value="unmark_sent">
+          <button type="submit" class="ge-btn-ghost ge-sent-btn">Annuler « envoyée »</button>
+        {% else %}
+          <input type="hidden" name="action" value="mark_sent">
+          <button type="submit" class="ge-sent-btn is-go">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            Marquer comme envoyée
+          </button>
+        {% endif %}
+      </form>
     </div>
 
-    <form method="post" class="ge-sent-form">
-      {% csrf_token %}
-      {% if invitation.invitation_sent %}
-        <input type="hidden" name="action" value="unmark_sent">
-        <button type="submit" class="ge-btn-ghost ge-sent-btn">Annuler « envoyée »</button>
+    <div class="ge-invite-fiche-log">
+      <h2 class="ge-form-section-title">Admissions</h2>
+      {% if admissions %}
+      <ul class="ge-feed">
+        {% for adm in admissions %}
+        <li>
+          <strong>{{ adm.persons }} personne{{ adm.persons|pluralize }}</strong>
+          <time>{{ adm.admitted_at|date:"d/m H:i:s" }}</time>
+        </li>
+        {% endfor %}
+      </ul>
       {% else %}
-        <input type="hidden" name="action" value="mark_sent">
-        <button type="submit" class="ge-sent-btn is-go">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-          Marquer comme envoyée
-        </button>
+      <p class="ge-muted ge-invite-fiche-empty">Aucune admission pour le moment.</p>
       {% endif %}
-    </form>
-  </div>
+    </div>
+  </section>
 
   {% if invitation.places_used > 0 %}
-  <section class="ge-form-card" style="margin-top:1rem">
+  <section class="ge-form-card ge-invite-fiche-undo">
     <h2 class="ge-form-section-title">Annuler les entrées</h2>
     <p class="ge-muted">Remet les places à zéro en cas d’erreur.</p>
     <form method="post" onsubmit="return confirm('Confirmer l\'annulation des entrées ?');">
@@ -71,27 +125,9 @@
         <span class="ge-check-input">{{ form.confirm }}</span>
         <span class="ge-check-body"><strong>{{ form.confirm.label }}</strong></span>
       </label>
-      <button type="submit" class="ge-btn-ghost" style="width:100%;margin-top:0.85rem">Annuler les validations</button>
+      <button type="submit" class="ge-btn-ghost ge-invite-fiche-undo-btn">Annuler les validations</button>
     </form>
   </section>
   {% endif %}
-
-  <section class="ge-form-card" style="margin-top:1rem">
-    <h2 class="ge-form-section-title">Admissions</h2>
-    <ul class="ge-feed">
-      {% for adm in admissions %}
-      <li>
-        <strong>{{ adm.persons }} personne{{ adm.persons|pluralize }}</strong>
-        <time>{{ adm.admitted_at|date:"d/m H:i:s" }}</time>
-      </li>
-      {% empty %}
-      <li class="ge-muted">Aucune admission.</li>
-      {% endfor %}
-    </ul>
-  </section>
-
-  <p style="margin-top:1.25rem">
-    <a class="ge-btn-ghost" href="{% url 'event_invitations' event.id %}">← Retour aux cartes</a>
-  </p>
 </main>
 {% endblock %}

@@ -147,7 +147,15 @@
   document.querySelectorAll("[data-count]").forEach(animateCount);
 
   function textOf(el) {
-    return ((el && el.textContent) || "").replace(/\s+/g, " ").trim();
+    return moneyText(((el && el.textContent) || "").replace(/\s+/g, " ").trim());
+  }
+
+  function moneyText(value) {
+    return String(value || "")
+      .replace(/\bXOF\b/gi, "F CFA")
+      .replace(/\bXAF\b/gi, "F CFA")
+      .replace(/\bFCFA\b/gi, "F CFA")
+      .replace(/€/g, "F CFA");
   }
 
   function iconFor(label) {
@@ -155,7 +163,7 @@
     if (l.indexOf("mail") !== -1 || l.indexOf("e-mail") !== -1) return "✉";
     if (l.indexOf("statut") !== -1 || l.indexOf("actif") !== -1) return "●";
     if (l.indexOf("date") !== -1 || l.indexOf("quand") !== -1) return "◷";
-    if (l.indexOf("montant") !== -1 || l.indexOf("prix") !== -1) return "€";
+    if (l.indexOf("montant") !== -1 || l.indexOf("prix") !== -1) return "F";
     if (l.indexOf("user") !== -1 || l.indexOf("organ") !== -1 || l.indexOf("nom") !== -1) return "●";
     if (l.indexOf("invit") !== -1) return "✦";
     if (l.indexOf("formule") !== -1 || l.indexOf("type") !== -1) return "★";
@@ -206,8 +214,72 @@
   document.addEventListener("keydown", function (ev) {
     if (ev.key === "Escape") {
       closeModal();
+      closeConfirm();
       setNav(false);
     }
+  });
+
+  var confirmModal = document.getElementById("cx-confirm-modal");
+  var confirmTitle = document.getElementById("cx-confirm-title");
+  var confirmText = document.getElementById("cx-confirm-text");
+  var confirmOk = document.getElementById("cx-confirm-ok");
+  var confirmKicker = document.getElementById("cx-confirm-kicker");
+  var pendingConfirm = null;
+
+  function closeConfirm() {
+    if (!confirmModal) return;
+    confirmModal.hidden = true;
+    confirmModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("zyz-modal-open");
+    pendingConfirm = null;
+  }
+
+  function openConfirm(opts) {
+    if (!confirmModal) return false;
+    pendingConfirm = opts || {};
+    if (confirmKicker) confirmKicker.textContent = pendingConfirm.kicker || "Confirmation";
+    if (confirmTitle) confirmTitle.textContent = pendingConfirm.title || "Confirmer";
+    if (confirmText) confirmText.textContent = pendingConfirm.text || "Continuer ?";
+    if (confirmOk) {
+      confirmOk.textContent = pendingConfirm.ok || "Confirmer";
+      confirmOk.classList.toggle("is-danger", !!pendingConfirm.danger);
+    }
+    confirmModal.querySelector(".cx-confirm-card")?.classList.toggle("is-danger", !!pendingConfirm.danger);
+    confirmModal.hidden = false;
+    confirmModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("zyz-modal-open");
+    return true;
+  }
+
+  if (confirmModal) {
+    confirmModal.querySelectorAll("[data-cx-confirm-cancel]").forEach(function (el) {
+      el.addEventListener("click", closeConfirm);
+    });
+    if (confirmOk) {
+      confirmOk.addEventListener("click", function () {
+        var form = pendingConfirm && pendingConfirm.form;
+        closeConfirm();
+        if (!form) return;
+        form.setAttribute("data-cx-confirmed", "1");
+        if (typeof form.requestSubmit === "function") form.requestSubmit();
+        else form.submit();
+      });
+    }
+  }
+
+  document.querySelectorAll("form[data-cx-confirm]").forEach(function (form) {
+    form.addEventListener("submit", function (ev) {
+      if (form.getAttribute("data-cx-confirmed") === "1") return;
+      if (!confirmModal) return;
+      ev.preventDefault();
+      openConfirm({
+        form: form,
+        title: form.getAttribute("data-cx-confirm-title") || "Confirmer",
+        text: form.getAttribute("data-cx-confirm") || "Continuer ?",
+        ok: form.getAttribute("data-cx-confirm-ok") || "Confirmer",
+        danger: /supprim|retir/i.test(form.getAttribute("data-cx-confirm") || ""),
+      });
+    });
   });
 
   document.querySelectorAll("table.cx-table").forEach(function (table) {
@@ -217,6 +289,11 @@
       "Fiche";
     var headers = Array.prototype.map.call(table.querySelectorAll("thead th"), textOf);
     table.querySelectorAll("tbody tr").forEach(function (tr) {
+      Array.prototype.forEach.call(tr.children, function (td, i) {
+        if (headers[i] && !td.getAttribute("data-label")) {
+          td.setAttribute("data-label", headers[i]);
+        }
+      });
       if (tr.querySelectorAll("td").length < 2) return;
       tr.classList.add("is-zyz-row");
       tr.addEventListener("click", function (ev) {

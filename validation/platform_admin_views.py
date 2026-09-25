@@ -1,6 +1,10 @@
 """Dashboard administrateur plateforme — /platform-admin/."""
 from __future__ import annotations
 
+from collections import defaultdict
+from datetime import timedelta
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -10,7 +14,6 @@ from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
-from datetime import timedelta
 
 from .access import require_platform_admin
 from . import singpay as singpay_api
@@ -380,6 +383,170 @@ def plan_edit(request, plan_id):
     )
 
 
+def _empty_event_ledger(event):
+    zero = Decimal("0")
+    return {
+        "event": event,
+        "in_guest": zero,
+        "commission": zero,
+        "net": zero,
+        "due": zero,
+        "paid_out": zero,
+        "plan_in": zero,
+        "due_ids": [],
+        "due_count": 0,
+        "movements": [],
+    }
+
+
+def _accounting_ledger():
+    groups: dict[int, dict] = {}
+
+    def group_for(user):
+        row = groups.get(user.pk)
+        if row:
+            return row
+        row = {
+            "organizer": user,
+            "profile": getattr(user, "profile", None),
+            "events": {},
+            "in_guest": Decimal("0"),
+            "commission": Decimal("0"),
+            "net": Decimal("0"),
+            "due": Decimal("0"),
+            "paid_out": Decimal("0"),
+            "plan_in": Decimal("0"),
+            "due_ids": [],
+        }
+        groups[user.pk] = row
+        return row
+
+    guests = GuestPayment.objects.filter(status=GuestPayment.STATUS_SUCCESS).select_related(
+        "organizer", "organizer__profile", "event"
+    )
+    for pay in guests:
+        group = group_for(pay.organizer)
+        ev = group["events"].setdefault(pay.event_id, _empty_event_ledger(pay.event))
+        ev["in_guest"] += pay.amount
+        ev["commission"] += pay.commission_amount
+        ev["net"] += pay.net_amount
+        group["in_guest"] += pay.amount
+        group["commission"] += pay.commission_amount
+        group["net"] += pay.net_amount
+        if pay.payout_status in (GuestPayment.PAYOUT_PENDING, GuestPayment.PAYOUT_FAILED):
+            ev["due"] += pay.net_amount
+            ev["due_ids"].append(pay.pk)
+            ev["due_count"] += 1
+            group["due"] += pay.net_amount
+            group["due_ids"].append(pay.pk)
+        elif pay.payout_status == GuestPayment.PAYOUT_RECORDED:
+            ev["paid_out"] += pay.net_amount
+            group["paid_out"] += pay.net_amount
+        ev["movements"].append(
+            {
+                "kind": "in",
+                "label": f"Invité {pay.full_name}",
+                "amount": pay.amount,
+                "when": pay.paid_at or pay.created_at,
+                "status": pay.get_payout_status_display(),
+            }
+        )
+
+    plans = Payment.objects.filter(
+        status__in=[Payment.STATUS_SUCCESS, Payment.STATUS_PENDING]
+    ).select_related("user", "user__profile", "event", "plan")
+    for pay in plans:
+        group = group_for(pay.user)
+        ev = group["events"].setdefault(pay.event_id, _empty_event_ledger(pay.event))
+        if pay.status == Payment.STATUS_SUCCESS:
+            ev["plan_in"] += pay.amount
+            group["plan_in"] += pay.amount
+        ev["movements"].append(
+            {
+                "kind": "plan" if pay.status == Payment.STATUS_SUCCESS else "pending",
+                "label": f"Formule {pay.plan.name if pay.plan_id else ''}".strip(),
+                "amount": pay.amount,
+                "when": pay.paid_at or pay.created_at,
+                "status": pay.get_status_display(),
+            }
+        )
+
+    batches = OrganizerPayout.objects.select_related("organizer", "organizer__profile").prefetch_related(
+        "guest_payments__event"
+    )[:80]
+    journal = []
+    for pay in guests:
+        journal.append(
+            {
+                "kind": "in",
+                "when": pay.paid_at or pay.created_at,
+                "label": f"Invité · {pay.full_name}",
+                "party": pay.organizer,
+                "event": pay.event,
+                "amount": pay.amount,
+                "status": pay.get_payout_status_display(),
+            }
+        )
+    for pay in plans:
+        journal.append(
+            {
+                "kind": "plan" if pay.status == Payment.STATUS_SUCCESS else "pending",
+                "when": pay.paid_at or pay.created_at,
+                "label": f"Formule · {pay.plan.name if pay.plan_id else 'événement'}",
+                "party": pay.user,
+                "event": pay.event,
+                "amount": pay.amount,
+                "status": pay.get_status_display(),
+            }
+        )
+    for batch in batches:
+        journal.append(
+            {
+                "kind": "out",
+                "when": batch.paid_at or batch.created_at,
+                "label": f"Reversement · {batch.momo_phone}",
+                "party": batch.organizer,
+                "event": None,
+                "amount": batch.amount,
+                "status": batch.get_status_display(),
+            }
+        )
+        group = groups.get(batch.organizer_id)
+        if not group:
+            continue
+        by_event = defaultdict(lambda: Decimal("0"))
+        for gp in batch.guest_payments.all():
+            if gp.payout_status == GuestPayment.PAYOUT_RECORDED:
+                by_event[gp.event_id] += gp.net_amount
+        for event_id, amount in by_event.items():
+            ev = group["events"].get(event_id)
+            if not ev:
+                continue
+            ev["movements"].append(
+                {
+                    "kind": "out",
+                    "label": f"Reversé vers {batch.momo_phone}",
+                    "amount": amount,
+                    "when": batch.paid_at or batch.created_at,
+                    "status": batch.get_status_display(),
+                }
+            )
+
+    for group in groups.values():
+        group["event_rows"] = sorted(
+            group["events"].values(),
+            key=lambda row: (row["event"].name or "").lower(),
+        )
+        for ev in group["event_rows"]:
+            ev["movements"].sort(key=lambda item: item["when"] or timezone.now(), reverse=True)
+
+    journal.sort(key=lambda item: item["when"] or timezone.now(), reverse=True)
+    return {
+        "groups": sorted(groups.values(), key=lambda row: row["organizer"].username),
+        "journal": journal[:60],
+    }
+
+
 @_admin_required
 @require_http_methods(["GET", "POST"])
 def payments_list(request):
@@ -387,11 +554,14 @@ def payments_list(request):
         organizer = get_object_or_404(User, pk=request.POST.get("organizer_id"))
         raw_ids = request.POST.getlist("payment_ids")
         payment_ids = [int(x) for x in raw_ids if str(x).isdigit()] or None
+        raw_event = request.POST.get("event_id")
+        event_id = int(raw_event) if str(raw_event or "").isdigit() else None
         try:
             batch = payout_organizer(
                 actor=request.user,
                 organizer=organizer,
                 payment_ids=payment_ids,
+                event_id=event_id,
             )
         except RuntimeError as exc:
             messages.error(request, str(exc))
@@ -442,6 +612,7 @@ def payments_list(request):
         row["net"] += pay.net_amount
         row["count"] += 1
         row["ids"].append(pay.pk)
+    ledger = _accounting_ledger()
     return render(
         request,
         "platform_admin/payments.html",
@@ -463,6 +634,9 @@ def payments_list(request):
                 or 0,
                 "payout_rows": sorted(buckets.values(), key=lambda r: r["organizer"].username),
                 "recent_payouts": OrganizerPayout.objects.select_related("organizer", "actor")[:20],
+                "ledger_groups": ledger["groups"],
+                "ledger_journal": ledger["journal"],
+                "singpay_ready": singpay_api.is_configured(),
             }
         ),
     )

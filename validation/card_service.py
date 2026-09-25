@@ -16,16 +16,16 @@ from .constants import ceremony_settings
 from .models import Invitation
 from .qr_service import build_qr_image
 
-NAVY = (36, 28, 20)
-NAVY_2 = (72, 58, 42)
+NAVY = (26, 39, 68)
+NAVY_2 = (61, 79, 115)
 ORANGE = (242, 101, 34)
 WHITE = (255, 255, 255)
 GOLD = (184, 148, 74)
 GOLD_DEEP = (132, 100, 42)
-MUTED = (118, 102, 82)
+MUTED = (92, 103, 128)
 PAPER = (248, 242, 226)
 PAPER_INNER = (255, 251, 240)
-INK = (38, 28, 18)
+INK = (26, 39, 68)
 
 FONTS_DIR = Path(__file__).resolve().parent / "fonts"
 

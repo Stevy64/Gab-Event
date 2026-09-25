@@ -13,6 +13,7 @@ def user_profile(request):
         "site_meta_description": meta_description(),
         "site_logo": brand["logo_url"],
         "site_logo_version": brand["version"],
+        "money_label": "F CFA",
     }
     if not getattr(request, "user", None) or not request.user.is_authenticated:
         data["user_profile"] = None

@@ -21,7 +21,7 @@
   <table class="cx-table">
     <tbody>
     {% for p in payments %}
-      <tr><td>{{ p.created_at|date:"d/m/Y" }}</td><td>{{ p.amount }} {{ p.currency }}</td><td>{{ p.get_status_display }}</td><td>{{ p.event.name }}</td></tr>
+      <tr><td>{{ p.created_at|date:"d/m/Y" }}</td><td>{{ p.amount }} F CFA</td><td>{{ p.get_status_display }}</td><td>{{ p.event.name }}</td></tr>
     {% empty %}
       <tr><td>Aucun paiement.</td></tr>
     {% endfor %}
@@ -32,7 +32,7 @@
   <h2>Paiements invités</h2>
   <p class="cx-lead">Collecté {{ guest_gross }} · Commission {{ guest_commission }} · Net {{ guest_net }} · En attente {{ pending_net }}</p>
   {% if pending_net and profile.momo_ready %}
-  <form method="post" action="{% url 'platform_admin_payments' %}">
+  <form method="post" action="{% url 'platform_admin_payments' %}" data-cx-confirm="Envoyer {{ pending_net }} vers {{ profile.momo_label }} via SingPay ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement Mobile Money">
     {% csrf_token %}
     <input type="hidden" name="action" value="payout">
     <input type="hidden" name="organizer_id" value="{{ u.id }}">

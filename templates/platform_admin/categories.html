@@ -12,7 +12,7 @@
   <section class="cx-card">
     <h2>Liste</h2>
     <div class="cx-table-wrap">
-    <table class="cx-table">
+    <table class="cx-table" data-zyz-kicker="Type">
       <thead><tr><th>Visuel</th><th>Nom</th><th>Slug</th><th>Actif</th><th></th></tr></thead>
       <tbody>
       {% for c in categories %}
@@ -31,7 +31,7 @@
             <a class="cx-ico-btn" href="?edit={{ c.id }}#cx-editor" aria-label="Modifier {{ c.name }}" title="Modifier">
               {% include "partials/admin_icon.html" with name="pencil" %}
             </a>
-            <form method="post" action="{% url 'platform_admin_category_delete' c.id %}" onsubmit="return confirm('Supprimer {{ c.name }} ?');">
+            <form method="post" action="{% url 'platform_admin_category_delete' c.id %}" data-cx-confirm="Supprimer {{ c.name }} ?" data-cx-confirm-ok="Supprimer" data-cx-confirm-title="Supprimer le type">
               {% csrf_token %}
               <button class="cx-ico-btn is-danger" type="submit" aria-label="Supprimer {{ c.name }}" title="Supprimer">
                 {% include "partials/admin_icon.html" with name="trash" %}

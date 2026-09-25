@@ -19,7 +19,7 @@
       <div>
         <span>Montant</span>
         <strong>
-          {% if payment %}{{ payment.amount|floatformat:0 }} {{ payment.currency }}{% elif event.price_snapshot %}{{ event.price_snapshot|floatformat:0 }} {{ event.currency_snapshot }}{% else %}—{% endif %}
+          {% if payment %}{{ payment.amount|floatformat:0 }} F CFA{% elif event.price_snapshot %}{{ event.price_snapshot|floatformat:0 }} F CFA{% else %}—{% endif %}
         </strong>
       </div>
       <div><span>Statut</span><strong>En attente de paiement</strong></div>
@@ -56,9 +56,9 @@
     Vous allez être dirigé vers l’espace de paiement pour la formule
     <strong>{{ plan.name|default:event.plan_name_snapshot|default:"choisie" }}</strong>
     {% if payment %}
-    ({{ payment.amount|floatformat:0 }} {{ payment.currency }})
+    ({{ payment.amount|floatformat:0 }} F CFA)
     {% elif event.price_snapshot %}
-    ({{ event.price_snapshot|floatformat:0 }} {{ event.currency_snapshot }})
+    ({{ event.price_snapshot|floatformat:0 }} F CFA)
     {% endif %}.
     Souhaitez-vous continuer&nbsp;?
   </p>

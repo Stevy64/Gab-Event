@@ -4,8 +4,8 @@
   --font: Outfit, Manrope, "Plus Jakarta Sans", system-ui, sans-serif;
   --zyz-bg: #f7f1e8;
   --zyz-surface: rgba(255, 250, 242, 0.92);
-  --zyz-ink: #16130f;
-  --zyz-muted: #6b6256;
+  --zyz-ink: #1A2744;
+  --zyz-muted: #5C6780;
   --zyz-line: #e6dfd5;
   --zyz-orange: #c9a24a;
   --zyz-orange-deep: #8a7040;
@@ -108,7 +108,7 @@
 .zyz-btn:hover { transform: translateY(-1px); }
 .zyz-btn-primary {
   background: var(--zyz-orange);
-  color: #16130f !important;
+  color: #1A2744 !important;
   box-shadow: 0 8px 16px rgba(201, 162, 74, 0.28);
 }
 .zyz-btn-dark {
@@ -254,7 +254,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   background: var(--zyz-orange);
-  color: #16130f;
+  color: #1A2744;
 }
 .zyz-pill.soft {
   background: var(--zyz-orange-soft);
@@ -449,7 +449,7 @@
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #e8d6a8, #c9a24a);
-  color: #16130f;
+  color: #1A2744;
   font-weight: 800;
   font-size: 0.9rem;
   flex-shrink: 0;
@@ -574,26 +574,34 @@ body.zyz-modal-open { overflow: hidden; }
   inset: 0;
   z-index: 10000;
   display: grid;
-  place-items: end center;
-  padding: 0;
+  place-items: center;
+  padding: 11vh 16px 5vh;
 }
 .zyz-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(6px);
 }
 .zyz-modal-card {
   position: relative;
   z-index: 1;
-  width: min(100%, 440px);
-  max-height: min(88vh, 640px);
+  width: min(100%, 420px);
+  max-height: min(82dvh, 640px);
   overflow: auto;
   margin: 0;
-  padding: 18px 18px calc(18px + env(safe-area-inset-bottom, 0px));
-  border-radius: 22px 22px 0 0;
+  padding: 18px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 24px;
   background: #fff;
-  box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.18);
+  box-shadow: 0 24px 56px rgba(15, 23, 42, 0.22);
   animation: zyzModalIn 0.28s ease;
+}
+.zyz-modal-grab {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: #e6dfd5;
 }
 @keyframes zyzModalIn {
   from { transform: translateY(24px); opacity: 0.6; }
@@ -620,7 +628,7 @@ body.zyz-modal-open { overflow: hidden; }
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #e8d6a8, #c9a24a);
-  color: #16130f;
+  color: #1A2744;
   font-weight: 800;
   font-size: 1.1rem;
 }
@@ -640,8 +648,8 @@ body.zyz-modal-open { overflow: hidden; }
   letter-spacing: -0.02em;
 }
 .zyz-modal-x {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border: 0;
   border-radius: 999px;
   background: #f3f5f8;
@@ -654,15 +662,18 @@ body.zyz-modal-open { overflow: hidden; }
   list-style: none;
   margin: 0 0 14px;
   padding: 0;
+  display: grid;
+  gap: 0.45rem;
 }
 .zyz-modal-fields li {
   display: flex;
   gap: 10px;
   align-items: flex-start;
-  padding: 10px 0;
-  border-bottom: 1px solid #f1f3f7;
+  padding: 0.7rem 0.75rem;
+  border: 0;
+  border-radius: 14px;
+  background: #f8f4ee;
 }
-.zyz-modal-fields li:last-child { border-bottom: 0; }
 .zyz-modal-ico {
   width: 28px;
   height: 28px;
@@ -694,8 +705,17 @@ body.zyz-modal-open { overflow: hidden; }
 .zyz-modal-actions {
   display: flex;
   gap: 8px;
+  position: sticky;
+  bottom: 0;
+  padding-top: 10px;
+  background: linear-gradient(180deg, transparent, #fff 28%);
 }
-.zyz-modal-actions .zyz-btn { flex: 1; }
+.zyz-modal-actions .zyz-btn { flex: 1; min-height: 44px; }
+.zyz-btn.is-danger,
+#cx-confirm-ok.is-danger {
+  background: #b42318;
+  color: #fff !important;
+}
 
 .zyz-progress {
   height: 12px;
@@ -716,11 +736,14 @@ body.zyz-modal-open { overflow: hidden; }
   .zyz-metrics { grid-template-columns: repeat(4, 1fr); }
   .zyz-hero-actions { grid-template-columns: repeat(4, 1fr); }
   .zyz-main-grid { grid-template-columns: 1.2fr 1fr; }
-  .zyz-modal { place-items: center; }
+  .zyz-modal { padding: 10vh 24px 6vh; }
   .zyz-modal-card {
-    border-radius: 22px;
-    margin: 1rem;
+    width: min(100%, 460px);
+    margin: 0;
   }
+  .zyz-modal-fields { grid-template-columns: 1fr 1fr; }
+  .zyz-modal-fields li:first-child { grid-column: 1 / -1; }
+  .zyz-modal-grab { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

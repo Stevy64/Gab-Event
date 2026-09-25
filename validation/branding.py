@@ -137,7 +137,7 @@ def render_default_mark(size: int):
     size = max(16, int(size))
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    navy = (11, 18, 32, 255)
+    navy = (26, 39, 68, 255)
     gold = (232, 214, 168, 255)
     diamond = (201, 162, 74, 255)
     scale = size / 512

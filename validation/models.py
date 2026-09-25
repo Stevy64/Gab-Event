@@ -115,9 +115,9 @@ class EventPlan(models.Model):
     @property
     def lifetime_label(self) -> str:
         if self.is_custom or not self.lifetime_days:
-            return "Fenêtre définie à la création"
+            return "Fenêtre de validité définie à la création"
         n = int(self.lifetime_days)
-        return f"Conservé {n} jour{'s' if n > 1 else ''}"
+        return f"Valide {n} jour{'s' if n > 1 else ''}"
 
 
 class UserProfile(models.Model):

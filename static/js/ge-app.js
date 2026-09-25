@@ -462,7 +462,7 @@
     }
     if (color) {
       color.addEventListener('input', function () {
-        var value = color.value || '#16130F';
+        var value = color.value || '#1A2744';
         if (hero) hero.style.setProperty('--event-color', value);
         if (hex) hex.textContent = value;
       });

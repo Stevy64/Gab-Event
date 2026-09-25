@@ -6,7 +6,7 @@
   <div class="ge-auth-stage">
     <div class="ge-auth-card ge-auth-card-sm">
       <p class="ge-auth-kicker">Paiement test</p>
-      <h1>{{ payment.amount|floatformat:0 }} {{ payment.currency }}</h1>
+      <h1>{{ payment.amount|floatformat:0 }} F CFA</h1>
       <p class="ge-auth-lead">{{ payment.full_name }} — {{ payment.get_participant_type_display }}</p>
       <form method="post">
         {% csrf_token %}

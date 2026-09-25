@@ -31,7 +31,7 @@
                data-unlimited="{% if plan.is_custom %}1{% else %}0{% endif %}"
                data-custom="{% if plan.is_custom %}1{% else %}0{% endif %}"
                data-paid="{% if plan.is_free or plan.is_custom or plan.price == 0 %}0{% else %}1{% endif %}"
-               data-price="{% if plan.is_custom %}{{ plan.price_per_regular|floatformat:0 }} FCFA / std{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} FCFA{% endif %}">
+               data-price="{% if plan.is_custom %}{{ plan.price_per_regular|floatformat:0 }} F CFA / std{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} F CFA{% endif %}">
           <input type="radio" name="plan" value="{{ plan.id }}" required>
           <header class="ge-plan-head">
             <h3>{{ plan.name }}</h3>
@@ -40,16 +40,16 @@
           <p class="ge-plan-price">
             {% if plan.is_custom %}
             <em>{{ plan.price_per_regular|floatformat:0 }}</em>
-            <small>FCFA / std</small>
+            <small>F CFA / std</small>
             {% elif plan.is_free or plan.price == 0 %}
             <em>Gratuit</em>
             {% else %}
             <em>{{ plan.price|floatformat:"0g" }}</em>
-            <small>FCFA</small>
+            <small>F CFA</small>
             {% endif %}
           </p>
           {% if plan.is_custom %}
-          <p class="ge-plan-cap">{{ plan.price_per_vip|floatformat:0 }} FCFA / VIP · Au choix</p>
+          <p class="ge-plan-cap">{{ plan.price_per_vip|floatformat:0 }} F CFA / VIP · Au choix</p>
           {% elif plan.total_invitation_limit %}
           <p class="ge-plan-cap">Jusqu’à {{ plan.total_invitation_limit }} personnes</p>
           {% else %}

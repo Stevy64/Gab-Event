@@ -1,4 +1,5 @@
 {% extends "platform_admin/base_admin.html" %}
+{% load money %}
 {% block title %}Formules — Console{% endblock %}
 {% block content %}
 <header class="cx-top">
@@ -17,7 +18,7 @@
     {% for p in plans %}
       <tr>
         <td>{{ p.name }}</td>
-        <td>{% if p.is_custom %}{{ p.price_per_regular }} / std{% else %}{{ p.price }} {{ p.currency }}{% endif %}</td>
+        <td>{% if p.is_custom %}{{ p.price_per_regular }} F CFA / std{% else %}{{ p.price|fcfa }}{% endif %}</td>
         <td>{{ p.regular_invitation_limit }}</td>
         <td>{{ p.vip_invitation_limit }}</td>
         <td>{{ p.total_invitation_limit|default:"—" }}</td>

@@ -201,14 +201,14 @@
 
   {% if q %}
   <section class="ok-band ok-results" id="ok-results" aria-label="Résultats">
-    <div class="ok-wrap">
+    <div class="ok-wrap ok-reveal">
       <p class="ok-kicker">Recherche</p>
       <h2 class="ok-display">« {{ q }} »</h2>
       {% if search_results %}
       <p class="ok-intro ok-results-count">{% if search_results|length == 1 %}1 événement trouvé{% else %}{{ search_results|length }} événements trouvés{% endif %}</p>
       <div class="ok-hits">
         {% for e in search_results %}
-        <button type="button" class="ok-hit" data-event-open="{{ e.id }}" data-no-loader style="--hit-color: {{ e.display_primary_color }}">
+        <button type="button" class="ok-hit ok-reveal" data-event-open="{{ e.id }}" data-no-loader style="--hit-color: {{ e.display_primary_color }}">
           <span class="ok-hit-cover has-img" aria-hidden="true">
             <img src="{{ e.cover_url }}" alt="">
           </span>
@@ -284,40 +284,40 @@
   <section class="ok-band ok-essentials" id="fonctionnalites">
     <div class="ok-essentials-glow" aria-hidden="true"></div>
     <div class="ok-wrap">
-      <header class="ok-essentials-head">
+      <header class="ok-essentials-head ok-reveal">
         <p class="ok-kicker">L’essentiel</p>
         <h2 class="ok-display">Tout pour vos <em>invitations</em>.</h2>
         <p class="ok-intro">Du billet à l’entrée, quatre gestes simples — avec la chaleur d’un vrai événement.</p>
       </header>
       <div class="ok-features">
-        <article class="ok-feature">
+        <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">01</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 12h8M12 8v8"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="5.4" y="5.4" width="3.2" height="3.2"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="15.4" y="5.4" width="3.2" height="3.2"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="5.4" y="15.4" width="3.2" height="3.2"/><path d="M14 14h3v3h-3zM19.5 14v4M14 19.5h4"/></svg>
           </span>
           <h3>QR Codes uniques</h3>
           <p>Chaque invitation est unique et vérifiée avec rigueur, pas d’entrée fantôme.</p>
         </article>
-        <article class="ok-feature">
+        <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">02</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 6h16v12H4z"/><path d="M4 9l8 5 8-5"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a1.2 1.2 0 011.2-1.2h13.6A1.2 1.2 0 0120 8v2.1a2 2 0 000 3.8V16a1.2 1.2 0 01-1.2 1.2H5.2A1.2 1.2 0 014 16v-2.1a2 2 0 000-3.8V8z"/><path d="M9 7.5v9" stroke-dasharray="1.5 1.4"/><path d="M12.2 10.4h5M12.2 13.6h3.4"/></svg>
           </span>
           <h3>Invitations soignées</h3>
           <p>Flyer, message et identité visuelle — le ton exact de votre événement.</p>
         </article>
-        <article class="ok-feature">
+        <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">03</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="17" r="1"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a3 3 0 013-3h2M16 3h2a3 3 0 013 3v2M21 16v2a3 3 0 01-3 3h-2M8 21H6a3 3 0 01-3-3v-2"/><rect x="8" y="8" width="8" height="8" rx="1.2"/></svg>
           </span>
           <h3>Scan smartphone</h3>
           <p>Un contrôle d’accès fluide depuis votre téléphone.</p>
         </article>
-        <article class="ok-feature">
+        <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">04</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="3.4"/><path d="M16 8.2l2.1 2.1L22 6.4"/></svg>
           </span>
           <h3>Présences en direct</h3>
           <p>Suivez les entrées au fil de la soirée en temps réel.</p>
@@ -329,14 +329,14 @@
   <section class="ok-band ok-plans" id="offres">
     <div class="ok-plans-glow" aria-hidden="true"></div>
     <div class="ok-wrap">
-      <header class="ok-plans-head">
+      <header class="ok-plans-head ok-reveal">
         <p class="ok-kicker">Formules</p>
         <h2 class="ok-display">Choisissez votre <em>échelle</em>.</h2>
         <p class="ok-intro">Démarrez gratuitement. Augmentez la capacité quand vous êtes prêt.</p>
       </header>
       <div class="ok-plan-grid">
         {% for plan in plans %}
-        <article class="ok-plan {% if plan.is_recommended or plan.slug == 'moyen' %}is-featured{% endif %} {% if plan.is_popular %}is-popular{% endif %} {% if plan.is_free %}is-free{% endif %}">
+        <article class="ok-plan ok-reveal {% if plan.is_recommended or plan.slug == 'moyen' %}is-featured{% endif %} {% if plan.is_popular %}is-popular{% endif %} {% if plan.is_free %}is-free{% endif %}">
           {% if plan.is_recommended or plan.slug == 'moyen' %}
           <span class="ok-plan-badge">Recommandé</span>
           {% elif plan.is_popular %}
@@ -346,17 +346,17 @@
           {% if plan.is_custom %}
           <p class="ok-plan-amount">
             <em>{{ plan.price_per_regular|floatformat:0 }}</em>
-            <small>FCFA / std</small>
+            <small>F CFA / std</small>
           </p>
-          <p class="ok-plan-cap">{{ plan.price_per_vip|floatformat:0 }} FCFA / VIP</p>
-          <p class="ok-plan-desc">Au choix — facturé selon le type d’invité (VIP/standard). {{ plan.lifetime_label }}.</p>
+          <p class="ok-plan-cap">{{ plan.price_per_vip|floatformat:0 }} F CFA / VIP</p>
+          <p class="ok-plan-desc">Au choix — facturé selon le type d’invité. {{ plan.lifetime_label }}.</p>
           {% else %}
           <p class="ok-plan-amount">
             {% if plan.is_free or plan.price == 0 %}
             <em>Gratuit</em>
             {% else %}
             <em>{{ plan.price|floatformat:"0g" }}</em>
-            <small>FCFA</small>
+            <small>F CFA</small>
             {% endif %}
           </p>
           {% if plan.total_invitation_limit %}
@@ -380,22 +380,24 @@
   <section class="ok-band ok-close">
     <div class="ok-close-glow" aria-hidden="true"></div>
     <div class="ok-wrap">
-      <article class="ok-close-card">
-        <span class="ok-close-ornament" aria-hidden="true"></span>
-        <p class="ok-kicker">Rendez-vous</p>
-        <h2 class="ok-display">Prêt à accueillir vos <em>invités</em>&nbsp;?</h2>
-        <p class="ok-intro">Créez votre espace en quelques minutes. Gratuit pour démarrer.</p>
-        {% if user.is_authenticated %}
-        <a class="ok-btn-light" href="{% url 'event_create' %}">Créer un événement</a>
-        {% else %}
-        <a class="ok-btn-light" href="{% url 'signup' %}">Créer mon compte</a>
-        {% endif %}
-      </article>
+      <div class="ok-close-flip ok-reveal">
+        <article class="ok-close-card">
+          <span class="ok-close-ornament" aria-hidden="true"></span>
+          <p class="ok-kicker">Rendez-vous</p>
+          <h2 class="ok-display">Prêt à accueillir vos <em>invités</em>&nbsp;?</h2>
+          <p class="ok-intro">Créez votre espace en quelques minutes. Gratuit pour démarrer.</p>
+          {% if user.is_authenticated %}
+          <a class="ok-btn-light" href="{% url 'event_create' %}">Créer un événement</a>
+          {% else %}
+          <a class="ok-btn-light" href="{% url 'signup' %}">Créer mon compte</a>
+          {% endif %}
+        </article>
+      </div>
     </div>
   </section>
 
   <footer class="ok-footer">
-    <div class="ok-footer-inner">
+    <div class="ok-footer-inner ok-reveal">
       <div class="ok-footer-brand">
         <a class="ok-logo ok-logo-dark" href="{% url 'landing' %}">
           {% include "partials/brand_mark.html" %}
@@ -670,6 +672,23 @@
   }, { passive: true });
   setScrolled();
   syncActiveFromScroll();
+
+  var revealEls = Array.prototype.slice.call(document.querySelectorAll('.ok-reveal'));
+  if (revealEls.length) {
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion || !('IntersectionObserver' in window)) {
+      revealEls.forEach(function (el) { el.classList.add('is-in'); });
+    } else {
+      var rio = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-in');
+          rio.unobserve(entry.target);
+        });
+      }, { threshold: 0.16, rootMargin: '0px 0px -8% 0px' });
+      revealEls.forEach(function (el) { rio.observe(el); });
+    }
+  }
 
   var counters = Array.prototype.slice.call(document.querySelectorAll('[data-count]'));
   if (counters.length && 'IntersectionObserver' in window) {

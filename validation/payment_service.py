@@ -406,7 +406,13 @@ def send_guest_payout(payment: GuestPayment, profile: UserProfile) -> dict:
 
 
 @transaction.atomic
-def payout_organizer(*, actor, organizer, payment_ids: list[int] | None = None) -> OrganizerPayout:
+def payout_organizer(
+    *,
+    actor,
+    organizer,
+    payment_ids: list[int] | None = None,
+    event_id: int | None = None,
+) -> OrganizerPayout:
     profile = _profile_for(organizer)
     if not profile.momo_ready:
         raise RuntimeError(
@@ -421,6 +427,8 @@ def payout_organizer(*, actor, organizer, payment_ids: list[int] | None = None) 
         )
         .order_by("created_at")
     )
+    if event_id:
+        qs = qs.filter(event_id=event_id)
     if payment_ids:
         qs = qs.filter(pk__in=payment_ids)
     payments = list(qs)

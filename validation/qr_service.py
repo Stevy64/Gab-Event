@@ -31,7 +31,7 @@ def build_qr_image(code: str, box_size: int = 12, border: int = 2):
     )
     qr.add_data(code)
     qr.make(fit=True)
-    return qr.make_image(fill_color="black", back_color="white").convert("RGB")
+    return qr.make_image(fill_color="#1A2744", back_color="white").convert("RGB")
 
 
 def generate_invitation_qr(invitation: Invitation, outdir: Path | None = None) -> Path:

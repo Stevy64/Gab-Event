@@ -24,7 +24,7 @@
     </div>
   </form>
   {% if plan %}
-  <form method="post" action="{% url 'platform_admin_plan_delete' plan.id %}" style="margin-top:1.2rem" onsubmit="return confirm('Supprimer cette formule ?');">
+  <form method="post" action="{% url 'platform_admin_plan_delete' plan.id %}" style="margin-top:1.2rem" data-cx-confirm="Supprimer cette formule ?" data-cx-confirm-ok="Supprimer" data-cx-confirm-title="Supprimer la formule">
     {% csrf_token %}
     <button class="cx-btn-danger" type="submit">Supprimer</button>
   </form>
