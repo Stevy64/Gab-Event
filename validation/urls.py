@@ -166,6 +166,11 @@ urlpatterns = [
     path("search/", views.search_page, name="search"),
     path("invitation/<int:pk>/", views.invitation_detail, name="invitation_detail"),
     path(
+        "invitation/<int:pk>/modifier/",
+        views.invitation_edit,
+        name="invitation_edit",
+    ),
+    path(
         "invitation/<int:pk>/preview/",
         views.invitation_preview,
         name="invitation_preview",

@@ -21,9 +21,9 @@
   <link rel="apple-touch-icon" sizes="180x180" href="{% url 'brand_icon' %}?s=180{% if site_logo_version %}&amp;v={{ site_logo_version }}{% endif %}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preload" href="{% static 'css/app.css' %}?v=164" as="style">
+  <link rel="preload" href="{% static 'css/app.css' %}?v=166" as="style">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=164">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=166">
   <title>{% block title %}{{ site_name }}{% endblock %}</title>
   {% block extra_head %}{% endblock %}
 </head>
@@ -32,6 +32,10 @@
     <div class="ge-page-loader-card">
       <span class="ge-page-loader-ring" aria-hidden="true"></span>
       <p>Chargement…</p>
+      <div class="ge-page-loader-meter" data-ge-dl-meter hidden>
+        <div class="ge-page-loader-bar" aria-hidden="true"><i data-ge-dl-bar></i></div>
+        <span data-ge-dl-pct>0 %</span>
+      </div>
     </div>
   </div>
   <div id="offline-banner" class="offline-banner" hidden>
@@ -100,7 +104,7 @@
       window.addEventListener('load', hideLoader);
     })();
   </script>
-  <script src="{% static 'js/ge-app.js' %}?v=26" defer></script>
+  <script src="{% static 'js/ge-app.js' %}?v=27" defer></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

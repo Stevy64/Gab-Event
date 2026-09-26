@@ -2,7 +2,7 @@
  * Gab Event PWA — cache shell, pages visitées et médias.
  * /api/*, paiements et console restent toujours en réseau.
  */
-const VERSION = "gab-event-v8";
+const VERSION = "gab-event-v9";
 const SHELL = VERSION + "-shell";
 const PAGES = VERSION + "-pages";
 const ASSETS = VERSION + "-assets";

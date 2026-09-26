@@ -1330,6 +1330,42 @@ html.ge-loading .ge-page-loader,
   font-weight: 700;
   color: #8A7040;
   letter-spacing: 0.02em;
+  text-align: center;
+}
+.ge-page-loader-meter {
+  width: min(100%, 220px);
+  display: grid;
+  gap: 0.35rem;
+  justify-items: center;
+}
+.ge-page-loader-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #F3E6C4;
+  overflow: hidden;
+}
+.ge-page-loader-bar i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #C9A24A, #1A2744);
+  transition: width 0.28s ease;
+}
+.ge-page-loader-meter [data-ge-dl-pct] {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #1A2744;
+  letter-spacing: 0.04em;
+}
+html.ge-loading-event .ge-page-loader-bar,
+body.page-event .ge-page-loader-bar {
+  background: rgba(26, 39, 68, 0.12);
+}
+html.ge-loading-event .ge-page-loader-bar i,
+body.page-event .ge-page-loader-bar i {
+  background: linear-gradient(90deg, #1A2744, #C9A24A);
 }
 html.ge-loading-event .ge-page-loader-ring,
 body.page-event .ge-page-loader-ring {
@@ -5761,8 +5797,9 @@ button.ge-sent-btn.is-go:focus-visible,
   margin-bottom: 0.95rem;
   padding: 0.6rem 0.65rem 0.6rem 1rem;
 }
+.ge-guests .ge-filters { margin-bottom: 1rem; }
 .ge-guests .ge-tabs {
-  margin-bottom: 1rem;
+  margin-bottom: 0;
   border-bottom-color: rgba(22, 19, 15, 0.08);
 }
 .ge-guest-card {
@@ -5809,6 +5846,24 @@ button.ge-sent-btn.is-go:focus-visible,
 .ge-filter-row {
   display: flex; flex-wrap: wrap; gap: 0.45rem;
   margin: 0 0 1.15rem;
+}
+.ge-filters {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+}
+.ge-filter-kicker {
+  margin: 0 0 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ok-muted);
+}
+.ge-tabs-compact { margin-bottom: 0; }
+.ge-tabs-compact .ge-tab {
+  padding: 0.5rem 0.4rem 0.42rem;
+  font-size: 0.74rem;
 }
 .ge-tabs {
   display: flex;
@@ -6381,9 +6436,36 @@ button.ge-sent-btn.is-go:focus-visible,
   cursor: pointer;
 }
 .ge-invite-danger-btn:hover { filter: brightness(1.06); }
+.ge-invite-edit-card { gap: 1rem; padding: 1rem; }
+.ge-invite-edit-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+.ge-invite-edit-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+.ge-invite-edit-actions .ok-btn-dark,
+.ge-invite-edit-actions .ge-btn-ghost {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .ge-invite-edit-grid { grid-template-columns: 1fr 1fr; }
+  .ge-invite-edit-actions {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+}
 @media (min-width: 520px) {
   .ge-invite-fiche-bar .ge-tool-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 760px) {
+  .ge-invite-fiche-bar .ge-tool-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
 @media (min-width: 640px) {

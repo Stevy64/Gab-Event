@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Modifier {{ invitation.full_name }} — Gab Event{% endblock %}
+{% block body_class %}page-app page-event{% endblock %}
+{% block content %}
+{% url 'invitation_detail' invitation.pk as edit_back %}
+{% include "partials/event_nav.html" with event=event nav_active="guests" back_url=edit_back back_label="Fiche invitation" %}
+<main class="ge-app ge-invite-fiche">
+  <header class="ge-page-head">
+    <a class="ge-level-back" href="{% url 'invitation_detail' invitation.pk %}" aria-label="Retour à la fiche">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+    </a>
+    <div>
+      <p class="ge-kicker">Invitation</p>
+      <h1>Modifier {{ invitation.full_name }}</h1>
+      <p class="ge-lead">Le code <code>{{ invitation.code }}</code> reste inchangé.</p>
+    </div>
+  </header>
+
+  <form method="post" class="ge-form-card ge-invite-edit-card">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+    <div class="ge-auth-errors">{{ form.non_field_errors }}</div>
+    {% endif %}
+    <div class="ge-invite-edit-grid">
+      <div class="ge-field">
+        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% if form.first_name.errors %}<span class="ge-field-err">{{ form.first_name.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% if form.last_name.errors %}<span class="ge-field-err">{{ form.last_name.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.participant_type.id_for_label }}">{{ form.participant_type.label }}</label>
+        {{ form.participant_type }}
+        {% if form.participant_type.errors %}<span class="ge-field-err">{{ form.participant_type.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+        {{ form.category }}
+        {% if form.category.errors %}<span class="ge-field-err">{{ form.category.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% if form.email.errors %}<span class="ge-field-err">{{ form.email.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}<span class="ge-field-err">{{ form.phone.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.organization.id_for_label }}">{{ form.organization.label }}</label>
+        {{ form.organization }}
+        {% if form.organization.errors %}<span class="ge-field-err">{{ form.organization.errors.0 }}</span>{% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="{{ form.dietary.id_for_label }}">{{ form.dietary.label }}</label>
+        {{ form.dietary }}
+        {% if form.dietary.errors %}<span class="ge-field-err">{{ form.dietary.errors.0 }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="ge-invite-edit-actions">
+      <button type="submit" class="ok-btn-dark">Enregistrer</button>
+      <a class="ge-btn-ghost" href="{% url 'invitation_detail' invitation.pk %}">Annuler</a>
+    </div>
+  </form>
+</main>
+{% endblock %}

@@ -7,7 +7,7 @@ import json
 import re
 from decimal import Decimal
 
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 from django.conf import settings
 from django.contrib import messages
@@ -26,6 +26,7 @@ from django.http import FileResponse, HttpResponse, HttpResponseForbidden, JsonR
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
+from django.utils.text import slugify
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
@@ -54,6 +55,7 @@ from .forms import (
     CancelValidationForm,
     ConfirmInvitationCancelForm,
     ConfirmInvitationDeleteForm,
+    InvitationEditForm,
     EventAppearanceForm,
     EventPlanSelectForm,
     EventSettingsForm,
@@ -83,12 +85,83 @@ from .services import (
     cancel_invitation,
     cancel_validation,
     delete_invitation,
+    update_invitation,
     event_dashboard_stats,
     export_attendance_response,
     lookup_invitation,
     mark_invitation_sent,
     search_invitations,
 )
+
+
+def apply_invitation_list_filters(qs, *, type_filter="all", status_filter="all", query=""):
+    if type_filter == "RECIPIENT":
+        qs = qs.filter(participant_type=PARTICIPANT_RECIPIENT)
+    elif type_filter == "VIP":
+        qs = qs.filter(participant_type=PARTICIPANT_VIP)
+    if status_filter == "present":
+        qs = qs.filter(places_used__gt=0).exclude(status=Invitation.STATUS_DISABLED)
+    elif status_filter == "pending":
+        qs = qs.filter(places_used=0).exclude(status=Invitation.STATUS_DISABLED)
+    elif status_filter == "cancelled":
+        qs = qs.filter(status=Invitation.STATUS_DISABLED)
+    elif status_filter == "generated":
+        qs = qs.filter(invitation_generated=True).exclude(status=Invitation.STATUS_DISABLED)
+    elif status_filter == "sent":
+        qs = qs.filter(invitation_sent=True).exclude(status=Invitation.STATUS_DISABLED)
+    query = (query or "").strip()
+    if query:
+        qs = qs.filter(
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(code__icontains=query)
+            | Q(category__icontains=query)
+        )
+    return qs
+
+
+def invitation_return_target(request, event):
+    key = f"invite_return_{event.pk}"
+    incoming = (request.GET.get("from") or "").strip()
+    if incoming in {"guests", "cards"}:
+        request.session[key] = {
+            "from": incoming,
+            "type": request.GET.get("type") or "all",
+            "status": request.GET.get("status") or "all",
+            "q": (request.GET.get("q") or "").strip(),
+        }
+    data = request.session.get(key) or {
+        "from": "guests",
+        "type": "all",
+        "status": "all",
+        "q": "",
+    }
+    params = {}
+    if data.get("type") and data["type"] != "all":
+        params["type"] = data["type"]
+    if data.get("status") and data["status"] != "all":
+        params["status"] = data["status"]
+    if data.get("q"):
+        params["q"] = data["q"]
+    if data.get("from") == "cards":
+        url = reverse("event_invitations", args=[event.pk])
+        label = "Cartes"
+    else:
+        url = reverse("event_guests", args=[event.pk])
+        label = "Invités"
+    if params:
+        url = f"{url}?{urlencode(params)}"
+    return url, label
+
+
+def event_zip_content_disposition(event) -> str:
+    name = (event.name or "").strip() or event.slug or "cartes"
+    ascii_stem = slugify(name)[:80] or slugify(event.slug or "cartes") or "cartes"
+    utf8_name = f"{name}.zip".replace('"', "").replace("\r", "").replace("\n", "")
+    return (
+        f'attachment; filename="{ascii_stem}.zip"; '
+        f"filename*=UTF-8''{quote(utf8_name)}"
+    )
 
 
 @require_GET
@@ -1046,22 +1119,15 @@ def event_guests(request, event_id):
     form = InvitationSearchForm(request.GET or None)
     type_filter = request.GET.get("type", "all")
     status_filter = request.GET.get("status", "all")
-    qs = Invitation.objects.filter(event=event)
-    if type_filter == "RECIPIENT":
-        qs = qs.filter(participant_type=PARTICIPANT_RECIPIENT)
-    elif type_filter == "VIP":
-        qs = qs.filter(participant_type=PARTICIPANT_VIP)
-    if status_filter == "present":
-        qs = qs.filter(places_used__gt=0).exclude(status=Invitation.STATUS_DISABLED)
-    elif status_filter == "pending":
-        qs = qs.filter(places_used=0).exclude(status=Invitation.STATUS_DISABLED)
-    elif status_filter == "cancelled":
-        qs = qs.filter(status=Invitation.STATUS_DISABLED)
     query = ""
     if form.is_valid():
         query = form.cleaned_data.get("q", "")
-        if query:
-            qs = search_invitations(query, event=event)
+    qs = apply_invitation_list_filters(
+        Invitation.objects.filter(event=event),
+        type_filter=type_filter,
+        status_filter=status_filter,
+        query=query,
+    )
     paginator = Paginator(qs, 50)
     page = paginator.get_page(request.GET.get("page"))
     return render(
@@ -1087,21 +1153,16 @@ def event_invitations(request, event_id):
     event = get_user_event(request.user, event_id)
     form = InvitationSearchForm(request.GET or None)
     type_filter = request.GET.get("type", "all")
-    qs = Invitation.objects.filter(event=event).order_by("last_name", "first_name", "id")
-    if type_filter == "RECIPIENT":
-        qs = qs.filter(participant_type=PARTICIPANT_RECIPIENT)
-    elif type_filter == "VIP":
-        qs = qs.filter(participant_type=PARTICIPANT_VIP)
+    status_filter = request.GET.get("status", "all")
     query = ""
     if form.is_valid():
         query = form.cleaned_data.get("q", "")
-        if query:
-            qs = qs.filter(
-                Q(first_name__icontains=query)
-                | Q(last_name__icontains=query)
-                | Q(code__icontains=query)
-                | Q(category__icontains=query)
-            )
+    qs = apply_invitation_list_filters(
+        Invitation.objects.filter(event=event).order_by("last_name", "first_name", "id"),
+        type_filter=type_filter,
+        status_filter=status_filter,
+        query=query,
+    )
     total = qs.count()
     paginator = Paginator(qs, 40)
     page = paginator.get_page(request.GET.get("page"))
@@ -1114,6 +1175,7 @@ def event_invitations(request, event_id):
             "total_count": total,
             "query": query,
             "type_filter": type_filter,
+            "status_filter": status_filter,
             "nav_active": "invitations",
             "quotas": quota_status(event),
         },
@@ -1271,18 +1333,15 @@ def event_generate_all(request, event_id):
     event = get_user_event(request.user, event_id)
     ids = [pk for pk in request.POST.getlist("ids") if str(pk).isdigit()]
     select_all = request.POST.get("select_all") == "1"
-    type_filter = request.POST.get("type") or None
+    type_filter = request.POST.get("type") or "all"
+    status_filter = request.POST.get("status") or "all"
     query = (request.POST.get("q") or "").strip()
-    qs = Invitation.objects.filter(event=event)
-    if type_filter in (PARTICIPANT_RECIPIENT, PARTICIPANT_VIP):
-        qs = qs.filter(participant_type=type_filter)
-    if query:
-        qs = qs.filter(
-            Q(first_name__icontains=query)
-            | Q(last_name__icontains=query)
-            | Q(code__icontains=query)
-            | Q(category__icontains=query)
-        )
+    qs = apply_invitation_list_filters(
+        Invitation.objects.filter(event=event),
+        type_filter=type_filter,
+        status_filter=status_filter,
+        query=query,
+    )
     if not select_all:
         qs = qs.filter(pk__in=ids)
     if not qs.exists():
@@ -1292,9 +1351,8 @@ def event_generate_all(request, event_id):
     for inv in qs.iterator():
         generate_invitation_qr(inv)
     response = HttpResponse(data, content_type="application/zip")
-    response["Content-Disposition"] = (
-        f'attachment; filename="cartes_{event.slug}_{qs.count()}.zip"'
-    )
+    response["Content-Length"] = str(len(data))
+    response["Content-Disposition"] = event_zip_content_disposition(event)
     return response
 
 
@@ -1328,6 +1386,7 @@ def invitation_detail(request, pk):
     locked = _redirect_locked_event(invitation.event)
     if locked:
         return locked
+    list_back, list_label = invitation_return_target(request, invitation.event)
     form = CancelValidationForm()
     void_form = ConfirmInvitationCancelForm()
     delete_form = ConfirmInvitationDeleteForm()
@@ -1361,9 +1420,7 @@ def invitation_detail(request, pk):
                     messages.error(request, str(exc))
                     return redirect("invitation_detail", pk=invitation.pk)
                 messages.success(request, f"Invitation de {name} supprimée.")
-                if event_id:
-                    return redirect("event_guests", event_id=event_id)
-                return redirect("my_events")
+                return redirect(list_back if event_id else "my_events")
         else:
             form = CancelValidationForm(request.POST)
             if form.is_valid() and invitation.places_used > 0:
@@ -1384,6 +1441,36 @@ def invitation_detail(request, pk):
             "admissions": admissions,
             "ceremony": ceremony_settings(invitation.event),
             "event": invitation.event,
+            "list_back": list_back,
+            "list_label": list_label,
+        },
+    )
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def invitation_edit(request, pk):
+    invitation = get_owned_invitation(request.user, pk)
+    locked = _redirect_locked_event(invitation.event)
+    if locked:
+        return locked
+    invitation_return_target(request, invitation.event)
+    if request.method == "POST":
+        form = InvitationEditForm(request.POST, invitation=invitation, event=invitation.event)
+        if form.is_valid():
+            update_invitation(invitation, form.cleaned_data)
+            messages.success(request, f"Invitation de {invitation.full_name} mise à jour.")
+            return redirect("invitation_detail", pk=invitation.pk)
+    else:
+        form = InvitationEditForm.from_invitation(invitation)
+    return render(
+        request,
+        "invitation_edit.html",
+        {
+            "invitation": invitation,
+            "form": form,
+            "event": invitation.event,
+            "ceremony": ceremony_settings(invitation.event),
         },
     )
 
@@ -1419,13 +1506,16 @@ def invitation_download(request, pk):
     if fmt == "pdf":
         from .card_service import invitation_pdf_bytes, invitation_pdf_filename
 
-        response = HttpResponse(invitation_pdf_bytes(data), content_type="application/pdf")
+        payload = invitation_pdf_bytes(data)
+        response = HttpResponse(payload, content_type="application/pdf")
+        response["Content-Length"] = str(len(payload))
         if request.GET.get("inline") != "1":
             response["Content-Disposition"] = (
                 f'attachment; filename="{invitation_pdf_filename(invitation)}"'
             )
         return response
     response = HttpResponse(data, content_type="image/png")
+    response["Content-Length"] = str(len(data))
     if request.GET.get("inline") != "1":
         response["Content-Disposition"] = (
             f'attachment; filename="{invitation_filename(invitation)}"'

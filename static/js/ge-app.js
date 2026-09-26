@@ -526,7 +526,78 @@
   }
 
   function hideBusyLoader() {
+    stopDownloadProgress();
     hidePageLoader(true);
+  }
+
+  function meterEls() {
+    var root = pageLoaderEl();
+    if (!root) return {};
+    return {
+      meter: root.querySelector('[data-ge-dl-meter]'),
+      bar: root.querySelector('[data-ge-dl-bar]'),
+      pct: root.querySelector('[data-ge-dl-pct]')
+    };
+  }
+
+  var _dlTick = null;
+  var _dlPct = 0;
+  var _dlMsg = '';
+
+  function renderDownloadProgress(pct, message) {
+    _dlPct = Math.max(0, Math.min(100, pct));
+    var shown = Math.round(_dlPct);
+    var parts = meterEls();
+    if (parts.meter) parts.meter.hidden = false;
+    if (parts.bar) parts.bar.style.width = shown + '%';
+    if (parts.pct) parts.pct.textContent = shown + ' %';
+    var text = message || _dlMsg || 'Téléchargement…';
+    setLoaderText(text + ' · ' + shown + ' %');
+    setDownloadStatus(true, text + ' · ' + shown + ' %');
+  }
+
+  function startDownloadProgress(message, opts) {
+    stopDownloadProgress();
+    _dlPct = 0;
+    _dlMsg = message || 'Préparation du billet…';
+    showBusyLoader(_dlMsg, opts);
+    renderDownloadProgress(2, _dlMsg);
+    _dlTick = setInterval(function () {
+      if (_dlPct >= 88) return;
+      var step = Math.max(0.35, (88 - _dlPct) * 0.045);
+      renderDownloadProgress(_dlPct + step, _dlMsg);
+    }, 280);
+  }
+
+  function setRealDownloadProgress(loaded, total) {
+    if (!total) return;
+    if (_dlTick) {
+      clearInterval(_dlTick);
+      _dlTick = null;
+    }
+    var raw = Math.round((loaded / total) * 100);
+    renderDownloadProgress(Math.max(_dlPct, Math.min(99, raw)), _dlMsg);
+  }
+
+  function finishDownloadProgress() {
+    if (_dlTick) {
+      clearInterval(_dlTick);
+      _dlTick = null;
+    }
+    renderDownloadProgress(100, _dlMsg);
+  }
+
+  function stopDownloadProgress() {
+    if (_dlTick) {
+      clearInterval(_dlTick);
+      _dlTick = null;
+    }
+    _dlPct = 0;
+    _dlMsg = '';
+    var parts = meterEls();
+    if (parts.meter) parts.meter.hidden = true;
+    if (parts.bar) parts.bar.style.width = '0%';
+    if (parts.pct) parts.pct.textContent = '0 %';
   }
 
   function setDownloadStatus(on, text) {
@@ -546,6 +617,49 @@
     }
   }
 
+  function triggerBlobDownload(blob, name) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = name || 'invitation';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
+  }
+
+  function requestDownload(url, opts) {
+    opts = opts || {};
+    return new Promise(function (resolve, reject) {
+      var xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url);
+      xhr.responseType = 'blob';
+      xhr.withCredentials = true;
+      if (opts.headers) {
+        Object.keys(opts.headers).forEach(function (key) {
+          xhr.setRequestHeader(key, opts.headers[key]);
+        });
+      }
+      xhr.onprogress = function (e) {
+        if (e.lengthComputable) setRealDownloadProgress(e.loaded, e.total);
+      };
+      xhr.onload = function () {
+        var type = (xhr.getResponseHeader('Content-Type') || '').toLowerCase();
+        if (xhr.status >= 200 && xhr.status < 300 && type.indexOf('text/html') === -1) {
+          finishDownloadProgress();
+          resolve({
+            blob: xhr.response,
+            name: filenameFromDisposition(xhr.getResponseHeader('Content-Disposition'), opts.fallbackName)
+          });
+          return;
+        }
+        reject(new Error('download'));
+      };
+      xhr.onerror = function () { reject(new Error('network')); };
+      xhr.send(opts.body || null);
+    });
+  }
+
   function filenameFromDisposition(header, fallback) {
     if (!header) return fallback;
     var star = /filename\*=(?:UTF-8''|utf-8'')([^;]+)/i.exec(header);
@@ -555,6 +669,13 @@
     var plain = /filename=(?:"([^"]+)"|([^;]+))/i.exec(header);
     if (plain) return (plain[1] || plain[2] || '').trim();
     return fallback;
+  }
+
+  function afterFileSaved(href, fallbackName) {
+    var eventId = window.GERoster && window.GERoster.eventId();
+    if (eventId && /export|xlsx|excel/i.test((href || '') + (fallbackName || ''))) {
+      window.GERoster.sync(eventId);
+    }
   }
 
   function initDownloads() {
@@ -567,30 +688,14 @@
       var msg = a.getAttribute('data-ge-dl-msg') || (isTicket
         ? 'Préparation de votre billet…'
         : 'Téléchargement en cours…');
-      showBusyLoader(msg, { toEvent: document.body.classList.contains('page-event') });
-      setDownloadStatus(true, msg);
+      startDownloadProgress(msg, { toEvent: document.body.classList.contains('page-event') });
       a.classList.add('is-busy');
       a.setAttribute('aria-busy', 'true');
       markDownloadLabel(a, true);
-      fetch(a.href, { credentials: 'same-origin' })
-        .then(function (res) {
-          if (!res.ok) throw new Error('download');
-          var name = filenameFromDisposition(res.headers.get('Content-Disposition'), fallbackName);
-          return res.blob().then(function (blob) { return { blob: blob, name: name }; });
-        })
+      requestDownload(a.href, { fallbackName: fallbackName })
         .then(function (out) {
-          var url = URL.createObjectURL(out.blob);
-          var link = document.createElement('a');
-          link.href = url;
-          link.download = out.name || fallbackName;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          setTimeout(function () { URL.revokeObjectURL(url); }, 2500);
-          var eventId = window.GERoster && window.GERoster.eventId();
-          if (eventId && /export|xlsx|excel/i.test(a.href + fallbackName)) {
-            window.GERoster.sync(eventId);
-          }
+          triggerBlobDownload(out.blob, out.name || fallbackName);
+          afterFileSaved(a.href, fallbackName);
         })
         .catch(function () {
           var link = document.createElement('a');
@@ -605,6 +710,41 @@
           a.classList.remove('is-busy');
           a.removeAttribute('aria-busy');
           markDownloadLabel(a, false);
+          setDownloadStatus(false);
+          hideBusyLoader();
+        });
+    });
+  }
+
+  function initDownloadForms() {
+    document.addEventListener('submit', function (e) {
+      var form = e.target;
+      if (!form || !form.matches('[data-ge-download-form]')) return;
+      e.preventDefault();
+      var btn = form.querySelector('[type="submit"]');
+      var msg = form.getAttribute('data-ge-dl-msg') || 'Préparation des cartes…';
+      startDownloadProgress(msg, { toEvent: true });
+      if (btn) {
+        btn.disabled = true;
+        btn.setAttribute('aria-busy', 'true');
+      }
+      requestDownload(form.action || location.href, {
+        method: (form.method || 'POST').toUpperCase(),
+        body: new FormData(form),
+        fallbackName: 'cartes.zip'
+      })
+        .then(function (out) {
+          triggerBlobDownload(out.blob, out.name || 'cartes.zip');
+        })
+        .catch(function () {
+          form.removeAttribute('data-ge-download-form');
+          form.submit();
+        })
+        .then(function () {
+          if (btn) {
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+          }
           setDownloadStatus(false);
           hideBusyLoader();
         });
@@ -1014,6 +1154,7 @@
     initPhotoPicker();
     initPageLoader();
     initDownloads();
+    initDownloadForms();
     initPasswordToggles();
     initCopyButtons();
     initInviteFields();

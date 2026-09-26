@@ -1,0 +1,21 @@
+<nav class="ge-filters" aria-label="Filtres">
+  <div class="ge-filter-group">
+    <p class="ge-filter-kicker">Type</p>
+    <div class="ge-tabs ge-tabs-compact">
+      <a class="ge-tab {% if type_filter == 'all' %}is-active{% endif %}" href="?type=all&amp;status={{ status_filter }}{% if query %}&amp;q={{ query }}{% endif %}">Tous</a>
+      <a class="ge-tab {% if type_filter == 'RECIPIENT' %}is-active{% endif %}" href="?type=RECIPIENT&amp;status={{ status_filter }}{% if query %}&amp;q={{ query }}{% endif %}">Standard</a>
+      <a class="ge-tab {% if type_filter == 'VIP' %}is-active{% endif %}" href="?type=VIP&amp;status={{ status_filter }}{% if query %}&amp;q={{ query }}{% endif %}">VIP</a>
+    </div>
+  </div>
+  <div class="ge-filter-group">
+    <p class="ge-filter-kicker">État</p>
+    <div class="ge-tabs ge-tabs-compact">
+      <a class="ge-tab {% if status_filter == 'all' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=all{% if query %}&amp;q={{ query }}{% endif %}">Tous</a>
+      <a class="ge-tab {% if status_filter == 'present' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=present{% if query %}&amp;q={{ query }}{% endif %}">Présents</a>
+      <a class="ge-tab {% if status_filter == 'pending' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=pending{% if query %}&amp;q={{ query }}{% endif %}">En attente</a>
+      <a class="ge-tab {% if status_filter == 'generated' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=generated{% if query %}&amp;q={{ query }}{% endif %}">Générées</a>
+      <a class="ge-tab {% if status_filter == 'sent' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=sent{% if query %}&amp;q={{ query }}{% endif %}">Envoyées</a>
+      <a class="ge-tab {% if status_filter == 'cancelled' %}is-active{% endif %}" href="?type={{ type_filter }}&amp;status=cancelled{% if query %}&amp;q={{ query }}{% endif %}">Annulées</a>
+    </div>
+  </div>
+</nav>

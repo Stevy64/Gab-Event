@@ -1408,6 +1408,10 @@ class InvitationCardsPageTests(PlatformBaseTestCase):
         self.assertContains(page, "Excel")
         self.assertContains(page, "PDF")
         self.assertContains(page, "Télécharger la sélection")
+        self.assertContains(page, "data-ge-download-form")
+        self.assertContains(page, "Modifier")
+        self.assertContains(page, "État")
+        self.assertContains(page, "Annulées")
         filtered = self.client.get(
             reverse("event_invitations", args=[event.pk]), {"q": "Léa"}
         )
@@ -1431,6 +1435,10 @@ class InvitationCardsPageTests(PlatformBaseTestCase):
         self.assertEqual(got.status_code, 200)
         self.assertEqual(got["Content-Type"], "application/zip")
         self.assertTrue(zipfile.is_zipfile(BytesIO(got.content)))
+        disposition = got["Content-Disposition"]
+        self.assertIn("cartes-gala.zip", disposition)
+        self.assertIn("filename*=UTF-8''", disposition)
+        self.assertIn("Cartes%20Gala.zip", disposition)
 
     def test_invite_link_copy(self):
         event, _a, _b = self._event_with_cards()
@@ -1463,4 +1471,57 @@ class InvitationCardsPageTests(PlatformBaseTestCase):
         self.assertEqual(deleted.status_code, 302)
         self.assertFalse(Invitation.objects.filter(pk=invitation.pk).exists())
         self.assertTrue(Invitation.objects.filter(pk=other.pk).exists())
+
+    def test_can_edit_invitation(self):
+        event, invitation, _other = self._event_with_cards()
+        self.client.login(username="alice", password="secret123")
+        url = reverse("invitation_edit", args=[invitation.pk])
+        page = self.client.get(url)
+        self.assertContains(page, "Modifier")
+        self.assertContains(page, invitation.code)
+        saved = self.client.post(
+            url,
+            {
+                "first_name": "Léa",
+                "last_name": "Obame",
+                "participant_type": PARTICIPANT_RECIPIENT,
+                "email": "lea@test.com",
+                "phone": "077000000",
+                "category": "Table 2",
+                "organization": "CCA",
+                "dietary": "",
+            },
+        )
+        self.assertEqual(saved.status_code, 302)
+        invitation.refresh_from_db()
+        self.assertEqual(invitation.last_name, "Obame")
+        self.assertEqual(invitation.email, "lea@test.com")
+        self.assertEqual(invitation.category, "Table 2")
+        self.assertEqual(invitation.extra_data.get("organization"), "CCA")
+        detail = self.client.get(reverse("invitation_detail", args=[invitation.pk]))
+        self.assertContains(detail, "Obame")
+        self.assertContains(detail, "lea@test.com")
+
+    def test_detail_back_returns_to_guests_list(self):
+        event, invitation, _other = self._event_with_cards()
+        self.client.login(username="alice", password="secret123")
+        page = self.client.get(
+            reverse("invitation_detail", args=[invitation.pk]),
+            {"from": "guests", "type": "RECIPIENT", "status": "pending"},
+        )
+        self.assertContains(page, f"/evenements/{event.pk}/invites/")
+        self.assertContains(page, "Retour — Invités")
+        guests = self.client.get(
+            reverse("event_guests", args=[event.pk]),
+            {"type": "RECIPIENT", "status": "cancelled"},
+        )
+        self.assertContains(guests, "Type")
+        self.assertContains(guests, "État")
+        html = guests.content.decode()
+        type_block = html.split("Type", 1)[1].split("État", 1)[0]
+        status_block = html.split("État", 1)[1]
+        self.assertIn("is-active", type_block)
+        self.assertIn("RECIPIENT", type_block)
+        self.assertNotIn('status=cancelled" class="ge-tab is-active"', type_block)
+        self.assertIn("Annulées", status_block)
 

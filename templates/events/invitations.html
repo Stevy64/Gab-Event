@@ -29,19 +29,17 @@
   <form method="get" class="ge-search-bar" role="search">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
     <input type="hidden" name="type" value="{{ type_filter }}">
+    <input type="hidden" name="status" value="{{ status_filter }}">
     <input type="search" name="q" value="{{ query }}" placeholder="Nom, prénom ou code…" aria-label="Rechercher une carte">
     <button type="submit">Chercher</button>
   </form>
 
-  <nav class="ge-tabs" aria-label="Filtres">
-    <a class="ge-tab {% if type_filter == 'all' %}is-active{% endif %}" href="?type=all{% if query %}&q={{ query }}{% endif %}">Tous</a>
-    <a class="ge-tab {% if type_filter == 'RECIPIENT' %}is-active{% endif %}" href="?type=RECIPIENT{% if query %}&q={{ query }}{% endif %}">Standard</a>
-    <a class="ge-tab {% if type_filter == 'VIP' %}is-active{% endif %}" href="?type=VIP{% if query %}&q={{ query }}{% endif %}">VIP</a>
-  </nav>
+  {% include "partials/invite_filters.html" %}
 
-  <form method="post" action="{% url 'event_generate_all' event.id %}" class="ge-cards-form" id="ge-cards-form" data-no-loader>
+  <form method="post" action="{% url 'event_generate_all' event.id %}" class="ge-cards-form" id="ge-cards-form" data-no-loader data-ge-download-form data-ge-dl-msg="Préparation des cartes sélectionnées…">
     {% csrf_token %}
     <input type="hidden" name="type" value="{{ type_filter }}">
+    <input type="hidden" name="status" value="{{ status_filter }}">
     <input type="hidden" name="q" value="{{ query }}">
     <input type="hidden" name="select_all" value="" data-select-all>
     <div class="ge-cards-toolbar">
@@ -73,14 +71,16 @@
         </div>
         <span class="ge-status {% if inv.is_vip %}ge-status-vip{% endif %}">{{ inv.get_participant_type_display }}</span>
         <div class="ge-cards-actions">
+          <a class="ge-btn-ghost ge-btn-xs" href="{% url 'invitation_detail' inv.pk %}?from=cards&amp;type={{ type_filter }}&amp;status={{ status_filter }}{% if query %}&amp;q={{ query }}{% endif %}">Fiche</a>
+          <a class="ge-btn-ghost ge-btn-xs" href="{% url 'invitation_edit' inv.pk %}?from=cards">Modifier</a>
           <a class="ge-btn-ghost ge-btn-xs" href="{% url 'invitation_preview' inv.pk %}">Voir</a>
-          <a class="ge-btn-ghost ge-btn-xs" href="{% url 'invitation_download' inv.pk %}" data-ge-download data-no-loader download>PNG</a>
+          <a class="ge-btn-ghost ge-btn-xs" href="{% url 'invitation_download' inv.pk %}" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PNG…" download>PNG</a>
         </div>
       </article>
       {% empty %}
       <div class="ge-empty">
-        <h2>{% if query or type_filter != 'all' %}Aucun résultat{% else %}Aucune invitation{% endif %}</h2>
-        <p>{% if query or type_filter != 'all' %}Essayez un autre filtre.{% else %}Les inscriptions du lien public apparaissent ici.{% endif %}</p>
+        <h2>{% if query or type_filter != 'all' or status_filter != 'all' %}Aucun résultat{% else %}Aucune invitation{% endif %}</h2>
+        <p>{% if query or type_filter != 'all' or status_filter != 'all' %}Essayez un autre filtre.{% else %}Les inscriptions du lien public apparaissent ici.{% endif %}</p>
         <a class="ok-btn-dark" href="{% url 'event_invite_link' event.id %}">Lien d’invitation</a>
       </div>
       {% endfor %}
@@ -90,11 +90,11 @@
   {% if invitations.has_other_pages %}
   <nav class="ge-pagination" aria-label="Pagination">
     {% if invitations.has_previous %}
-    <a href="?page={{ invitations.previous_page_number }}&type={{ type_filter }}{% if query %}&q={{ query }}{% endif %}">← Préc.</a>
+    <a href="?page={{ invitations.previous_page_number }}&type={{ type_filter }}&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">← Préc.</a>
     {% endif %}
     <span>{{ invitations.number }} / {{ invitations.paginator.num_pages }}</span>
     {% if invitations.has_next %}
-    <a href="?page={{ invitations.next_page_number }}&type={{ type_filter }}{% if query %}&q={{ query }}{% endif %}">Suiv. →</a>
+    <a href="?page={{ invitations.next_page_number }}&type={{ type_filter }}&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">Suiv. →</a>
     {% endif %}
   </nav>
   {% endif %}

@@ -34,6 +34,7 @@ __all__ = [
     "cancel_validation",
     "cancel_invitation",
     "delete_invitation",
+    "update_invitation",
     "dashboard_stats",
     "event_dashboard_stats",
     "search_invitations",
@@ -627,6 +628,37 @@ def delete_invitation(invitation: Invitation) -> None:
     if invitation.status != Invitation.STATUS_DISABLED:
         raise ValueError("Annulez l’invitation avant de la supprimer.")
     invitation.delete()
+
+
+def update_invitation(invitation: Invitation, data: dict) -> Invitation:
+    """Update identity fields. The ticket code stays unchanged."""
+    extra = dict(invitation.extra_data or {})
+    category = (data.get("category") or "").strip()
+    extra["organization"] = (data.get("organization") or "").strip()
+    extra["dietary"] = (data.get("dietary") or "").strip()
+    if category:
+        extra["category"] = category
+    else:
+        extra.pop("category", None)
+    invitation.first_name = (data.get("first_name") or "").strip()
+    invitation.last_name = (data.get("last_name") or "").strip()
+    invitation.participant_type = data.get("participant_type") or invitation.participant_type
+    invitation.email = (data.get("email") or "").strip()
+    invitation.phone = (data.get("phone") or "").strip()
+    invitation.category = category
+    invitation.extra_data = extra
+    invitation.save(
+        update_fields=[
+            "first_name",
+            "last_name",
+            "participant_type",
+            "email",
+            "phone",
+            "category",
+            "extra_data",
+        ]
+    )
+    return invitation
 
 
 def mark_invitation_sent(invitation: Invitation, sent: bool = True) -> Invitation:

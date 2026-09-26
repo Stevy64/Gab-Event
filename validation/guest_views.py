@@ -297,12 +297,15 @@ def public_invite_card(request, token):
     data, _ = generate_invitation_card(invitation, save=True)
     fmt = (request.GET.get("fmt") or "png").lower()
     if fmt == "pdf":
-        response = HttpResponse(invitation_pdf_bytes(data), content_type="application/pdf")
+        payload = invitation_pdf_bytes(data)
+        response = HttpResponse(payload, content_type="application/pdf")
+        response["Content-Length"] = str(len(payload))
         response["Content-Disposition"] = (
             f'attachment; filename="{invitation_pdf_filename(invitation)}"'
         )
         return response
     response = HttpResponse(data, content_type="image/png")
+    response["Content-Length"] = str(len(data))
     response["Content-Disposition"] = (
         f'attachment; filename="{invitation_filename(invitation)}"'
     )

@@ -8,7 +8,9 @@ from django.utils import timezone
 
 from .flyer_service import validate_flyer_upload
 from .identity import MOMO_OPERATOR_CHOICES, normalize_phone, phones_match, validate_momo_number
-from .models import Event, EventCategory, EventPlan, FaqItem, GalleryImage, SiteSettings, UserProfile
+from .constants import PARTICIPANT_RECIPIENT, PARTICIPANT_VIP
+from .models import Event, EventCategory, EventPlan, FaqItem, GalleryImage, Invitation, SiteSettings, UserProfile
+from .quota_service import can_add_invitations
 
 
 class StyledImageInput(forms.ClearableFileInput):
@@ -168,6 +170,90 @@ class ConfirmInvitationDeleteForm(forms.Form):
         label="Je confirme la suppression définitive de cette invitation",
         required=True,
     )
+
+
+class InvitationEditForm(forms.Form):
+    first_name = forms.CharField(
+        label="Prénom",
+        max_length=120,
+        widget=forms.TextInput(attrs={"autocomplete": "given-name", "placeholder": "Prénom"}),
+    )
+    last_name = forms.CharField(
+        label="Nom",
+        max_length=120,
+        widget=forms.TextInput(attrs={"autocomplete": "family-name", "placeholder": "Nom"}),
+    )
+    participant_type = forms.ChoiceField(
+        label="Type d’invitation",
+        choices=Invitation.TYPE_CHOICES,
+    )
+    email = forms.EmailField(
+        label="E-mail",
+        required=False,
+        widget=forms.EmailInput(attrs={"autocomplete": "email", "placeholder": "invite@email.com"}),
+    )
+    phone = forms.CharField(
+        label="Téléphone",
+        required=False,
+        max_length=40,
+        widget=forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel", "placeholder": "077…"}),
+    )
+    category = forms.CharField(
+        label="Catégorie / table",
+        required=False,
+        max_length=80,
+        widget=forms.TextInput(attrs={"placeholder": "Table 4, VIP…"}),
+    )
+    organization = forms.CharField(
+        label="Organisation",
+        required=False,
+        max_length=160,
+        widget=forms.TextInput(attrs={"placeholder": "Entreprise, service…"}),
+    )
+    dietary = forms.CharField(
+        label="Régime / note",
+        required=False,
+        max_length=200,
+        widget=forms.TextInput(attrs={"placeholder": "Allergie, note…"}),
+    )
+
+    def __init__(self, *args, invitation=None, event=None, **kwargs):
+        self.invitation = invitation
+        self.event = event or (invitation.event if invitation else None)
+        super().__init__(*args, **kwargs)
+
+    def clean_participant_type(self):
+        ptype = self.cleaned_data.get("participant_type") or PARTICIPANT_RECIPIENT
+        if ptype not in {PARTICIPANT_RECIPIENT, PARTICIPANT_VIP}:
+            ptype = PARTICIPANT_RECIPIENT
+        if not self.invitation or not self.event or ptype == self.invitation.participant_type:
+            return ptype
+        quota = (
+            can_add_invitations(self.event, vip_to_add=1)
+            if ptype == PARTICIPANT_VIP
+            else can_add_invitations(self.event, regular_to_add=1)
+        )
+        if not quota.allowed:
+            raise ValidationError(quota.message)
+        return ptype
+
+    @classmethod
+    def from_invitation(cls, invitation):
+        extra = invitation.extra_data or {}
+        return cls(
+            invitation=invitation,
+            event=invitation.event,
+            initial={
+                "first_name": invitation.first_name,
+                "last_name": invitation.last_name,
+                "participant_type": invitation.participant_type,
+                "email": invitation.email,
+                "phone": invitation.phone,
+                "category": invitation.category or extra.get("category") or "",
+                "organization": extra.get("organization") or "",
+                "dietary": extra.get("dietary") or "",
+            },
+        )
 
 
 class SignUpForm(UserCreationForm):

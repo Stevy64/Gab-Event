@@ -46,18 +46,11 @@
     <button type="submit">Chercher</button>
   </form>
 
-  <nav class="ge-tabs" aria-label="Filtres">
-    <a class="ge-tab {% if type_filter == 'all' and status_filter == 'all' %}is-active{% endif %}" href="?type=all&status=all{% if query %}&q={{ query }}{% endif %}">Tous</a>
-    <a class="ge-tab {% if type_filter == 'RECIPIENT' %}is-active{% endif %}" href="?type=RECIPIENT&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">Standard</a>
-    <a class="ge-tab {% if type_filter == 'VIP' %}is-active{% endif %}" href="?type=VIP&status={{ status_filter }}{% if query %}&q={{ query }}{% endif %}">VIP</a>
-    <a class="ge-tab {% if status_filter == 'present' %}is-active{% endif %}" href="?type={{ type_filter }}&status=present{% if query %}&q={{ query }}{% endif %}">Présents</a>
-    <a class="ge-tab {% if status_filter == 'pending' %}is-active{% endif %}" href="?type={{ type_filter }}&status=pending{% if query %}&q={{ query }}{% endif %}">En attente</a>
-    <a class="ge-tab {% if status_filter == 'cancelled' %}is-active{% endif %}" href="?type={{ type_filter }}&status=cancelled{% if query %}&q={{ query }}{% endif %}">Annulées</a>
-  </nav>
+  {% include "partials/invite_filters.html" %}
 
   <div class="ge-card-list">
     {% for g in guests %}
-    <a class="ge-list-card ge-guest-card" href="{% url 'invitation_detail' g.pk %}">
+    <a class="ge-list-card ge-guest-card" href="{% url 'invitation_detail' g.pk %}?from=guests&amp;type={{ type_filter }}&amp;status={{ status_filter }}{% if query %}&amp;q={{ query }}{% endif %}">
       <div class="ge-list-card-main">
         <div class="ge-list-avatar{% if g.is_vip %} is-vip{% endif %}" aria-hidden="true">{{ g.full_name|slice:":1"|upper }}</div>
         <div>

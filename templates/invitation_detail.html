@@ -2,11 +2,10 @@
 {% block title %}{{ invitation.full_name }} — Gab Event{% endblock %}
 {% block body_class %}page-app page-event{% endblock %}
 {% block content %}
-{% url 'event_invitations' event.id as detail_back %}
-{% include "partials/event_nav.html" with event=event nav_active="guests" back_url=detail_back back_label="Cartes" %}
+{% include "partials/event_nav.html" with event=event nav_active="guests" back_url=list_back back_label=list_label %}
 <main class="ge-app ge-invite-fiche">
   <header class="ge-page-head">
-    <a class="ge-level-back" href="{% url 'event_invitations' event.id %}" aria-label="Retour aux cartes">
+    <a class="ge-level-back" href="{{ list_back }}" aria-label="Retour — {{ list_label }}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </a>
     <div>
@@ -61,10 +60,26 @@
         <dt>Catégorie</dt>
         <dd>{{ invitation.category|default:"—" }}</dd>
       </div>
+      {% if invitation.email %}
+      <div>
+        <dt>E-mail</dt>
+        <dd>{{ invitation.email }}</dd>
+      </div>
+      {% endif %}
+      {% if invitation.phone %}
+      <div>
+        <dt>Téléphone</dt>
+        <dd>{{ invitation.phone }}</dd>
+      </div>
+      {% endif %}
     </dl>
 
     <div class="ge-invite-fiche-bar">
       <div class="ge-tool-row" aria-label="Fichier invitation">
+        <a class="ge-text-tool" href="{% url 'invitation_edit' invitation.pk %}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+          <span>Modifier</span>
+        </a>
         <a class="ge-text-tool" href="{% url 'invitation_preview' invitation.pk %}">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
           <span>Aperçu</span>
