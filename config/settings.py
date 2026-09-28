@@ -236,6 +236,10 @@ elif SINGPAY_API_KEY and SINGPAY_API_SECRET and SINGPAY_MERCHANT_ID:
     PAYMENT_PROVIDER = "singpay"
 else:
     PAYMENT_PROVIDER = "mock"
+WHATSAPP_ACCESS_TOKEN = _env("WHATSAPP_ACCESS_TOKEN", default="")
+WHATSAPP_PHONE_NUMBER_ID = _env("WHATSAPP_PHONE_NUMBER_ID", default="")
+SMS_API_URL = _env("SMS_API_URL", default="")
+SMS_API_KEY = _env("SMS_API_KEY", default="")
 ALLOW_MOCK_PAYMENTS = _env("ALLOW_MOCK_PAYMENTS", default="True").lower() in (
     "1",
     "true",

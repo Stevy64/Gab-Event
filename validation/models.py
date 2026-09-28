@@ -67,7 +67,7 @@ class EventPlan(models.Model):
         "Durée de vie (jours)",
         null=True,
         blank=True,
-        help_text="Suppression automatique N jours après la création. Vide pour une fenêtre définie à la création (Personnalisé).",
+        help_text="Archivage automatique N jours après la date de l’événement (J+N). Vide pour une fenêtre définie à la création (Personnalisé).",
     )
     price_per_regular = models.DecimalField(
         "Prix / invitation standard",
@@ -82,6 +82,13 @@ class EventPlan(models.Model):
         decimal_places=2,
         null=True,
         blank=True,
+    )
+    extra_ticket_price = models.DecimalField(
+        "Prix / billet supplémentaire",
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Tarif d’un billet au-delà du forfait inclus. 0 = non proposé.",
     )
     is_active = models.BooleanField("Actif", default=True)
     is_recommended = models.BooleanField("Recommandé", default=False)
@@ -117,7 +124,33 @@ class EventPlan(models.Model):
         if self.is_custom or not self.lifetime_days:
             return "Fenêtre de validité définie à la création"
         n = int(self.lifetime_days)
-        return f"Valide {n} jour{'s' if n > 1 else ''}"
+        return f"Accessible jusqu’à J+{n}"
+
+    @property
+    def capacity_label(self) -> str:
+        if self.is_custom:
+            return ""
+        if self.total_invitation_limit:
+            return f"Jusqu’à {self.total_invitation_limit} personnes"
+        parts = []
+        if self.regular_invitation_limit:
+            noun = "standard" if self.regular_invitation_limit == 1 else "standards"
+            parts.append(f"{self.regular_invitation_limit} {noun}")
+        if self.vip_invitation_limit:
+            parts.append(f"{self.vip_invitation_limit} VIP")
+        return " + ".join(parts)
+
+    @property
+    def extra_ticket_label(self) -> str:
+        if self.is_custom:
+            return ""
+        try:
+            amount = int(self.extra_ticket_price or 0)
+        except (TypeError, ValueError):
+            return ""
+        if amount <= 0:
+            return ""
+        return f"{amount} F CFA par billet supplémentaire"
 
 
 class UserProfile(models.Model):
@@ -193,6 +226,47 @@ class UserProfile(models.Model):
         return f"{op} · {self.momo_phone}"
 
 
+class RecoveryOtp(models.Model):
+    """Code à usage unique pour récupérer un compte par téléphone."""
+
+    CHANNEL_WHATSAPP = "whatsapp"
+    CHANNEL_SMS = "sms"
+    CHANNEL_CONSOLE = "console"
+    CHANNEL_CHOICES = (
+        (CHANNEL_WHATSAPP, "WhatsApp"),
+        (CHANNEL_SMS, "SMS"),
+        (CHANNEL_CONSOLE, "Console / test"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recovery_otps",
+    )
+    phone = models.CharField("Téléphone", max_length=40)
+    code_hash = models.CharField(max_length=64)
+    channel = models.CharField(
+        max_length=16,
+        choices=CHANNEL_CHOICES,
+        default=CHANNEL_CONSOLE,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveIntegerField(default=0)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Code de récupération"
+        verbose_name_plural = "Codes de récupération"
+        indexes = [
+            models.Index(fields=["user", "consumed_at"]),
+        ]
+
+    def __str__(self):
+        return f"OTP {self.user_id} {self.phone}"
+
+
 # ---------------------------------------------------------------------------
 # Événements
 # ---------------------------------------------------------------------------
@@ -210,6 +284,7 @@ class Event(models.Model):
     TYPE_GRADUATION = "graduation"
     TYPE_CONFERENCE = "conference"
     TYPE_GALA = "gala"
+    TYPE_CONCERT = "concert"
     TYPE_BIRTHDAY = "birthday"
     TYPE_RECEPTION = "reception"
     TYPE_PROFESSIONAL = "professional"
@@ -220,10 +295,11 @@ class Event(models.Model):
         (TYPE_GRADUATION, "Remise de diplômes"),
         (TYPE_CONFERENCE, "Conférence"),
         (TYPE_GALA, "Gala"),
+        (TYPE_CONCERT, "Concert"),
         (TYPE_BIRTHDAY, "Anniversaire"),
         (TYPE_RECEPTION, "Réception"),
         (TYPE_PROFESSIONAL, "Événement professionnel"),
-        (TYPE_OTHER, "Personnalisé"),
+        (TYPE_OTHER, "Autre"),
     ]
 
     STATUS_DRAFT = "draft"
@@ -306,6 +382,28 @@ class Event(models.Model):
         "Afficher sur la page d'accueil",
         default=False,
         help_text="Si activé et qu'un flyer est présent, l'événement apparaît dans le carrousel public.",
+    )
+    is_public = models.BooleanField(
+        "Événement public",
+        default=False,
+        help_text="Affiché sur la page Événements publics (indépendamment du carrousel).",
+    )
+    is_ticketing = models.BooleanField(
+        "Billetterie",
+        default=False,
+        help_text="Événement vendu via la billetterie (concerts, festivals, etc.).",
+    )
+    invite_access_code = models.CharField(
+        "Code de validation du lien",
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Optionnel. Les invités doivent le saisir pour ouvrir le formulaire.",
+    )
+    animated_card = models.BooleanField(
+        "Carte d'invitation animée",
+        default=False,
+        help_text="Option prestige : animation, musique et nom de l'invité (quelques secondes).",
     )
     primary_color = models.CharField(
         "Couleur principale",
@@ -408,7 +506,7 @@ class Event(models.Model):
         blank=True,
     )
     expires_at = models.DateTimeField(
-        "Suppression automatique le",
+        "Archivage automatique le",
         null=True,
         blank=True,
         db_index=True,
@@ -436,7 +534,13 @@ class Event(models.Model):
     def __str__(self):
         return self.name
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_date = self.date
+
     def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        prev_date = getattr(self, "_original_date", self.date)
         if not self.slug:
             base = slugify(self.name)[:180] or "evenement"
             candidate = base
@@ -462,23 +566,24 @@ class Event(models.Model):
         if not self.primary_color:
             self.primary_color = DEFAULT_PRIMARY_COLOR
         super().save(*args, **kwargs)
-        if (
-            self.pk
-            and not self.expires_at
-            and self.plan_id
-            and not self.is_legacy
-        ):
-            self.apply_lifetime()
-            super().save(
-                update_fields=[
-                    "validity_starts_on",
-                    "validity_ends_on",
-                    "expires_at",
-                    "invite_valid_from",
-                    "invite_valid_until",
-                    "updated_at",
-                ]
-            )
+        if self.pk and self.plan_id and not self.is_legacy:
+            catalog = not (self.plan and self.plan.is_custom)
+            refresh = (not self.expires_at) or is_new
+            if not refresh and catalog and prev_date != self.date:
+                refresh = True
+            if refresh:
+                self.apply_lifetime()
+                super().save(
+                    update_fields=[
+                        "validity_starts_on",
+                        "validity_ends_on",
+                        "expires_at",
+                        "invite_valid_from",
+                        "invite_valid_until",
+                        "updated_at",
+                    ]
+                )
+        self._original_date = self.date
 
     def apply_plan_snapshot(self, plan: EventPlan | None = None) -> None:
         plan = plan or self.plan
@@ -502,18 +607,23 @@ class Event(models.Model):
     }
 
     def apply_lifetime(self, *, starts=None, ends=None) -> None:
-        """Calcule la fenêtre de vie et, si besoin, celle du lien d’invitation."""
+        """Accessible dès la création, jusqu’à J+N après la date de l’événement."""
         if starts:
             self.validity_starts_on = starts
         if ends:
             self.validity_ends_on = ends
         created = self.created_at or timezone.now()
+        if timezone.is_aware(created):
+            created_day = timezone.localtime(created).date()
+        else:
+            created_day = created.date()
         plan = self.plan if self.plan_id else None
+        event_day = self.date or created_day
         if plan and plan.is_custom:
             if not self.validity_starts_on:
-                self.validity_starts_on = timezone.localdate()
+                self.validity_starts_on = created_day
             if not self.validity_ends_on:
-                self.validity_ends_on = self.validity_starts_on + timedelta(days=30)
+                self.validity_ends_on = event_day + timedelta(days=30)
             end_dt = datetime.combine(self.validity_ends_on, time(23, 59, 59))
             self.expires_at = timezone.make_aware(end_dt, timezone.get_current_timezone())
         else:
@@ -523,9 +633,10 @@ class Event(models.Model):
             elif plan:
                 days = self.LIFETIME_BY_SLUG.get(plan.slug)
             days = days or 14
-            self.validity_starts_on = created.date()
-            self.expires_at = created + timedelta(days=days)
-            self.validity_ends_on = timezone.localtime(self.expires_at).date()
+            self.validity_starts_on = created_day
+            self.validity_ends_on = event_day + timedelta(days=days)
+            end_dt = datetime.combine(self.validity_ends_on, time(23, 59, 59))
+            self.expires_at = timezone.make_aware(end_dt, timezone.get_current_timezone())
         self.apply_default_invite_window()
 
     def apply_default_invite_window(self) -> None:
@@ -688,10 +799,49 @@ class Event(models.Model):
             return self.date.strftime("%d/%m/%Y")
         return ""
 
+    def display_date_long(self) -> str:
+        if not self.date:
+            return ""
+        jours = (
+            "LUNDI",
+            "MARDI",
+            "MERCREDI",
+            "JEUDI",
+            "VENDREDI",
+            "SAMEDI",
+            "DIMANCHE",
+        )
+        mois = (
+            "",
+            "JANVIER",
+            "FÉVRIER",
+            "MARS",
+            "AVRIL",
+            "MAI",
+            "JUIN",
+            "JUILLET",
+            "AOÛT",
+            "SEPTEMBRE",
+            "OCTOBRE",
+            "NOVEMBRE",
+            "DÉCEMBRE",
+        )
+        d = self.date
+        return f"{jours[d.weekday()]} {d.day} {mois[d.month]} {d.year}"
+
     def display_time(self) -> str:
         if self.start_time:
             return self.start_time.strftime("%H:%M")
         return ""
+
+    def starts_at_iso(self) -> str:
+        if not self.date:
+            return ""
+        t = self.start_time or time(0, 0)
+        dt = datetime.combine(self.date, t)
+        if timezone.is_naive(dt):
+            dt = timezone.make_aware(dt, timezone.get_current_timezone())
+        return dt.isoformat()
 
     @property
     def display_primary_color(self) -> str:
@@ -773,7 +923,110 @@ class Event(models.Model):
 
     @property
     def uses_paid_guest_link(self) -> bool:
-        return self.is_custom_plan
+        return self.is_ticketing or self.is_custom_plan
+
+    @property
+    def listed_publicly(self) -> bool:
+        if self.status != self.STATUS_ACTIVE:
+            return False
+        if self.is_ticketing and self.invite_link_enabled:
+            return True
+        return bool(self.is_public or self.show_on_homepage)
+
+    @property
+    def cheapest_ticket_price(self):
+        prices = [t.price for t in self.ticket_tiers.all() if t.is_active]
+        return min(prices) if prices else None
+
+    def public_category_group(self) -> str:
+        slug = (self.event_type or "").strip()
+        custom = (self.event_type_custom or "").casefold()
+        if slug == self.TYPE_WEDDING or "mariage" in custom:
+            return "mariage"
+        concert_hints = ("concert", "festival", "enb", "showcase", "live")
+        if slug in {self.TYPE_CONCERT, self.TYPE_GALA} or any(k in custom for k in concert_hints):
+            return "concert"
+        return "autres"
+
+
+def public_tier_name(name: str) -> str:
+    key = (name or "").strip().casefold()
+    if key in {"early bird", "early-bird", "earlybird"}:
+        return "Prévente"
+    return name or ""
+
+
+class TicketTier(models.Model):
+    """Catégorie de billet pour la billetterie (Standard, VIP, prévente…)."""
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="ticket_tiers",
+    )
+    name = models.CharField("Type", max_length=80)
+    description = models.CharField("Description", max_length=200, blank=True, default="")
+    price = models.DecimalField("Prix", max_digits=10, decimal_places=2, default=0)
+    quantity = models.PositiveIntegerField(
+        "Quantité",
+        default=0,
+        help_text="0 = illimité.",
+    )
+    is_active = models.BooleanField("Actif", default=True)
+    display_order = models.PositiveIntegerField("Ordre", default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["display_order", "price", "id"]
+        verbose_name = "Catégorie de billet"
+        verbose_name_plural = "Catégories de billets"
+
+    def __str__(self):
+        return f"{self.name} — {self.event_id}"
+
+    @property
+    def public_name(self) -> str:
+        return public_tier_name(self.name)
+
+    @property
+    def sold_count(self) -> int:
+        return self.invitations.filter(status=Invitation.STATUS_VALID).count()
+
+    @property
+    def remaining(self) -> int | None:
+        if not self.quantity:
+            return None
+        return max(0, int(self.quantity) - self.sold_count)
+
+    @property
+    def sold_out(self) -> bool:
+        remaining = self.remaining
+        return remaining is not None and remaining <= 0
+
+
+class EventController(models.Model):
+    """Accès scan pour un contrôleur (lien unique + code défini par l’organisateur)."""
+
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name="controllers",
+    )
+    label = models.CharField("Nom du contrôleur", max_length=120, default="Contrôleur")
+    token = models.CharField("Jeton", max_length=40, unique=True, db_index=True)
+    access_code = models.CharField("Code de vérification", max_length=40)
+    is_active = models.BooleanField("Actif", default=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Contrôleur"
+        verbose_name_plural = "Contrôleurs"
+
+    def __str__(self):
+        return f"{self.label} ({self.event_id})"
 
 
 class EventLimitAdjustment(models.Model):
@@ -817,7 +1070,7 @@ class Invitation(models.Model):
     """
     Billet d'invitation unifié (standard ou VIP), rattaché à un Event.
 
-    - ``code`` : unique globalement (ATC24-XXXXXX, VIP-XXXXXX, PREFIX-XXXXXX…)
+    - ``code`` : unique (invitations PREFIX-XXXXXX / VIP-XXXXXX, billets GEB-XXXX-XXXX)
     - ``places`` / ``places_used`` : capacité et consommation
     """
 
@@ -892,6 +1145,13 @@ class Invitation(models.Model):
     email = models.EmailField("E-mail", blank=True, default="")
     phone = models.CharField("Téléphone", max_length=40, blank=True, default="")
     extra_data = models.JSONField("Champs complémentaires", default=dict, blank=True)
+    ticket_tier = models.ForeignKey(
+        "TicketTier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="invitations",
+    )
     source = models.CharField(
         "Origine",
         max_length=16,
@@ -914,6 +1174,12 @@ class Invitation(models.Model):
     @property
     def full_name(self):
         return f"{self.first_name} {self.last_name}".strip()
+
+    @property
+    def display_code(self) -> str:
+        from .code_service import display_access_code
+
+        return display_access_code(self.code)
 
     @property
     def places_allowed(self):
@@ -1102,7 +1368,7 @@ class Payment(models.Model):
 
 
 class GuestPayment(models.Model):
-    """Paiement d’un invité (formule Personnalisé) via SingPay."""
+    """Paiement d’un invité (billetterie / lien payant) via SingPay."""
 
     STATUS_PENDING = "pending"
     STATUS_SUCCESS = "success"
@@ -1454,6 +1720,88 @@ class SiteSettings(models.Model):
         decimal_places=2,
         default=20,
     )
+    commission_pct = models.DecimalField(
+        "Commission unique (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=7,
+        help_text="Taux unique entre 6 et 8 %, appliqué à chaque billet payant.",
+    )
+    commission_fixed = models.DecimalField(
+        "Frais fixe par billet (F CFA)",
+        max_digits=10,
+        decimal_places=2,
+        default=150,
+    )
+    payout_sla_hours = models.PositiveIntegerField(
+        "Délai de reversement (heures ouvrées)",
+        default=72,
+    )
+    singpay_fees_on_platform = models.BooleanField(
+        "Gab Event prend en charge les frais SingPay",
+        default=False,
+        help_text="Si coché, les frais SingPay ne sont pas déduits du reversement organisateur.",
+    )
+    animated_card_price = models.DecimalField(
+        "Prix carte animée (F CFA)",
+        max_digits=10,
+        decimal_places=2,
+        default=25000,
+    )
+    legal_company_name = models.CharField(
+        "Raison sociale (facture)",
+        max_length=160,
+        blank=True,
+        default="Gab Event",
+    )
+    legal_nif = models.CharField(
+        "NIF",
+        max_length=40,
+        blank=True,
+        default="",
+        help_text="Obligatoire pour qu’une entreprise gabonaise puisse payer.",
+    )
+    legal_rccm = models.CharField(
+        "RCCM",
+        max_length=40,
+        blank=True,
+        default="",
+    )
+    legal_address = models.CharField(
+        "Adresse (facture)",
+        max_length=255,
+        blank=True,
+        default="",
+    )
+    legal_city = models.CharField(
+        "Ville (facture)",
+        max_length=120,
+        blank=True,
+        default="Libreville",
+    )
+    legal_phone = models.CharField(
+        "Téléphone (facture)",
+        max_length=40,
+        blank=True,
+        default="",
+    )
+    legal_email = models.EmailField(
+        "E-mail (facture)",
+        blank=True,
+        default="",
+    )
+    lifetime_events = models.PositiveIntegerField(
+        "Compteur cumulatif — événements",
+        default=0,
+    )
+    lifetime_invitations = models.PositiveIntegerField(
+        "Compteur cumulatif — invitations",
+        default=0,
+    )
+    lifetime_organizers = models.PositiveIntegerField(
+        "Compteur cumulatif — organisateurs",
+        default=0,
+    )
 
     class Meta:
         verbose_name = "Réglages du site"
@@ -1484,6 +1832,14 @@ class SiteSettings(models.Model):
         from urllib.parse import quote
 
         return f"https://wa.me/{digits}?text={quote(text)}"
+
+    def payout_policy_text(self) -> str:
+        hours = self.payout_sla_hours or 72
+        pct = self.commission_pct or self.commission_regular_pct or 7
+        return (
+            f"Commission : {pct} % du prix de chaque billet. "
+            f"Reversement sous {hours}h ouvrées maximum après votre demande."
+        )
 
     def social_items(self) -> list[dict]:
         mapping = (

@@ -6,6 +6,7 @@ from django.urls import path
 
 from . import guest_views
 from . import platform_admin_views as padmin
+from . import ticketing_views
 from . import views
 
 urlpatterns = [
@@ -13,6 +14,21 @@ urlpatterns = [
     path("", views.landing, name="landing"),
     path("faq/", views.faq, name="faq"),
     path("conditions/", views.terms, name="terms"),
+    path("agenda/", ticketing_views.public_events, name="public_events"),
+    path("agenda/<slug:slug>/", ticketing_views.public_event_detail, name="public_event_detail"),
+    path("billetterie/", ticketing_views.ticketing_hub, name="ticketing_hub"),
+    path("billetterie/nouveau/", ticketing_views.ticketing_setup, name="ticketing_setup"),
+    path(
+        "billetterie/<int:event_id>/configurer/",
+        ticketing_views.ticketing_setup,
+        name="ticketing_edit",
+    ),
+    path(
+        "billetterie/<int:event_id>/",
+        ticketing_views.ticketing_dashboard,
+        name="ticketing_dashboard",
+    ),
+    path("controle/<str:token>/", ticketing_views.controller_access, name="controller_access"),
     path("app/", views.home, name="home"),
     path("sw.js", views.service_worker, name="service_worker"),
     path("brand/icon.png", views.brand_icon, name="brand_icon"),
@@ -33,6 +49,11 @@ urlpatterns = [
         "accounts/mot-de-passe-oublie/envoye/",
         views.GabPasswordResetDoneView.as_view(),
         name="password_reset_done",
+    ),
+    path(
+        "accounts/mot-de-passe-oublie/code/",
+        views.password_reset_otp,
+        name="password_reset_otp",
     ),
     path(
         "accounts/nouveau-mot-de-passe/<uidb64>/<token>/",
@@ -74,6 +95,11 @@ urlpatterns = [
         name="event_presence",
     ),
     path(
+        "evenements/<int:event_id>/controle/",
+        ticketing_views.event_control,
+        name="event_control",
+    ),
+    path(
         "evenements/<int:event_id>/apparence/",
         views.event_appearance,
         name="event_appearance",
@@ -108,7 +134,17 @@ urlpatterns = [
         guest_views.event_guest_payments,
         name="event_guest_payments",
     ),
+    path(
+        "evenements/<int:event_id>/paiements-invites/<int:payment_id>/facture/",
+        guest_views.guest_payment_invoice,
+        name="guest_payment_invoice",
+    ),
     path("i/<str:token>/", guest_views.public_invite, name="public_invite"),
+    path(
+        "i/<str:token>/retrouver/",
+        guest_views.public_ticket_recover,
+        name="public_ticket_recover",
+    ),
     path(
         "i/<str:token>/merci/",
         guest_views.public_invite_thanks,
@@ -118,6 +154,11 @@ urlpatterns = [
         "i/<str:token>/carte/",
         guest_views.public_invite_card,
         name="public_invite_card",
+    ),
+    path(
+        "i/<str:token>/carte-animee/",
+        guest_views.public_invite_reveal,
+        name="public_invite_reveal",
     ),
     path(
         "payments/mock/invite/<int:payment_id>/",
@@ -174,6 +215,16 @@ urlpatterns = [
         "invitation/<int:pk>/preview/",
         views.invitation_preview,
         name="invitation_preview",
+    ),
+    path(
+        "invitation/<int:pk>/carte-animee/",
+        views.invitation_reveal,
+        name="invitation_reveal",
+    ),
+    path(
+        "paiements/<int:payment_id>/facture/",
+        views.payment_invoice,
+        name="payment_invoice",
     ),
     path(
         "invitation/<int:pk>/download/",

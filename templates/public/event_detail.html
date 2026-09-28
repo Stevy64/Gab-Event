@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ event.name }} — {{ site_name }}{% endblock %}
+{% block body_class %}page-landing page-agenda{% endblock %}
+{% block content %}
+<div class="ok-landing ge-agenda">
+  {% include "partials/public_nav.html" with nav_active="events" %}
+  <section class="ok-band ge-pub-band">
+    <div class="ok-wrap ge-pub-event">
+      <div class="ge-pub-cover" style="background-image:url('{{ event.cover_url }}')"></div>
+      <div class="ge-pub-copy">
+        <p class="ok-kicker">{{ event.type_label }}{% if event.is_ticketing %} · Billetterie{% endif %}</p>
+        <h1>{{ event.name }}</h1>
+        <p class="ok-intro">
+          {{ event.display_date|default:"Date à confirmer" }}
+          {% if event.start_time %} · {{ event.start_time }}{% endif %}
+          {% if event.venue %} · {{ event.venue }}{% endif %}
+          {% if event.city %} · {{ event.city }}{% endif %}
+        </p>
+        {% if event.description %}<p class="ge-pub-desc">{{ event.description }}</p>{% endif %}
+        {% if tiers %}
+        <ul class="ge-pub-tiers">
+          {% for t in tiers %}
+          <li class="{% if t.sold_out %}is-sold{% endif %}">
+            <div>
+                  <strong>{{ t.public_name|default:t.name }}</strong>
+              {% if t.description %}<small>{{ t.description }}</small>{% endif %}
+            </div>
+            <div class="ge-pub-tier-price">
+              <span>{{ t.price|floatformat:0 }} F CFA</span>
+              {% if t.sold_out %}<em>Épuisé</em>{% elif t.quantity %}<small>{{ t.remaining }} restants</small>{% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if buy_url %}
+        <a class="ok-btn-dark ge-pub-cta" href="{{ buy_url }}">{% if event.is_ticketing %}Acheter un billet{% else %}S’inscrire{% endif %}</a>
+        {% endif %}
+        <p class="ge-pub-back"><a href="{% url 'public_events' %}">← Tous les événements</a></p>
+      </div>
+    </div>
+  </section>
+  {% include "partials/legal_foot.html" %}
+</div>
+{% endblock %}

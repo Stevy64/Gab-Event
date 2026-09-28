@@ -50,7 +50,7 @@
     <dl class="ge-invite-fiche-dl">
       <div class="is-code">
         <dt>Code</dt>
-        <dd><code>{{ invitation.code }}</code></dd>
+        <dd><code>{{ invitation.display_code }}</code></dd>
       </div>
       <div>
         <dt>Places</dt>
@@ -96,6 +96,13 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v7M14 20h3"/></svg>
           <span>QR</span>
         </a>
+        {% if event.animated_card %}
+        <a class="ge-text-tool" href="{% url 'invitation_reveal' invitation.pk %}">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16v10H4z"/><path d="M8 17v2h8v-2"/></svg>
+          <span>Carte animée</span>
+        </a>
+        {% endif %}
+        {% include "partials/whatsapp_share.html" with href=wa_share_href %}
       </div>
       {% if not invitation.is_cancelled_ticket %}
       <form method="post" class="ge-sent-form">

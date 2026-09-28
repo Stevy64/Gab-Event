@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Carte animée — {{ invitation.full_name }}{% endblock %}
+{% block body_class %}page-reveal{% endblock %}
+{% block content %}
+<main class="ge-reveal" data-ge-reveal style="--event-color: {{ event.display_primary_color }};">
+  <div class="ge-reveal-veil" aria-hidden="true"></div>
+  <article class="ge-reveal-card" data-reveal-card>
+    <p class="ge-reveal-kicker">{{ event.type_label|default:event.name }}</p>
+    <h1>{{ invitation.full_name }}</h1>
+    <p class="ge-reveal-event">{{ event.name }}</p>
+    {% if event.date %}<p class="ge-reveal-meta">{{ event.date|date:"d/m/Y" }}{% if event.venue %} · {{ event.venue }}{% endif %}</p>{% endif %}
+    <p class="ge-reveal-note">Vous êtes cordialement invité(e)</p>
+  </article>
+  <a class="ok-btn-dark ge-reveal-continue" href="{{ reveal_continue }}">Continuer</a>
+</main>
+<script>
+(function () {
+  function chime() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach(function (freq, i) {
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.04 + i * 0.35);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.9 + i * 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.28);
+        osc.stop(ctx.currentTime + 1.1 + i * 0.28);
+      });
+    } catch (err) {}
+  }
+  var card = document.querySelector("[data-reveal-card]");
+  if (card) {
+    requestAnimationFrame(function () { card.classList.add("is-in"); });
+    setTimeout(chime, 400);
+  }
+})();
+</script>
+{% endblock %}

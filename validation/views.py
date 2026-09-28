@@ -31,8 +31,11 @@ from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
 
 from .access import (
+    can_scan_event,
+    controller_event_from_session,
     event_workspace_required,
     get_owned_invitation,
+    get_scan_event,
     get_user_event,
     is_platform_admin,
     user_events_qs,
@@ -63,12 +66,15 @@ from .forms import (
     EventWizardStep2Form,
     GabPasswordResetForm,
     GabSetPasswordForm,
+    RecoveryOtpForm,
     InvitationSearchForm,
     LoginForm,
     ProfileForm,
     SignUpForm,
 )
+from .invoice_service import event_payment_invoice_bytes, invoice_response
 from .models import Event, EventPlan, Invitation, Payment, UserProfile
+from .share import guest_invite_href
 from .payment_service import (
     activate_free_event,
     create_pending_payment,
@@ -190,20 +196,31 @@ def _parse_json(request):
 
 def _agent(request) -> str:
     if request.user.is_authenticated:
-        return request.user.get_username()
+        name = (request.user.get_full_name() or "").strip()
+        return name or request.user.get_username()
+    ctrl = controller_event_from_session(request)
+    if ctrl:
+        from .access import controller_from_session
+
+        item = controller_from_session(request)
+        if item:
+            return item.label or "Contrôleur"
+        return "Contrôleur"
     return ""
 
 
 def _require_scanner_user(request):
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {
-                "status": "error",
-                "message": "Connectez-vous pour scanner les invitations.",
-            },
-            status=401,
-        )
-    return None
+    if request.user.is_authenticated:
+        return None
+    if controller_event_from_session(request):
+        return None
+    return JsonResponse(
+        {
+            "status": "error",
+            "message": "Connectez-vous ou ouvrez le lien contrôleur pour scanner.",
+        },
+        status=401,
+    )
 
 
 def _session_event(request) -> Event | None:
@@ -298,31 +315,15 @@ def _public_search_card(event: Event, request) -> dict:
 
 
 def landing(request):
-    from django.contrib.auth.models import User
-
-    plans = EventPlan.objects.filter(is_active=True)
     q = (request.GET.get("q") or "").strip()
-    search_results = []
     if q:
-        qs = Event.objects.filter(status=Event.STATUS_ACTIVE).filter(
-            _landing_search_q(q)
-        )
-        if request.user.is_authenticated:
-            own = qs.filter(owner=request.user).select_related("owner")[:20]
-            others = qs.exclude(owner=request.user).select_related("owner")[:10]
-            search_results = list(own) + list(others)
-        else:
-            search_results = list(qs.select_related("owner")[:20])
+        return redirect(f"{reverse('public_events')}?{urlencode({'q': q})}")
+    plans = EventPlan.objects.filter(is_active=True)
+    search_results = []
 
-    hero_stats = {
-        "events": Event.objects.filter(status=Event.STATUS_ACTIVE).count(),
-        "invitations": Invitation.objects.count(),
-        "organizers": User.objects.filter(
-            is_active=True, events__isnull=False
-        )
-        .distinct()
-        .count(),
-    }
+    from .lifetime import hero_lifetime_stats
+
+    hero_stats = hero_lifetime_stats()
 
     from .branding import gallery_slides
     from .models import SiteSettings
@@ -408,22 +409,14 @@ def faq(request):
 
 @ensure_csrf_cookie
 def home(request):
-    """Scanner / flyer — événement courant en session si défini."""
-    can_scan = request.user.is_authenticated
+    """Scanner / flyer — organisateur ou contrôleur en session."""
+    event = get_scan_event(request, request.GET.get("event"))
+    if event and event.needs_payment and request.user.is_authenticated and event.owner_id == request.user.id:
+        return redirect("event_payment", event_id=event.pk)
+    if event:
+        request.session["current_event_id"] = event.pk
+    can_scan = can_scan_event(request, event)
     open_scanner = can_scan and request.GET.get("scan") == "1"
-    event = None
-    if can_scan:
-        eid = request.GET.get("event")
-        if eid:
-            try:
-                event = get_user_event(request.user, int(eid))
-                if event.needs_payment:
-                    return redirect("event_payment", event_id=event.pk)
-                request.session["current_event_id"] = event.pk
-            except Exception:  # noqa: BLE001
-                event = _session_event(request)
-        else:
-            event = _session_event(request)
     ceremony = ceremony_settings(event)
     welcome = ceremony.get("welcome") or ""
     title = ceremony.get("title") or ""
@@ -516,12 +509,7 @@ def _redirect_locked_event(event: Event | None):
 
 def _resolve_scan_event(request, event_id=None) -> Event | None:
     """Événement obligatoire pour un scan contextualisé (payload puis session)."""
-    if event_id not in (None, ""):
-        try:
-            return get_user_event(request.user, int(event_id))
-        except Exception:  # noqa: BLE001
-            return None
-    return _session_event(request)
+    return get_scan_event(request, event_id)
 
 
 @require_POST
@@ -662,7 +650,13 @@ def signup(request):
         login(request, user, backend="validation.auth_backends.EmailPhoneUsernameBackend")
         messages.success(request, "Compte créé. Créez votre premier événement !")
         return redirect("event_create")
-    return render(request, "registration/signup.html", {"form": form})
+    from .guest_views import _legal_sheet_context
+
+    return render(
+        request,
+        "registration/signup.html",
+        {"form": form, **_legal_sheet_context()},
+    )
 
 
 @require_http_methods(["GET", "POST"])
@@ -709,8 +703,37 @@ class GabPasswordResetView(PasswordResetView):
     extra_email_context = None
 
     def form_valid(self, form):
+        from django.conf import settings as dj_settings
+
+        from .identity import looks_like_phone, resolve_user
+        from .otp import channel_label, issue_otp
         from .siteconfig import outgoing_from_email
 
+        identifier = (form.cleaned_data.get("email") or "").strip()
+        user = resolve_user(identifier)
+        profile = UserProfile.objects.filter(user=user).first() if user else None
+        phone = (profile.phone if profile else "") or ""
+        if user and phone:
+            otp, code, channel = issue_otp(user, phone)
+            self.request.session["otp_reset_user"] = user.pk
+            self.request.session["otp_reset_phone"] = phone
+            if dj_settings.DEBUG:
+                self.request.session["otp_reset_debug"] = code
+            messages.success(
+                self.request,
+                f"Un code a été envoyé par {channel_label(channel)}.",
+            )
+            return redirect("password_reset_otp")
+        if user and user.email:
+            self.extra_email_context = _reset_email_context()
+            self.from_email = outgoing_from_email()
+            return super().form_valid(form)
+        if looks_like_phone(identifier):
+            messages.success(
+                self.request,
+                "Si ce numéro est associé à un compte, un code vient d’être envoyé.",
+            )
+            return redirect("password_reset_otp")
         self.extra_email_context = _reset_email_context()
         self.from_email = outgoing_from_email()
         return super().form_valid(form)
@@ -728,6 +751,68 @@ class GabPasswordResetConfirmView(PasswordResetConfirmView):
 
 class GabPasswordResetCompleteView(PasswordResetCompleteView):
     template_name = "registration/password_reset_complete.html"
+
+
+@require_http_methods(["GET", "POST"])
+def password_reset_otp(request):
+    from django.contrib.auth.models import User
+
+    from .otp import can_resend, channel_label, issue_otp, verify_otp
+
+    user_id = request.session.get("otp_reset_user")
+    user = User.objects.filter(pk=user_id).first() if user_id else None
+    debug_otp = request.session.get("otp_reset_debug") if settings.DEBUG else ""
+    phone = request.session.get("otp_reset_phone") or ""
+
+    if request.method == "POST" and request.POST.get("action") == "resend":
+        if user and phone and can_resend(user):
+            otp, code, channel = issue_otp(user, phone)
+            if settings.DEBUG:
+                request.session["otp_reset_debug"] = code
+            messages.success(
+                request, f"Un nouveau code a été envoyé par {channel_label(channel)}."
+            )
+        elif user:
+            messages.error(request, "Patientez une minute avant de renvoyer un code.")
+        else:
+            messages.success(
+                request,
+                "Si ce numéro est associé à un compte, un code vient d’être envoyé.",
+            )
+        return redirect("password_reset_otp")
+
+    form = RecoveryOtpForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if not user:
+            form.add_error("code", "Code invalide ou expiré.")
+        else:
+            ok, err = verify_otp(user, form.cleaned_data["code"])
+            if not ok:
+                form.add_error("code", err)
+            else:
+                user.set_password(form.cleaned_data["new_password1"])
+                user.save(update_fields=["password"])
+                request.session.pop("otp_reset_user", None)
+                request.session.pop("otp_reset_phone", None)
+                request.session.pop("otp_reset_debug", None)
+                messages.success(request, "Mot de passe mis à jour. Connectez-vous.")
+                return redirect("login")
+    return render(
+        request,
+        "registration/password_reset_otp.html",
+        {
+            "form": form,
+            "debug_otp": debug_otp,
+            "masked_phone": _mask_phone(phone),
+        },
+    )
+
+
+def _mask_phone(phone: str) -> str:
+    digits = re.sub(r"\D", "", phone or "")
+    if len(digits) < 4:
+        return ""
+    return f"••• {digits[-4:]}"
 
 
 @login_required
@@ -893,6 +978,9 @@ def event_plans(request):
                 "Choisissez une formule supérieure ou modifiez le nombre à l’étape Infos.",
             )
             return redirect("event_plans")
+        if plan.is_custom:
+            request.session["event_wizard"] = wizard
+            return redirect("ticketing_setup")
         from datetime import date as date_cls, time as time_cls
 
         def _parse_date(v):
@@ -1443,6 +1531,10 @@ def invitation_detail(request, pk):
             "event": invitation.event,
             "list_back": list_back,
             "list_label": list_label,
+            "wa_share_href": guest_invite_href(
+                invitation,
+                request.build_absolute_uri(reverse("invitation_download", args=[invitation.pk])),
+            ),
         },
     )
 
@@ -1489,6 +1581,28 @@ def invitation_preview(request, pk):
             "invitation": invitation,
             "ceremony": ceremony_settings(invitation.event),
             "event": invitation.event,
+        },
+    )
+
+
+@login_required
+@require_GET
+def invitation_reveal(request, pk):
+    invitation = get_owned_invitation(request.user, pk)
+    locked = _redirect_locked_event(invitation.event)
+    if locked:
+        return locked
+    if not invitation.event.animated_card:
+        messages.info(request, "Activez la carte animée dans Apparence pour ce prestige.")
+        return redirect("invitation_detail", pk=invitation.pk)
+    return render(
+        request,
+        "invitation_reveal.html",
+        {
+            "invitation": invitation,
+            "event": invitation.event,
+            "ceremony": ceremony_settings(invitation.event),
+            "reveal_continue": reverse("invitation_detail", args=[invitation.pk]),
         },
     )
 
@@ -1561,3 +1675,13 @@ def search_page(request):
         "search.html",
         {"form": form, "results": results, "query": query, "event": event},
     )
+
+
+@login_required
+@require_GET
+def payment_invoice(request, payment_id):
+    payment = get_object_or_404(Payment, pk=payment_id)
+    if payment.user_id != request.user.id and not is_platform_admin(request.user):
+        return HttpResponseForbidden("Facture réservée au titulaire du paiement.")
+    data = event_payment_invoice_bytes(payment)
+    return invoice_response(data, f"facture-evenement-{payment.pk:06d}.pdf")

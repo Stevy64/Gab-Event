@@ -85,6 +85,16 @@
         {{ form.welcome_text }}
         {% if form.welcome_text.errors %}<span class="ge-field-err">{{ form.welcome_text.errors.0 }}</span>{% endif %}
       </div>
+      <label class="ge-check-card {% if form.is_public.errors %}has-error{% endif %}">
+        <span class="ge-check-input">{{ form.is_public }}</span>
+        <span class="ge-check-body">
+          <strong>{{ form.is_public.label }}</strong>
+          <small>{{ form.is_public.help_text }}</small>
+          {% if form.is_public.errors %}
+          <span class="ge-field-err">{{ form.is_public.errors.0 }}</span>
+          {% endif %}
+        </span>
+      </label>
       <label class="ge-check-card {% if form.show_on_homepage.errors %}has-error{% endif %}">
         <span class="ge-check-input">{{ form.show_on_homepage }}</span>
         <span class="ge-check-body">
@@ -92,6 +102,16 @@
           <small>{{ form.show_on_homepage.help_text }}</small>
           {% if form.show_on_homepage.errors %}
           <span class="ge-field-err">{{ form.show_on_homepage.errors.0 }}</span>
+          {% endif %}
+        </span>
+      </label>
+      <label class="ge-check-card {% if form.animated_card.errors %}has-error{% endif %}">
+        <span class="ge-check-input">{{ form.animated_card }}</span>
+        <span class="ge-check-body">
+          <strong>{{ form.animated_card.label }}</strong>
+          <small>{{ form.animated_card.help_text }}</small>
+          {% if form.animated_card.errors %}
+          <span class="ge-field-err">{{ form.animated_card.errors.0 }}</span>
           {% endif %}
         </span>
       </label>

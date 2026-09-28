@@ -67,6 +67,8 @@ def can_add_invitations(
 
     if event.plan_id and event.plan.is_custom:
         return status
+    if getattr(event, "is_ticketing", False):
+        return status
 
     if status.total_limit is not None:
         if status.total_count + total_to_add > status.total_limit:
@@ -119,6 +121,15 @@ def assert_can_create_invitation(event: Event, participant_type: str) -> QuotaSt
 
 def guest_registration_open(event: Event) -> QuotaStatus:
     """Le formulaire public reste ouvert tant qu’au moins une place existe."""
+    if getattr(event, "is_ticketing", False):
+        status = quota_status(event)
+        tiers = list(event.ticket_tiers.filter(is_active=True))
+        if not tiers or any(not t.sold_out for t in tiers):
+            status.allowed = True
+            return status
+        status.allowed = False
+        status.message = "Tous les billets ont été vendus."
+        return status
     regular = can_add_invitations(event, regular_to_add=1)
     if regular.allowed:
         return regular

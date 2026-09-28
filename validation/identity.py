@@ -35,6 +35,13 @@ def phones_match(a: str, b: str) -> bool:
     return bool(ka and kb and ka == kb)
 
 
+def looks_like_phone(raw: str) -> bool:
+    value = (raw or "").strip()
+    if not value or "@" in value:
+        return False
+    return len(re.sub(r"\D", "", value)) >= 8
+
+
 def phone_lookup_variants(phone: str) -> list[str]:
     """Variantes utiles pour matcher un numéro déjà stocké."""
     n = normalize_phone(phone)

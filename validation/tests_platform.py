@@ -21,7 +21,7 @@ from django.utils.http import urlsafe_base64_encode
 from openpyxl import Workbook
 from PIL import Image
 
-from validation.code_service import generate_invitation_code, normalize_code
+from validation.code_service import generate_invitation_code, invitation_code_hash, normalize_code
 from validation.constants import PARTICIPANT_RECIPIENT, PARTICIPANT_VIP
 from validation.models import (
     Event,
@@ -40,12 +40,16 @@ from validation.payment_service import (
     create_pending_payment,
 )
 from validation.quota_service import can_add_invitations
+from validation.invite_form import split_amounts
+from validation.invoice_service import guest_payment_invoice_bytes
 from validation.services import (
     admit_persons,
     export_attendance_workbook,
+    guest_payload,
     import_invitations_from_path,
     lookup_invitation,
 )
+from validation.share import organizer_invite_href
 
 
 def make_xlsx(path: Path, rows, headers=None):
@@ -60,21 +64,29 @@ def make_xlsx(path: Path, rows, headers=None):
 
 def ensure_plans():
     defaults = [
-        ("gratuit", "Événement Gratuit", 30, 30, 30, 0, True),
-        ("petit", "Petit événement", 100, 20, 0, 9999, False),
-        ("moyen", "Événement moyen", 250, 50, 0, 25900, False),
-        ("mariage", "Mariage", 350, 50, 0, 75000, False),
-        ("grand", "Grand événement", 500, 90, 0, 50999, False),
+        ("gratuit", "Événement Gratuit", 30, 30, 30, 0, True, 200),
+        ("petit", "Petit événement", 0, 50, 0, 5999, False, 150),
+        ("moyen", "Événement moyen", 300, 100, 0, 17999, False, 100),
+        ("mariage", "Mariage", 350, 50, 0, 75000, False, 0),
+        ("grand", "Grand événement", 500, 150, 0, 33999, False, 200),
     ]
-    for slug, name, reg, vip, total, price, free in defaults:
+    descriptions = {
+        "gratuit": "Jusqu'à 30 personnes — idéal pour démarrer.",
+        "petit": "50 invitations VIP.",
+        "moyen": "300 invitations standard + 100 VIP.",
+        "grand": "500 invitations standard + 150 VIP.",
+    }
+    for slug, name, reg, vip, total, price, free, extra in defaults:
         EventPlan.objects.update_or_create(
             slug=slug,
             defaults={
                 "name": name,
+                "description": descriptions.get(slug, ""),
                 "regular_invitation_limit": reg,
                 "vip_invitation_limit": vip,
                 "total_invitation_limit": total,
                 "price": Decimal(price),
+                "extra_ticket_price": Decimal(extra),
                 "currency": "XOF",
                 "is_free": free,
                 "is_active": True,
@@ -107,9 +119,6 @@ class UserSignupTests(PlatformBaseTestCase):
                 "password1": "azerty",
                 "password2": "azerty",
                 "phone": "+241 06 11 22 33",
-                "momo_operator": "moov",
-                "momo_phone": "062112233",
-                "momo_phone_confirm": "062112233",
                 "accept_terms": "on",
             },
         )
@@ -120,8 +129,7 @@ class UserSignupTests(PlatformBaseTestCase):
             self.assertTrue(u.check_password("azerty"))
             profile = UserProfile.objects.get(user=u)
             self.assertTrue(profile.phone)
-            self.assertTrue(profile.momo_ready)
-            self.assertEqual(profile.momo_operator, "moov")
+            self.assertFalse(profile.momo_ready)
 
     def test_signup_requires_phone(self):
         client = Client(HTTP_HOST="127.0.0.1")
@@ -140,26 +148,24 @@ class UserSignupTests(PlatformBaseTestCase):
         self.assertEqual(r.status_code, 200)
         self.assertFalse(User.objects.filter(email="nophone@ex.com").exists())
 
-    def test_signup_requires_matching_momo(self):
+    def test_signup_without_email_or_momo(self):
         client = Client(HTTP_HOST="127.0.0.1")
         r = client.post(
             reverse("signup"),
             {
-                "contact_method": "email",
-                "username": "nomomo",
-                "email": "nomomo@ex.com",
-                "first_name": "No",
-                "last_name": "Momo",
+                "contact_method": "phone",
+                "first_name": "Léa",
                 "password1": "azerty",
                 "password2": "azerty",
-                "phone": "+241 06 11 22 33",
-                "momo_operator": "airtel",
-                "momo_phone": "074112233",
-                "momo_phone_confirm": "074000000",
+                "phone": "+241 06 88 77 66",
+                "accept_terms": "on",
             },
         )
-        self.assertEqual(r.status_code, 200)
-        self.assertFalse(User.objects.filter(email="nomomo@ex.com").exists())
+        self.assertEqual(r.status_code, 302)
+        profile = UserProfile.objects.get(phone="+24106887766")
+        self.assertEqual(profile.user.first_name, "Léa")
+        self.assertFalse(profile.user.email)
+        self.assertFalse(profile.momo_ready)
 
     def test_signup_rejects_too_short_password(self):
         client = Client(HTTP_HOST="127.0.0.1")
@@ -190,15 +196,29 @@ class PasswordResetTests(PlatformBaseTestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Gab Event", mail.outbox[0].subject)
 
-    def test_reset_by_phone_uses_account_email(self):
+    def test_reset_by_phone_sends_otp(self):
+        from unittest.mock import patch
+
         profile, _ = UserProfile.objects.get_or_create(user=self.user_a)
         profile.phone = "+24106000000"
         profile.save(update_fields=["phone"])
         client = Client(HTTP_HOST="127.0.0.1")
-        r = client.post(reverse("password_reset"), {"email": "06 00 00 00"})
+        with patch("validation.otp.generate_otp_code", return_value="123456"):
+            r = client.post(reverse("password_reset"), {"email": "06 00 00 00"})
         self.assertEqual(r.status_code, 302)
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("a@ex.com", mail.outbox[0].to)
+        self.assertEqual(r.url, reverse("password_reset_otp"))
+        self.assertEqual(len(mail.outbox), 0)
+        r = client.post(
+            reverse("password_reset_otp"),
+            {
+                "code": "123456",
+                "new_password1": "azerty",
+                "new_password2": "azerty",
+            },
+        )
+        self.assertEqual(r.status_code, 302)
+        self.user_a.refresh_from_db()
+        self.assertTrue(self.user_a.check_password("azerty"))
 
     def test_confirm_sets_new_simple_password(self):
         uid = urlsafe_base64_encode(force_bytes(self.user_a.pk))
@@ -281,6 +301,12 @@ class PlanCapacityTests(PlatformBaseTestCase):
         self.assertContains(r, "data-plan-pay-yes")
         self.assertContains(r, ">Non<")
         self.assertContains(r, "data-paid=")
+        self.assertContains(r, "50 VIP")
+        self.assertContains(r, "300 standards + 100 VIP")
+        self.assertContains(r, "500 standards + 150 VIP")
+        self.assertContains(r, "200 F CFA par billet supplémentaire")
+        self.assertContains(r, "150 F CFA par billet supplémentaire")
+        self.assertContains(r, "100 F CFA par billet supplémentaire")
 
 
 class PaidEventTests(PlatformBaseTestCase):
@@ -357,8 +383,8 @@ class PaidEventTests(PlatformBaseTestCase):
         payment.refresh_from_db()
         self.assertEqual(payment.status, Payment.STATUS_SUCCESS)
         self.assertEqual(event.status, Event.STATUS_ACTIVE)
-        self.assertEqual(event.regular_limit_snapshot, 100)
-        self.assertEqual(event.vip_limit_snapshot, 20)
+        self.assertEqual(event.regular_limit_snapshot, 0)
+        self.assertEqual(event.vip_limit_snapshot, 50)
 
 
 class PlanLimitsTests(PlatformBaseTestCase):
@@ -370,38 +396,44 @@ class PlanLimitsTests(PlatformBaseTestCase):
         event.save()
         return event
 
-    def test_petit_100_20(self):
+    def test_petit_50_vip(self):
         e = self._event_with_plan("petit")
-        self.assertEqual(e.regular_limit, 100)
-        self.assertEqual(e.vip_limit, 20)
+        self.assertEqual(e.regular_limit, 0)
+        self.assertEqual(e.vip_limit, 50)
 
-    def test_moyen_250_50(self):
+    def test_moyen_300_100(self):
         e = self._event_with_plan("moyen")
-        self.assertEqual((e.regular_limit, e.vip_limit), (250, 50))
+        self.assertEqual((e.regular_limit, e.vip_limit), (300, 100))
 
     def test_mariage_350_50(self):
         e = self._event_with_plan("mariage")
         self.assertEqual((e.regular_limit, e.vip_limit), (350, 50))
 
-    def test_grand_500_90(self):
+    def test_grand_500_150(self):
         e = self._event_with_plan("grand")
-        self.assertEqual((e.regular_limit, e.vip_limit), (500, 90))
+        self.assertEqual((e.regular_limit, e.vip_limit), (500, 150))
+
+    def test_catalog_prices_and_extras(self):
+        expected = {
+            "gratuit": (0, 200, "Jusqu’à 30 personnes"),
+            "petit": (5999, 150, "50 VIP"),
+            "moyen": (17999, 100, "300 standards + 100 VIP"),
+            "grand": (33999, 200, "500 standards + 150 VIP"),
+        }
+        for slug, (price, extra, cap) in expected.items():
+            plan = EventPlan.objects.get(slug=slug)
+            self.assertEqual(int(plan.price), price)
+            self.assertEqual(int(plan.extra_ticket_price), extra)
+            self.assertEqual(plan.capacity_label, cap)
+            self.assertIn(f"{extra} F CFA par billet supplémentaire", plan.extra_ticket_label)
 
     def test_overflow_regular_refused(self):
         e = self._event_with_plan("petit")
-        for i in range(100):
-            Invitation.objects.create(
-                event=e,
-                code=f"REG-{i:06d}",
-                first_name="A",
-                last_name="B",
-                participant_type=PARTICIPANT_RECIPIENT,
-            )
         self.assertFalse(can_add_invitations(e, regular_to_add=1).allowed)
 
     def test_overflow_vip_refused(self):
         e = self._event_with_plan("petit")
-        for i in range(20):
+        for i in range(50):
             Invitation.objects.create(
                 event=e,
                 code=f"VIPX-{i:05d}",
@@ -514,8 +546,16 @@ class ScanValidationTests(TransactionTestCase):
 
     def test_scan_and_admit(self):
         self.assertEqual(lookup_invitation("SCN-A7K9P2").status, "recognized")
-        self.assertEqual(admit_persons("SCN-A7K9P2").status, "admitted")
-        self.assertEqual(lookup_invitation("SCN-A7K9P2").status, "already_used")
+        self.assertEqual(admit_persons("SCN-A7K9P2", agent="steevy").status, "admitted")
+        used = lookup_invitation("SCN-A7K9P2")
+        self.assertEqual(used.status, "already_used")
+        self.assertIn("steevy", used.message)
+        self.assertIn("scanné à", used.message)
+
+    def test_roster_includes_code_hash(self):
+        payload = guest_payload(self.inv)
+        self.assertEqual(payload["code_hash"], invitation_code_hash(self.inv.code))
+        self.assertTrue(payload["code_hash"])
 
 
 class FlyerTests(PlatformBaseTestCase):
@@ -559,8 +599,8 @@ class AdminPlanSnapshotTests(PlatformBaseTestCase):
         plan.vip_invitation_limit = 15
         plan.save()
         event.refresh_from_db()
-        self.assertEqual(event.regular_limit, 100)
-        self.assertEqual(event.vip_limit, 20)
+        self.assertEqual(event.regular_limit, 0)
+        self.assertEqual(event.vip_limit, 50)
 
     def test_admin_limit_adjust(self):
         plan = EventPlan.objects.get(slug="moyen")
@@ -635,7 +675,7 @@ class LegacyCompatPlatformTests(PlatformBaseTestCase):
 
 
 class EventLifecycleTests(PlatformBaseTestCase):
-    def _event(self, slug, *, created_days_ago=0, name="Soirée", **extra):
+    def _event(self, slug, *, created_days_ago=0, event_days_ago=None, name="Soirée", **extra):
         from datetime import timedelta
 
         from django.utils import timezone
@@ -644,11 +684,15 @@ class EventLifecycleTests(PlatformBaseTestCase):
 
         expire_due_events(force=True)
         plan = EventPlan.objects.get(slug=slug)
+        event_date = extra.pop("date", None)
+        if event_days_ago is not None:
+            event_date = timezone.localdate() - timedelta(days=event_days_ago)
         event = Event.objects.create(
             owner=self.user_a,
             name=name,
             plan=plan,
             status=Event.STATUS_ACTIVE,
+            date=event_date,
             **extra,
         )
         created = timezone.now() - timedelta(days=created_days_ago)
@@ -663,35 +707,56 @@ class EventLifecycleTests(PlatformBaseTestCase):
     def test_lifetime_days_by_plan(self):
         from datetime import timedelta
 
+        today = timezone.localdate()
         cases = (("gratuit", 14), ("petit", 21), ("moyen", 30), ("grand", 60))
         for slug, days in cases:
-            event = self._event(slug, name=slug)
-            self.assertIsNotNone(event.expires_at)
-            delta = event.expires_at - event.created_at
-            self.assertEqual(delta, timedelta(days=days), slug)
+            event = self._event(slug, name=slug, date=today)
+            self.assertEqual(event.validity_ends_on, today + timedelta(days=days), slug)
 
     def test_keeps_event_before_lifetime(self):
         from validation.event_lifecycle import expire_due_events
 
-        event = self._event("gratuit", created_days_ago=13)
+        event = self._event("gratuit", event_days_ago=13)
         expire_due_events(force=True)
+        event.refresh_from_db()
+        self.assertNotEqual(event.status, Event.STATUS_ARCHIVED)
+
+    def test_archives_free_after_14_days(self):
+        from validation.event_lifecycle import expire_due_events
+
+        event = self._event("gratuit", event_days_ago=15)
+        expire_due_events(force=True)
+        event.refresh_from_db()
         self.assertTrue(Event.objects.filter(pk=event.pk).exists())
+        self.assertEqual(event.status, Event.STATUS_ARCHIVED)
+        self.assertTrue(event.archived_at)
 
-    def test_deletes_free_after_14_days(self):
+    def test_archives_grand_after_60_days(self):
         from validation.event_lifecycle import expire_due_events
 
-        event = self._event("gratuit", created_days_ago=14)
+        event = self._event("grand", event_days_ago=61, name="Gala VIP")
         expire_due_events(force=True)
-        self.assertFalse(Event.objects.filter(pk=event.pk).exists())
+        event.refresh_from_db()
+        self.assertTrue(Event.objects.filter(pk=event.pk).exists())
+        self.assertEqual(event.status, Event.STATUS_ARCHIVED)
 
-    def test_deletes_grand_after_60_days(self):
+    def test_wedding_prepared_months_ahead_stays_open(self):
+        from datetime import timedelta
+
         from validation.event_lifecycle import expire_due_events
 
-        event = self._event("grand", created_days_ago=60, name="Gala VIP")
+        event = self._event(
+            "grand",
+            created_days_ago=120,
+            date=timezone.localdate() + timedelta(days=30),
+            name="Mariage mai",
+        )
         expire_due_events(force=True)
-        self.assertFalse(Event.objects.filter(pk=event.pk).exists())
+        event.refresh_from_db()
+        self.assertEqual(event.status, Event.STATUS_ACTIVE)
+        self.assertGreater(event.validity_ends_on, timezone.localdate())
 
-    def test_custom_deleted_after_validity_end(self):
+    def test_custom_archived_after_validity_end(self):
         from datetime import timedelta
 
         from django.utils import timezone
@@ -710,7 +775,9 @@ class EventLifecycleTests(PlatformBaseTestCase):
         event.apply_lifetime()
         event.save()
         expire_due_events(force=True)
-        self.assertFalse(Event.objects.filter(pk=event.pk).exists())
+        event.refresh_from_db()
+        self.assertTrue(Event.objects.filter(pk=event.pk).exists())
+        self.assertEqual(event.status, Event.STATUS_ARCHIVED)
 
     def test_legacy_is_kept(self):
         from validation.event_lifecycle import expire_due_events
@@ -832,7 +899,7 @@ def _custom_plan():
     plan, _ = EventPlan.objects.update_or_create(
         slug="personnalise",
         defaults={
-            "name": "Personnalisé",
+            "name": "Vendre vos billets",
             "regular_invitation_limit": 0,
             "vip_invitation_limit": 0,
             "total_invitation_limit": 0,
@@ -974,7 +1041,9 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
             },
         )
         event.refresh_from_db()
-        self.assertEqual(event.invite_form_fields, ["first_name", "last_name", "participant_type", "email"])
+        self.assertIn("email", event.invite_form_fields)
+        self.assertIn("phone", event.invite_form_fields)
+        self.assertIn("dietary", event.invite_form_fields)
 
     @override_settings(DEBUG=True, ALLOW_MOCK_PAYMENTS=True, PAYMENT_PROVIDER="mock")
     def test_custom_guest_payment_applies_commission(self):
@@ -1010,9 +1079,9 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
         self.assertEqual(r.status_code, 302)
         payment = GuestPayment.objects.get(event=event, last_name="Obame")
         self.assertEqual(payment.amount, Decimal("5000"))
-        self.assertEqual(payment.commission_rate, Decimal("10"))
-        self.assertEqual(payment.commission_amount, Decimal("500.00"))
-        self.assertEqual(payment.net_amount, Decimal("4500.00"))
+        self.assertEqual(payment.commission_rate, Decimal("7"))
+        self.assertEqual(payment.commission_amount, Decimal("350.00"))
+        self.assertEqual(payment.net_amount, Decimal("4650.00"))
         self.assertEqual(payment.status, GuestPayment.STATUS_PENDING)
 
         checkout = self.client.post(reverse("guest_mock_checkout", args=[payment.pk]))
@@ -1039,7 +1108,7 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
 
     def test_admin_can_change_commission_rates(self):
         site = SiteSettings.load()
-        self.assertEqual(site.commission_regular_pct, Decimal("10"))
+        self.assertEqual(site.commission_pct, Decimal("7"))
         self.client.login(username="root", password="secret123")
         r = self.client.post(
             reverse("platform_admin_settings"),
@@ -1055,14 +1124,21 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
                 "whatsapp_message": site.whatsapp_message,
                 "singpay_environment": site.singpay_environment,
                 "allow_mock_payments": "on",
-                "commission_regular_pct": "12.5",
-                "commission_vip_pct": "25",
+                "commission_pct": "7.5",
+                "commission_fixed": "200",
+                "payout_sla_hours": "72",
+                "singpay_fees_on_platform": "on",
+                "animated_card_price": "25000",
+                "legal_company_name": "Gab Event",
+                "legal_nif": "123456A",
+                "legal_city": "Libreville",
             },
         )
         self.assertEqual(r.status_code, 302)
         site.refresh_from_db()
-        self.assertEqual(site.commission_regular_pct, Decimal("12.50"))
-        self.assertEqual(site.commission_vip_pct, Decimal("25.00"))
+        self.assertEqual(site.commission_pct, Decimal("7.50"))
+        self.assertEqual(site.commission_fixed, Decimal("200.00"))
+        self.assertEqual(site.legal_nif, "123456A")
 
     def test_admin_saves_central_site_config(self):
         site = SiteSettings.load()
@@ -1098,8 +1174,14 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
                 "allow_mock_payments": "on",
                 "meta_description": "Plateforme test",
                 "default_from_email": "noreply@gabevent.test",
-                "commission_regular_pct": "10",
-                "commission_vip_pct": "20",
+                "commission_pct": "7",
+                "commission_fixed": "150",
+                "payout_sla_hours": "72",
+                "singpay_fees_on_platform": "on",
+                "animated_card_price": "25000",
+                "legal_company_name": "Gab Event",
+                "legal_nif": "987654B",
+                "legal_city": "Libreville",
             },
         )
         self.assertEqual(r.status_code, 302)
@@ -1135,7 +1217,7 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
             {"action": "publish", "fields": ["first_name", "last_name", "participant_type"]},
         )
         self.assertEqual(r.status_code, 302)
-        self.assertEqual(r["Location"], reverse("profile"))
+        self.assertEqual(r["Location"], reverse("event_invite_link", args=[event.pk]))
         event.refresh_from_db()
         self.assertFalse(event.invite_link_enabled)
 
@@ -1194,7 +1276,7 @@ class GuestInviteLinkTests(PlatformBaseTestCase):
         self.assertEqual(payment.payout_status, GuestPayment.PAYOUT_RECORDED)
         batch = OrganizerPayout.objects.get(organizer=self.user_a)
         self.assertEqual(batch.status, OrganizerPayout.STATUS_SUCCESS)
-        self.assertEqual(batch.amount, Decimal("8000.00"))
+        self.assertEqual(batch.amount, Decimal("9300.00"))
         self.assertEqual(batch.momo_phone, "074112233")
 
     @override_settings(
@@ -1524,4 +1606,395 @@ class InvitationCardsPageTests(PlatformBaseTestCase):
         self.assertIn("RECIPIENT", type_block)
         self.assertNotIn('status=cancelled" class="ge-tab is-active"', type_block)
         self.assertIn("Annulées", status_block)
+
+
+class CumulativeStatsAndPaidMomoTests(PlatformBaseTestCase):
+    def test_hero_counters_do_not_drop_after_delete(self):
+        from validation.lifetime import hero_lifetime_stats
+        from validation.event_lifecycle import apply_event_action
+
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Cumul",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+        )
+        Invitation.objects.create(
+            event=event,
+            code="CUM-0001",
+            first_name="A",
+            last_name="B",
+        )
+        before = hero_lifetime_stats()
+        apply_event_action(event, "disable")
+        apply_event_action(event, "archive")
+        apply_event_action(event, "delete")
+        after = hero_lifetime_stats()
+        self.assertGreaterEqual(after["events"], before["events"])
+        self.assertGreaterEqual(after["invitations"], before["invitations"])
+        self.assertGreaterEqual(after["organizers"], before["organizers"])
+
+    def test_landing_highlights_three_arguments(self):
+        client = Client(HTTP_HOST="127.0.0.1")
+        page = client.get(reverse("landing"))
+        self.assertContains(page, "Scan sans connexion")
+        self.assertContains(page, "Paiement Airtel")
+        self.assertContains(page, "Liens d’invitation en ligne")
+        self.assertContains(page, "reste accessible hors ligne")
+        self.assertContains(page, "paient par Airtel/Moov Money")
+        self.assertContains(page, "billets instantanément")
+        self.assertContains(page, "50 VIP")
+        self.assertContains(page, "300 standards + 100 VIP")
+        self.assertContains(page, "500 standards + 150 VIP")
+        self.assertContains(page, "200 F CFA par billet supplémentaire")
+        self.assertContains(page, "150 F CFA par billet supplémentaire")
+        self.assertContains(page, "100 F CFA par billet supplémentaire")
+        self.assertNotContains(page, "F CFA / std")
+        _custom_plan()
+        page = client.get(reverse("landing"))
+        self.assertContains(page, "par billet vendu")
+        self.assertContains(page, "Billetterie publique")
+
+    def test_paid_publish_collects_momo_on_the_page(self):
+        plan = _custom_plan()
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Payant",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            guest_price_regular=Decimal("5000"),
+        )
+        self.client.login(username="alice", password="secret123")
+        refused = self.client.post(
+            reverse("event_invite_link", args=[event.pk]),
+            {"action": "publish", "fields": ["first_name", "last_name", "participant_type"]},
+        )
+        self.assertEqual(refused.status_code, 302)
+        event.refresh_from_db()
+        self.assertFalse(event.invite_link_enabled)
+        ok = self.client.post(
+            reverse("event_invite_link", args=[event.pk]),
+            {
+                "action": "publish",
+                "fields": ["first_name", "last_name", "participant_type"],
+                "momo_operator": "airtel",
+                "momo_phone": "074112233",
+                "momo_phone_confirm": "074112233",
+            },
+        )
+        self.assertEqual(ok.status_code, 302)
+        event.refresh_from_db()
+        self.assertTrue(event.invite_link_enabled)
+        profile = UserProfile.objects.get(user=self.user_a)
+        self.assertTrue(profile.momo_ready)
+
+
+class DayJScanBillingTests(PlatformBaseTestCase):
+    def test_split_amounts_unique_rate_plus_fixed(self):
+        rate, commission, net = split_amounts(Decimal("5000"))
+        self.assertEqual(rate, Decimal("7"))
+        self.assertEqual(commission, Decimal("350.00"))
+        self.assertEqual(net, Decimal("4650.00"))
+
+    def test_payout_policy_mentions_commission_and_72h(self):
+        text = SiteSettings.load().payout_policy_text()
+        self.assertNotIn("SingPay", text)
+        self.assertIn("72h", text)
+        self.assertIn("7", text)
+        self.assertIn("demande", text)
+
+    def test_invoice_pdf_contains_nif(self):
+        site = SiteSettings.load()
+        site.legal_nif = "NIF-TEST-241"
+        site.legal_company_name = "Gab Event SARL"
+        site.save()
+        plan = _custom_plan()
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Gala facture",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+        )
+        payment = GuestPayment.objects.create(
+            organizer=self.user_a,
+            event=event,
+            first_name="Marc",
+            last_name="Obame",
+            amount=Decimal("5000"),
+            commission_rate=Decimal("7"),
+            commission_amount=Decimal("500"),
+            net_amount=Decimal("4500"),
+            status=GuestPayment.STATUS_SUCCESS,
+        )
+        pdf = guest_payment_invoice_bytes(payment)
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertGreater(len(pdf), 2000)
+        from validation.invoice_service import _legal
+
+        self.assertEqual(_legal(site)["nif"], "NIF-TEST-241")
+
+    def test_whatsapp_and_offline_copy(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Soirée WhatsApp",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            invite_link_enabled=True,
+        )
+        from validation.invite_form import ensure_invite_token
+
+        token = ensure_invite_token(event)
+        href = organizer_invite_href(event, f"https://gabevent.test/i/{token}/")
+        self.assertIn("wa.me", href)
+        self.assertIn("Soir", href)
+        self.client.login(username="alice", password="secret123")
+        page = self.client.get(reverse("event_invite_link", args=[event.pk]))
+        self.assertContains(page, "Envoyer par WhatsApp")
+        home = self.client.get(reverse("home") + f"?scan=1&event={event.pk}")
+        self.assertContains(home, "Fonctionne sans connexion")
+
+    def test_animated_card_reveal(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Mariage prestige",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            animated_card=True,
+        )
+        inv = Invitation.objects.create(
+            event=event,
+            code="ANM-A7K9P2",
+            first_name="Amina",
+            last_name="Mba",
+            places=1,
+        )
+        self.client.login(username="alice", password="secret123")
+        page = self.client.get(reverse("invitation_reveal", args=[inv.pk]))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Amina")
+        self.assertContains(page, "Mariage prestige")
+
+
+class TicketingAccessTests(PlatformBaseTestCase):
+    def test_invite_access_code_blocks_then_unlocks(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Privé codé",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+            invite_access_code="GALA26",
+        )
+        from validation.invite_form import ensure_invite_token
+
+        token = ensure_invite_token(event)
+        gate = self.client.get(reverse("public_invite", args=[token]))
+        self.assertContains(gate, "Code de validation")
+        bad = self.client.post(reverse("public_invite", args=[token]), {"action": "unlock", "invite_code": "nope"})
+        self.assertContains(bad, "incorrect")
+        ok = self.client.post(reverse("public_invite", args=[token]), {"action": "unlock", "invite_code": "GALA26"})
+        self.assertEqual(ok.status_code, 302)
+
+    def test_controller_link_opens_scan_session(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a, name="Scan soirée", plan=plan, status=Event.STATUS_ACTIVE
+        )
+        from validation.models import EventController
+
+        ctrl = EventController.objects.create(
+            event=event, label="Entrée", token="ctrl-token-abc", access_code="SCAN9"
+        )
+        page = self.client.get(reverse("controller_access", args=[ctrl.token]))
+        self.assertEqual(page.status_code, 200)
+        denied = self.client.post(reverse("controller_access", args=[ctrl.token]), {"access_code": "x"})
+        self.assertContains(denied, "incorrect")
+        ok = self.client.post(reverse("controller_access", args=[ctrl.token]), {"access_code": "SCAN9"})
+        self.assertEqual(ok.status_code, 302)
+        self.assertIn("scan=1", ok["Location"])
+
+    def test_public_events_lists_only_opt_in(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        Event.objects.create(
+            owner=self.user_a, name="Privé caché", plan=plan, status=Event.STATUS_ACTIVE
+        )
+        Event.objects.create(
+            owner=self.user_a,
+            name="Mariage public",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            event_type=Event.TYPE_WEDDING,
+            is_public=True,
+        )
+        page = self.client.get(reverse("public_events"))
+        self.assertContains(page, "Mariage public")
+        self.assertNotContains(page, "Privé caché")
+        self.assertContains(page, "data-event-open")
+        self.assertContains(page, 'id="ok-event-sheet"')
+
+    def test_search_redirects_to_public_events(self):
+        r = self.client.get(reverse("landing"), {"q": "gala"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/agenda/", r["Location"])
+
+    @override_settings(DEBUG=True, ALLOW_MOCK_PAYMENTS=True)
+    def test_ticketing_checkout_uses_mock_when_debug(self):
+        SiteSettings.load()
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Concert mock",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            is_ticketing=True,
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        from validation.models import TicketTier
+
+        tier = TicketTier.objects.create(event=event, name="Standard", price=Decimal("5000"))
+        from validation.invite_form import ensure_invite_token
+
+        token = ensure_invite_token(event)
+        r = self.client.post(
+            reverse("public_invite", args=[token]),
+            {
+                "first_name": "Léa",
+                "last_name": "Mba",
+                "ticket_tier": str(tier.pk),
+                "phone": "077000000",
+                "accept_terms": "on",
+            },
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/payments/mock/invite/", r["Location"])
+        payment = GuestPayment.objects.get(event=event, last_name="Mba")
+        self.assertEqual(payment.provider, "mock")
+        checkout = self.client.get(r["Location"])
+        self.assertContains(checkout, "Paiement de démonstration")
+        self.assertContains(checkout, "Simuler le paiement")
+        done = self.client.post(r["Location"])
+        self.assertEqual(done.status_code, 302)
+        payment.refresh_from_db()
+        self.assertEqual(payment.status, GuestPayment.STATUS_SUCCESS)
+        thanks = self.client.get(reverse("public_invite_thanks", args=[token]))
+        self.assertContains(thanks, "Billet confirmé")
+
+    @override_settings(DEBUG=True, ALLOW_MOCK_PAYMENTS=True)
+    def test_simulate_sale_and_commercial_copy(self):
+        SiteSettings.load()
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Gala simulé",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            is_ticketing=True,
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        from validation.models import TicketTier
+
+        TicketTier.objects.create(event=event, name="VIP", price=Decimal("10000"))
+        self.client.login(username="alice", password="secret123")
+        dash = self.client.get(reverse("ticketing_dashboard", args=[event.pk]))
+        self.assertContains(dash, "Vos billets sont en vente")
+        self.assertNotContains(dash, "frais de transfert à votre charge")
+        self.assertNotContains(dash, "Commission 7")
+        sim = self.client.post(
+            reverse("ticketing_dashboard", args=[event.pk]),
+            {"action": "simulate_sale"},
+        )
+        self.assertEqual(sim.status_code, 302)
+        pay = GuestPayment.objects.get(event=event, first_name="Spectateur")
+        self.assertEqual(pay.status, GuestPayment.STATUS_SUCCESS)
+        self.assertEqual(pay.amount, Decimal("10000"))
+        hub = self.client.get(reverse("ticketing_hub"))
+        self.assertContains(hub, "Le public achète, vous encaissez")
+        self.assertNotContains(hub, "Commission 7")
+
+    def test_invite_and_signup_open_cgu_sheet(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Formulaire CGU",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            is_ticketing=True,
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        from validation.models import TicketTier
+        from validation.invite_form import ensure_invite_token
+
+        TicketTier.objects.create(event=event, name="Early bird", price=Decimal("3500"))
+        token = ensure_invite_token(event)
+        page = self.client.get(reverse("public_invite", args=[token]))
+        self.assertContains(page, 'data-sheet="ge-sheet-cgu"')
+        self.assertContains(page, 'id="ge-sheet-cgu"')
+        self.assertContains(page, 'data-sheet="ge-sheet-cgv"')
+        self.assertContains(page, 'id="ge-sheet-cgv"')
+        self.assertContains(page, "Prévente")
+        self.assertNotContains(page, "Early bird")
+        signup = self.client.get(reverse("signup"))
+        self.assertContains(signup, 'data-sheet="ge-sheet-cgu"')
+        self.assertContains(signup, 'id="ge-sheet-cgu"')
+
+    def test_ticketing_setup_presale_is_optional(self):
+        self.client.login(username="alice", password="secret123")
+        page = self.client.get(reverse("ticketing_setup"))
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Ajouter une prévente")
+        self.assertNotContains(page, "Early bird")
+        self.assertContains(page, "Standard")
+        self.assertContains(page, "VIP")
+        self.assertContains(page, ">Type<")
+        self.assertContains(page, "Organisé par")
+        self.assertContains(page, "Détails de l’événement")
+
+    def test_ticketing_setup_requires_event_details(self):
+        self.client.login(username="alice", password="secret123")
+        page = self.client.post(reverse("ticketing_setup"), {"name": "Concert incomplet"})
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "affiche")
+
+    def test_ticketing_purchase_requires_phone(self):
+        plan = EventPlan.objects.get(slug="gratuit")
+        event = Event.objects.create(
+            owner=self.user_a,
+            name="Sans téléphone",
+            plan=plan,
+            status=Event.STATUS_ACTIVE,
+            is_ticketing=True,
+            invite_link_enabled=True,
+            invite_published_at=timezone.now(),
+        )
+        from validation.models import TicketTier
+        from validation.invite_form import ensure_invite_token
+
+        tier = TicketTier.objects.create(event=event, name="Standard", price=Decimal("5000"))
+        token = ensure_invite_token(event)
+        r = self.client.post(
+            reverse("public_invite", args=[token]),
+            {
+                "first_name": "Léa",
+                "last_name": "Mba",
+                "ticket_tier": str(tier.pk),
+                "accept_terms": "on",
+            },
+        )
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "téléphone est obligatoire")
+
+    def test_terms_include_ticketing_disclaimer(self):
+        page = self.client.get(reverse("terms"))
+        self.assertContains(page, "intermédiaire technique")
+        self.assertContains(page, "n’est pas responsable de la qualité")
+        self.assertContains(page, "Conditions générales de vente")
+
 

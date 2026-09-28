@@ -13,15 +13,16 @@
 <section class="cx-card">
   <div class="cx-table-wrap">
   <table class="cx-table" data-zyz-kicker="Formule">
-    <thead><tr><th>Nom</th><th>Prix</th><th>Standard</th><th>VIP</th><th>Total</th><th>Actif</th><th></th></tr></thead>
+    <thead><tr><th>Nom</th><th>Prix</th><th>Standard</th><th>VIP</th><th>Total</th><th>Extra</th><th>Actif</th><th></th></tr></thead>
     <tbody>
     {% for p in plans %}
       <tr>
         <td>{{ p.name }}</td>
-        <td>{% if p.is_custom %}{{ p.price_per_regular }} F CFA / std{% else %}{{ p.price|fcfa }}{% endif %}</td>
+        <td>{% if p.is_custom %}{{ site.commission_pct|floatformat:0 }} % / billet{% else %}{{ p.price|fcfa }}{% endif %}</td>
         <td>{{ p.regular_invitation_limit }}</td>
         <td>{{ p.vip_invitation_limit }}</td>
         <td>{{ p.total_invitation_limit|default:"—" }}</td>
+        <td>{% if p.is_custom or not p.extra_ticket_price %}—{% else %}{{ p.extra_ticket_price|fcfa }}{% endif %}</td>
         <td>{% if p.is_active %}<span class="cx-pill is-ok">Oui</span>{% else %}<span class="cx-pill is-muted">Non</span>{% endif %}</td>
         <td><a href="{% url 'platform_admin_plan_edit' p.id %}">Paramétrer</a></td>
       </tr>

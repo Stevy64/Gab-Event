@@ -25,6 +25,7 @@
 
     <nav class="ok-nav-center" aria-label="Navigation">
       <a href="#accueil" class="is-active" data-nav-section="accueil">Accueil</a>
+      <a href="{% url 'public_events' %}" data-nav-section="evenements">Événements</a>
       <a href="#fonctionnalites" data-nav-section="fonctionnalites">Fonctionnalités</a>
       <a href="#offres" data-nav-section="offres">Offres</a>
       <a href="{% url 'faq' %}">FAQ</a>
@@ -55,7 +56,7 @@
   <div class="ok-overlay" id="ok-overlay" hidden></div>
 
   <div class="ok-search-float" id="ok-search-panel" hidden>
-    <form method="get" action="{% url 'landing' %}" role="search" class="ok-search-pill">
+    <form method="get" action="{% url 'public_events' %}" role="search" class="ok-search-pill">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
       <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un événement…" autocomplete="off" aria-label="Rechercher un événement">
       <button type="submit" class="ok-search-go" aria-label="Lancer la recherche">
@@ -287,40 +288,32 @@
       <header class="ok-essentials-head ok-reveal">
         <p class="ok-kicker">L’essentiel</p>
         <h2 class="ok-display">Tout pour vos <em>invitations</em>.</h2>
-        <p class="ok-intro">Du billet à l’entrée, quatre gestes simples — avec la chaleur d’un vrai événement.</p>
+        <p class="ok-intro">Trois arguments pour le jour J — même hors réseau, même au dernier moment.</p>
       </header>
-      <div class="ok-features">
+      <div class="ok-features is-trio">
         <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">01</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="5.4" y="5.4" width="3.2" height="3.2"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="15.4" y="5.4" width="3.2" height="3.2"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="5.4" y="15.4" width="3.2" height="3.2"/><path d="M14 14h3v3h-3zM19.5 14v4M14 19.5h4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.5A9.5 9.5 0 0112 3c4.2 0 7.8 2.7 9.1 6.5"/><path d="M22 15.5A9.5 9.5 0 0112 21c-4.2 0-7.8-2.7-9.1-6.5"/><path d="M4 4l16 16"/><rect x="8" y="8" width="8" height="8" rx="1.2"/></svg>
           </span>
-          <h3>QR Codes uniques</h3>
-          <p>Chaque invitation est unique et vérifiée avec rigueur, pas d’entrée fantôme.</p>
+          <h3>Scan sans connexion</h3>
+          <p>Contrôlez les entrées même sans réseau. La liste des invités reste accessible hors ligne.</p>
         </article>
         <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">02</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a1.2 1.2 0 011.2-1.2h13.6A1.2 1.2 0 0120 8v2.1a2 2 0 000 3.8V16a1.2 1.2 0 01-1.2 1.2H5.2A1.2 1.2 0 014 16v-2.1a2 2 0 000-3.8V8z"/><path d="M9 7.5v9" stroke-dasharray="1.5 1.4"/><path d="M12.2 10.4h5M12.2 13.6h3.4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/><path d="M9.5 8h5M9.5 11h3.5"/></svg>
           </span>
-          <h3>Invitations soignées</h3>
-          <p>Flyer, message et identité visuelle — le ton exact de votre événement.</p>
+          <h3>Paiement Airtel &amp; Moov</h3>
+          <p>Pour vos invitations payantes, les invités paient par Airtel/Moov Money. Vous recevez le reversement sur votre numéro.</p>
         </article>
         <article class="ok-feature ok-reveal">
           <span class="ok-feature-num" aria-hidden="true">03</span>
           <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a3 3 0 013-3h2M16 3h2a3 3 0 013 3v2M21 16v2a3 3 0 01-3 3h-2M8 21H6a3 3 0 01-3-3v-2"/><rect x="8" y="8" width="8" height="8" rx="1.2"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.07 0l1.41-1.41a5 5 0 00-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 00-7.07 0L5.52 12.41a5 5 0 007.07 7.07L14 18.07"/></svg>
           </span>
-          <h3>Scan smartphone</h3>
-          <p>Un contrôle d’accès fluide depuis votre téléphone.</p>
-        </article>
-        <article class="ok-feature ok-reveal">
-          <span class="ok-feature-num" aria-hidden="true">04</span>
-          <span class="ok-feature-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="3.4"/><path d="M16 8.2l2.1 2.1L22 6.4"/></svg>
-          </span>
-          <h3>Présences en direct</h3>
-          <p>Suivez les entrées au fil de la soirée en temps réel.</p>
+          <h3>Liens d’invitation en ligne</h3>
+          <p>Partagez votre invitation. Vos invités s’inscrivent et téléchargent leurs billets instantanément.</p>
         </article>
       </div>
     </div>
@@ -345,11 +338,11 @@
           <h3>{{ plan.name }}</h3>
           {% if plan.is_custom %}
           <p class="ok-plan-amount">
-            <em>{{ plan.price_per_regular|floatformat:0 }}</em>
-            <small>F CFA / std</small>
+            <em>{{ site.commission_pct|floatformat:0 }}&nbsp;%</em>
+            <small>par billet vendu</small>
           </p>
-          <p class="ok-plan-cap">{{ plan.price_per_vip|floatformat:0 }} F CFA / VIP</p>
-          <p class="ok-plan-desc">Au choix — facturé selon le type d’invité. {{ plan.lifetime_label }}.</p>
+          <p class="ok-plan-cap">Billetterie publique</p>
+          <p class="ok-plan-desc">Billetterie publique (concerts, festivals, ENB…). Frais de transfert à votre charge. Reversement sous {{ site.payout_sla_hours|default:72 }}h ouvrées.</p>
           {% else %}
           <p class="ok-plan-amount">
             {% if plan.is_free or plan.price == 0 %}
@@ -359,15 +352,16 @@
             <small>F CFA</small>
             {% endif %}
           </p>
-          {% if plan.total_invitation_limit %}
-          <p class="ok-plan-cap">Jusqu’à {{ plan.total_invitation_limit }} personnes</p>
-          {% else %}
-          <p class="ok-plan-cap">{{ plan.regular_invitation_limit }} · {{ plan.vip_invitation_limit }} VIP</p>
+          {% if plan.capacity_label %}
+          <p class="ok-plan-cap">{{ plan.capacity_label }}</p>
+          {% endif %}
+          {% if plan.extra_ticket_label %}
+          <p class="ok-plan-extra">{{ plan.extra_ticket_label }}</p>
           {% endif %}
           <p class="ok-plan-desc">{{ plan.description }} {{ plan.lifetime_label }}.</p>
           {% endif %}
-          <a class="ok-btn-dark ok-btn-sm ok-plan-cta" href="{% if user.is_authenticated %}{% url 'event_create' %}{% else %}{% url 'signup' %}{% endif %}">
-            {% if plan.is_free %}Commencer{% else %}Choisir{% endif %}
+          <a class="ok-btn-dark ok-btn-sm ok-plan-cta" href="{% if plan.is_custom %}{% if user.is_authenticated %}{% url 'ticketing_setup' %}{% else %}{% url 'signup' %}?next={% url 'ticketing_setup' %}{% endif %}{% elif user.is_authenticated %}{% url 'event_create' %}{% else %}{% url 'signup' %}{% endif %}">
+            {% if plan.is_custom %}Vendre vos billets{% elif plan.is_free %}Commencer{% else %}Choisir{% endif %}
           </a>
         </article>
         {% empty %}

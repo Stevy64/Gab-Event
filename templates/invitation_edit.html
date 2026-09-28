@@ -12,7 +12,7 @@
     <div>
       <p class="ge-kicker">Invitation</p>
       <h1>Modifier {{ invitation.full_name }}</h1>
-      <p class="ge-lead">Le code <code>{{ invitation.code }}</code> reste inchangé.</p>
+      <p class="ge-lead">Le code <code>{{ invitation.display_code }}</code> reste inchangé.</p>
     </div>
   </header>
 
@@ -24,42 +24,66 @@
     <div class="ge-invite-edit-grid">
       <div class="ge-field">
         <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
-        {{ form.first_name }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="user" %}
+          {{ form.first_name }}
+        </div>
         {% if form.first_name.errors %}<span class="ge-field-err">{{ form.first_name.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
-        {{ form.last_name }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="user" %}
+          {{ form.last_name }}
+        </div>
         {% if form.last_name.errors %}<span class="ge-field-err">{{ form.last_name.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.participant_type.id_for_label }}">{{ form.participant_type.label }}</label>
-        {{ form.participant_type }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="ticket" %}
+          {{ form.participant_type }}
+        </div>
         {% if form.participant_type.errors %}<span class="ge-field-err">{{ form.participant_type.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
-        {{ form.category }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="tag" %}
+          {{ form.category }}
+        </div>
         {% if form.category.errors %}<span class="ge-field-err">{{ form.category.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
-        {{ form.email }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="mail" %}
+          {{ form.email }}
+        </div>
         {% if form.email.errors %}<span class="ge-field-err">{{ form.email.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>
-        {{ form.phone }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="phone" %}
+          {{ form.phone }}
+        </div>
         {% if form.phone.errors %}<span class="ge-field-err">{{ form.phone.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.organization.id_for_label }}">{{ form.organization.label }}</label>
-        {{ form.organization }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="city" %}
+          {{ form.organization }}
+        </div>
         {% if form.organization.errors %}<span class="ge-field-err">{{ form.organization.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.dietary.id_for_label }}">{{ form.dietary.label }}</label>
-        {{ form.dietary }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="note" %}
+          {{ form.dietary }}
+        </div>
         {% if form.dietary.errors %}<span class="ge-field-err">{{ form.dietary.errors.0 }}</span>{% endif %}
       </div>
     </div>

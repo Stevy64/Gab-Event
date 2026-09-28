@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Code de validation — {{ event.name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth ge-invite">
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm">
+      <p class="ge-auth-kicker">{{ event.type_label }}</p>
+      <h1>{{ event.name }}</h1>
+      <p class="ge-auth-lead">Entrez le code communiqué par l’organisateur pour accéder à l’inscription.</p>
+      {% if errors %}<div class="ge-auth-errors">{{ errors.0 }}</div>{% endif %}
+      <form method="post" class="ge-auth-form">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="unlock">
+        <div class="ge-field">
+          <label for="id_invite_code">Code de validation</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+            <input id="id_invite_code" type="text" name="invite_code" required autocomplete="one-time-code" inputmode="text" placeholder="Code">
+          </div>
+        </div>
+        <button class="ok-btn-dark ge-auth-submit" type="submit">Continuer</button>
+      </form>
+    </div>
+  </div>
+</main>
+{% endblock %}

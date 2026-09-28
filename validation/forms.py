@@ -296,10 +296,10 @@ class SignUpForm(UserCreationForm):
         widget=forms.TextInput(attrs={"autocomplete": "given-name", "placeholder": "Prénom"}),
     )
     last_name = forms.CharField(
-        required=True,
+        required=False,
         max_length=120,
         label="Nom",
-        widget=forms.TextInput(attrs={"autocomplete": "family-name", "placeholder": "Nom"}),
+        widget=forms.TextInput(attrs={"autocomplete": "family-name", "placeholder": "Nom (optionnel)"}),
     )
 
     class Meta:
@@ -319,8 +319,8 @@ class SignUpForm(UserCreationForm):
             {"autocomplete": "new-password", "placeholder": "Confirmer"}
         )
         self.fields["phone"].required = True
-        self.fields["email"].required = True
-        _apply_momo_fields(self, required=True)
+        self.fields["email"].required = False
+        self.fields["email"].help_text = "Optionnel — beaucoup de comptes se gèrent au téléphone."
         self.fields["accept_terms"] = forms.BooleanField(
             required=True,
             label="J’accepte les CGU",
@@ -337,9 +337,7 @@ class SignUpForm(UserCreationForm):
         email = (cleaned.get("email") or "").strip()
         phone = normalize_phone(cleaned.get("phone") or "")
 
-        if not email:
-            self.add_error("email", "Indiquez votre adresse e-mail.")
-        elif User.objects.filter(email__iexact=email).exists():
+        if email and User.objects.filter(email__iexact=email).exists():
             self.add_error("email", "Un compte existe déjà avec cet e-mail.")
 
         if not phone or len(re.sub(r"\D", "", phone)) < 8:
@@ -363,15 +361,6 @@ class SignUpForm(UserCreationForm):
                 base = "user"
             username = unique_username(base)
         cleaned["username"] = username
-        try:
-            cleaned = _clean_momo(cleaned, required=True)
-        except forms.ValidationError as exc:
-            if getattr(exc, "error_dict", None):
-                for field, errs in exc.error_dict.items():
-                    for err in errs:
-                        self.add_error(field, err)
-            else:
-                self.add_error(None, exc)
         return cleaned
 
     def save(self, commit=True):
@@ -382,9 +371,6 @@ class SignUpForm(UserCreationForm):
             user.save()
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.phone = self.cleaned_data.get("phone") or ""
-            profile.momo_operator = self.cleaned_data.get("momo_operator") or ""
-            profile.momo_phone = self.cleaned_data.get("momo_phone") or ""
-            profile.momo_confirmed_at = timezone.now()
             if not profile.display_name:
                 profile.display_name = user.get_full_name()
             profile.save()
@@ -502,6 +488,51 @@ class GabSetPasswordForm(SetPasswordForm):
         )
 
 
+class RecoveryOtpForm(forms.Form):
+    code = forms.CharField(
+        label="Code reçu",
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(
+            attrs={
+                "autocomplete": "one-time-code",
+                "inputmode": "numeric",
+                "placeholder": "000000",
+                "maxlength": "6",
+                "pattern": "[0-9]{6}",
+            }
+        ),
+    )
+    new_password1 = forms.CharField(
+        label="Nouveau mot de passe",
+        widget=forms.PasswordInput(
+            attrs={"autocomplete": "new-password", "placeholder": "Nouveau mot de passe"}
+        ),
+    )
+    new_password2 = forms.CharField(
+        label="Confirmation",
+        widget=forms.PasswordInput(
+            attrs={"autocomplete": "new-password", "placeholder": "Confirmer"}
+        ),
+    )
+
+    def clean_code(self):
+        code = re.sub(r"\D", "", self.cleaned_data.get("code") or "")
+        if len(code) != 6:
+            raise ValidationError("Indiquez le code à 6 chiffres.")
+        return code
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get("new_password1") or ""
+        p2 = cleaned.get("new_password2") or ""
+        if p1 and len(p1) < 6:
+            self.add_error("new_password1", "Au moins 6 caractères.")
+        if p1 and p2 and p1 != p2:
+            self.add_error("new_password2", "Les deux mots de passe doivent être identiques.")
+        return cleaned
+
+
 class ProfileForm(forms.ModelForm):
     first_name = forms.CharField(required=False, max_length=120, label="Prénom")
     last_name = forms.CharField(required=False, max_length=120, label="Nom")
@@ -527,7 +558,7 @@ class ProfileForm(forms.ModelForm):
             "accept": "image/*",
             "class": "ge-photo-file",
         })
-        _apply_momo_fields(self, required=True)
+        _apply_momo_fields(self, required=False)
         self.fields["momo_operator"].initial = self.instance.momo_operator
         self.fields["momo_phone"].initial = self.instance.momo_phone
         if self.instance.momo_ready:
@@ -555,7 +586,7 @@ class ProfileForm(forms.ModelForm):
         required = number_changed or not self.instance.momo_ready
         if not required and not (cleaned.get("momo_phone_confirm") or "").strip():
             cleaned["momo_phone_confirm"] = cleaned.get("momo_phone") or self.instance.momo_phone
-        return _clean_momo(cleaned, required=True)
+        return _clean_momo(cleaned, required=False)
 
     def save(self, commit=True):
         profile = super().save(commit=False)
@@ -564,7 +595,10 @@ class ProfileForm(forms.ModelForm):
         self.user.email = self.cleaned_data.get("email", "")
         profile.momo_operator = self.cleaned_data.get("momo_operator") or ""
         profile.momo_phone = self.cleaned_data.get("momo_phone") or ""
-        profile.momo_confirmed_at = timezone.now()
+        if profile.momo_operator and profile.momo_phone:
+            profile.momo_confirmed_at = timezone.now()
+        else:
+            profile.momo_confirmed_at = None
         if commit:
             self.user.save()
             profile.user = self.user
@@ -879,6 +913,8 @@ class EventSettingsForm(forms.ModelForm):
                 starts=self.cleaned_data.get("validity_starts_on"),
                 ends=self.cleaned_data.get("validity_ends_on"),
             )
+        else:
+            event.apply_lifetime()
         if commit:
             event.save()
         return event
@@ -887,12 +923,24 @@ class EventSettingsForm(forms.ModelForm):
 class EventAppearanceForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ("flyer", "logo", "primary_color", "welcome_text", "show_on_homepage")
+        fields = (
+            "flyer",
+            "logo",
+            "primary_color",
+            "welcome_text",
+            "show_on_homepage",
+            "is_public",
+            "animated_card",
+        )
         labels = {
-            "show_on_homepage": "Afficher mon événement sur la page d'accueil Gab Event",
+            "show_on_homepage": "Mettre en avant sur l’accueil (carrousel)",
+            "is_public": "Rendre l’événement public (page Événements)",
+            "animated_card": "Carte d’invitation animée (option prestige)",
         }
         help_texts = {
             "show_on_homepage": "Nécessite un flyer. L'image apparaîtra dans le carrousel public.",
+            "is_public": "Les événements privés restent cachés tant que cette case n’est pas cochée. Les billetteries publiées y figurent automatiquement.",
+            "animated_card": "Quelques secondes, musique et nom de l’invité — le marché du mariage paie le prestige.",
         }
         widgets = {
             "primary_color": forms.TextInput(attrs={"type": "color", "class": "ge-color-input"}),
@@ -921,6 +969,12 @@ class EventAppearanceForm(forms.ModelForm):
         )
         self.initial["primary_color"] = color
         self.fields["primary_color"].initial = color
+        from .models import SiteSettings
+
+        price = int(SiteSettings.load().animated_card_price or 25000)
+        self.fields["animated_card"].help_text = (
+            f"Option payante — {price} F CFA. Animation, musique et nom de l’invité."
+        )
 
     def clean_primary_color(self):
         from .branding import DEFAULT_PRIMARY_COLOR
@@ -966,6 +1020,7 @@ class EventPlanAdminForm(forms.ModelForm):
             "lifetime_days",
             "price_per_regular",
             "price_per_vip",
+            "extra_ticket_price",
             "is_active",
             "is_recommended",
             "display_order",
@@ -1052,8 +1107,18 @@ class SiteSettingsForm(forms.ModelForm):
             "singpay_merchant_id",
             "singpay_disbursement_id",
             "singpay_environment",
-            "commission_regular_pct",
-            "commission_vip_pct",
+            "commission_pct",
+            "commission_fixed",
+            "payout_sla_hours",
+            "singpay_fees_on_platform",
+            "animated_card_price",
+            "legal_company_name",
+            "legal_nif",
+            "legal_rccm",
+            "legal_address",
+            "legal_city",
+            "legal_phone",
+            "legal_email",
         )
         widgets = {
             "tagline": forms.TextInput(attrs={"placeholder": "Accroche publique"}),
@@ -1067,8 +1132,12 @@ class SiteSettingsForm(forms.ModelForm):
             "public_base_url": forms.URLInput(attrs={"placeholder": "https://gabevent.com"}),
         }
         help_texts = {
-            "commission_regular_pct": "Prélevée sur chaque invitation standard payante (formule Personnalisé).",
-            "commission_vip_pct": "Prélevée sur chaque invitation VIP payante, avant reversement à l’organisateur.",
+            "commission_pct": "Taux prélevé sur chaque billet de billetterie (7 % par défaut).",
+            "commission_fixed": "Non utilisé pour la billetterie (conservé pour historique).",
+            "payout_sla_hours": "Délai annoncé aux promoteurs — 72 heures ouvrées par défaut.",
+            "singpay_fees_on_platform": "Décoché : les frais SingPay sont à la charge de l’organisateur.",
+            "legal_nif": "Sans NIF, aucune entreprise gabonaise ne peut vous payer.",
+            "animated_card_price": "Prix de l’option prestige (carte animée).",
             "public_base_url": "Adresse utilisée pour les retours SingPay. Laissez vide pour garder la valeur .env.",
             "hero_image": "Si renseignée, elle s’affiche en premier sur le carrousel d’accueil.",
             "meta_description": "Texte des onglets / Google. Vide = accroche.",

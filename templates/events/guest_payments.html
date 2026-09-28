@@ -1,56 +1,161 @@
 {% extends "base.html" %}
 {% block title %}Paiements invités — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event page-sheet-ui{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui page-guest-pay{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as payments_back %}
+{% include "partials/event_nav.html" with nav_active="ticketing" back_url=payments_back back_label="Billetterie" %}
+{% else %}
 {% url 'event_invite_link' event.id as payments_back %}
 {% include "partials/event_nav.html" with nav_active="invite" back_url=payments_back back_label="Lien d’invitation" %}
-<main class="ge-app ge-sheet-page">
-  <header class="ge-page-head">
-    <a class="ge-level-back" href="{% url 'event_invite_link' event.id %}" aria-label="Retour au lien">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+{% endif %}
+<main class="ge-app ge-sheet-page ge-guest-pay">
+  <header class="ge-sheet-hero">
+    <a class="ge-page-back" href="{{ payments_back }}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+      Retour
     </a>
-    <div>
-      <p class="ge-kicker">Transparence</p>
-      <h1>Paiements invités</h1>
-      <p class="ge-lead">
-        Encaissements SingPay, commission Gab Event et montant à vous reverser
-        {% if momo_ready %} — {{ momo_label }}{% else %} — confirmez votre numéro Mobile Money dans le profil{% endif %}.
-      </p>
-    </div>
-    <a class="ge-btn-ghost" href="{% url 'event_invite_link' event.id %}">Retour au lien</a>
+    <p class="ge-kicker">Comptabilité</p>
+    <h1>Paiements invités</h1>
+    <p class="ge-sheet-help">
+      Commission : {{ commission_label }} % du prix de chaque billet.
+      Reversement via {{ momo_operator_label }} sous {{ payout_hours }}h ouvrées maximum après votre demande.
+    </p>
   </header>
 
-  <section class="ge-pay-metrics">
-    <article><span>Collecté</span><strong>{{ gross|floatformat:0 }}</strong></article>
-    <article><span>Commission Gab Event</span><strong>{{ commission|floatformat:0 }}</strong></article>
-    <article><span>À vous reverser</span><strong>{{ net|floatformat:0 }}</strong></article>
+  <section class="ge-pay-metrics" aria-label="Totaux">
+    <article class="is-collected">
+      <span>Collecté</span>
+      <strong>{{ gross|floatformat:0 }}</strong>
+    </article>
+    <article>
+      <span>Commission</span>
+      <strong>{{ commission|floatformat:0 }}</strong>
+    </article>
+    <article class="is-net">
+      <span>Net</span>
+      <strong>{{ net|floatformat:0 }}</strong>
+    </article>
   </section>
 
-  <section class="ge-form-card">
-    <div class="ge-table-wrap">
-      <table class="ge-table">
-        <thead>
-          <tr>
-            <th>Date</th><th>Invité</th><th>Type</th><th>Brut</th><th>Commission</th><th>Net</th><th>Statut</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for p in payments %}
-          <tr>
-            <td>{{ p.created_at|date:"d/m H:i" }}</td>
-            <td>{{ p.full_name }}</td>
-            <td>{{ p.get_participant_type_display }}</td>
-            <td>{{ p.amount|floatformat:0 }} F CFA</td>
-            <td>{{ p.commission_amount|floatformat:0 }} ({{ p.commission_rate }}%)</td>
-            <td>{{ p.net_amount|floatformat:0 }}</td>
-            <td>{{ p.get_status_display }}</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="7" class="ge-table-empty">Aucun paiement invité pour le moment.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <section class="ge-form-card ge-pay-request">
+    <div class="ge-pay-request-head">
+      <div>
+        <h2>Reversement</h2>
+        <p>
+          {% if momo_ready %}
+          Vers {{ momo_label }} · {{ net_due|floatformat:0 }} F CFA à reverser.
+          {% else %}
+          Confirmez votre numéro Mobile Money dans le <a href="{% url 'profile' %}">profil</a>.
+          {% endif %}
+        </p>
+      </div>
     </div>
+    {% if payout_requested %}
+    <p class="ge-pay-request-status">Demande déjà envoyée — traitement sous {{ payout_hours }}h ouvrées maximum.</p>
+    {% elif can_request_payout %}
+    <form method="post" class="ge-pay-request-form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="request_payout">
+      <div class="ge-field">
+        <label for="id_momo_confirm">Confirmer le numéro {{ momo_operator_label }}</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="phone" %}
+          <input id="id_momo_confirm" type="tel" name="momo_confirm" inputmode="tel" required placeholder="{{ momo_phone }}" autocomplete="tel">
+        </div>
+        <small class="ge-muted">Retapez {{ momo_phone }} pour valider le remboursement.</small>
+      </div>
+      <button type="submit" class="ok-btn-dark">Demander le reversement</button>
+    </form>
+    {% if payout_partial %}
+    <p class="ge-muted" style="margin-top:0.65rem">De nouvelles ventes sont disponibles — confirmez pour les ajouter à la demande.</p>
+    {% endif %}
+    {% elif momo_ready and not net_due %}
+    <p class="ge-muted">Rien à reverser pour le moment.</p>
+    {% endif %}
+  </section>
+
+  <section class="ge-form-card ge-pay-board">
+    <div class="ge-pay-board-head">
+      <div>
+        <h2>Historique</h2>
+        <p>{{ total_count }} paiement{{ total_count|pluralize }} · page {{ page_obj.number }}/{{ page_obj.paginator.num_pages|default:1 }}</p>
+      </div>
+      <form method="get" class="ge-pay-filters" role="search">
+        <label class="ge-sales-search" for="ge-pay-q">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          <input id="ge-pay-q" type="search" name="q" value="{{ q }}" placeholder="Nom, e-mail, téléphone…">
+        </label>
+        <select name="status" aria-label="Filtrer par statut">
+          <option value="all" {% if status_filter == "all" %}selected{% endif %}>Tous les statuts</option>
+          <option value="success" {% if status_filter == "success" %}selected{% endif %}>Réussis</option>
+          <option value="pending" {% if status_filter == "pending" %}selected{% endif %}>En attente</option>
+          <option value="failed" {% if status_filter == "failed" %}selected{% endif %}>Échoués</option>
+        </select>
+        <button type="submit" class="ok-btn-dark">Filtrer</button>
+      </form>
+    </div>
+
+    {% if not payments %}
+    <div class="ge-pay-empty">
+      <p>Aucun paiement{% if q or status_filter != "all" %} pour ce filtre{% endif %}.</p>
+    </div>
+    {% else %}
+    <div class="ge-sales-board ge-pay-list" role="list">
+      <div class="ge-sales-head ge-pay-head" aria-hidden="true">
+        <span>Invité</span>
+        <span>Type</span>
+        <span>Brut</span>
+        <span>Commission</span>
+        <span>Net</span>
+        <span>Statut</span>
+        <span></span>
+      </div>
+      <div class="ge-sales-scroll ge-pay-scroll">
+        {% for p in payments %}
+        <article class="ge-sales-row ge-pay-row" role="listitem">
+          <div class="ge-sales-who">
+            <span class="ge-sales-avatar" aria-hidden="true">{{ p.first_name|slice:":1"|upper }}</span>
+            <div>
+              <strong>{{ p.full_name }}</strong>
+              <small>
+                {{ p.created_at|date:"d/m/Y H:i" }}
+                {% if p.phone %} · {{ p.phone }}{% elif p.email %} · {{ p.email }}{% endif %}
+              </small>
+            </div>
+          </div>
+          <span class="ge-sales-chip">{{ p.get_participant_type_display }}</span>
+          <span class="ge-sales-amount">{{ p.amount|floatformat:0 }}</span>
+          <span class="ge-pay-fee">{{ p.commission_amount|floatformat:0 }} <em>{{ p.commission_rate }}%</em></span>
+          <span class="ge-sales-net">{{ p.net_amount|floatformat:0 }}</span>
+          <span class="ge-pay-status is-{{ p.status }}">{{ p.get_status_display }}</span>
+          <div class="ge-pay-actions">
+            {% if p.status == "success" %}
+            <a class="ge-text-tool" href="{% url 'guest_payment_invoice' event.id p.pk %}" data-ge-download data-no-loader data-ge-dl-msg="Préparation de la facture…">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
+              PDF
+            </a>
+            {% else %}
+            <span class="ge-muted">—</span>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    <nav class="ge-pay-pager" aria-label="Pagination">
+      {% if page_obj.has_previous %}
+      <a class="ge-btn-ghost" href="?page={{ page_obj.previous_page_number }}&amp;q={{ q|urlencode }}&amp;status={{ status_filter }}">Précédent</a>
+      {% endif %}
+      <span>Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+      <a class="ge-btn-ghost" href="?page={{ page_obj.next_page_number }}&amp;q={{ q|urlencode }}&amp;status={{ status_filter }}">Suivant</a>
+      {% endif %}
+    </nav>
+    {% endif %}
+    {% endif %}
   </section>
 </main>
 {% endblock %}

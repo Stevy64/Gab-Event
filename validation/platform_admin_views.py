@@ -12,6 +12,7 @@ from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
@@ -395,11 +396,19 @@ def _empty_event_ledger(event):
         "plan_in": zero,
         "due_ids": [],
         "due_count": 0,
+        "requested_ids": [],
+        "requested_net": zero,
         "movements": [],
     }
 
 
-def _accounting_ledger():
+def _accounting_ledger(*, ticketing: bool | None = None):
+    """Ledger organisateur.
+
+    ticketing=True  → ventes billetterie uniquement
+    ticketing=False → formules + invitations payantes classiques
+    ticketing=None  → tout (legacy)
+    """
     groups: dict[int, dict] = {}
 
     def group_for(user):
@@ -417,6 +426,8 @@ def _accounting_ledger():
             "paid_out": Decimal("0"),
             "plan_in": Decimal("0"),
             "due_ids": [],
+            "requested_ids": [],
+            "requested_net": Decimal("0"),
         }
         groups[user.pk] = row
         return row
@@ -424,6 +435,11 @@ def _accounting_ledger():
     guests = GuestPayment.objects.filter(status=GuestPayment.STATUS_SUCCESS).select_related(
         "organizer", "organizer__profile", "event"
     )
+    if ticketing is True:
+        guests = guests.filter(event__is_ticketing=True)
+    elif ticketing is False:
+        guests = guests.filter(event__is_ticketing=False)
+
     for pay in guests:
         group = group_for(pay.organizer)
         ev = group["events"].setdefault(pay.event_id, _empty_event_ledger(pay.event))
@@ -433,54 +449,78 @@ def _accounting_ledger():
         group["in_guest"] += pay.amount
         group["commission"] += pay.commission_amount
         group["net"] += pay.net_amount
+        requested = bool((pay.metadata or {}).get("payout_requested_at"))
         if pay.payout_status in (GuestPayment.PAYOUT_PENDING, GuestPayment.PAYOUT_FAILED):
             ev["due"] += pay.net_amount
             ev["due_ids"].append(pay.pk)
             ev["due_count"] += 1
             group["due"] += pay.net_amount
             group["due_ids"].append(pay.pk)
+            if requested:
+                ev["requested_ids"] = ev.get("requested_ids") or []
+                ev["requested_ids"].append(pay.pk)
+                ev["requested_net"] = ev.get("requested_net", Decimal("0")) + pay.net_amount
+                group["requested_ids"].append(pay.pk)
+                group["requested_net"] += pay.net_amount
         elif pay.payout_status == GuestPayment.PAYOUT_RECORDED:
             ev["paid_out"] += pay.net_amount
             group["paid_out"] += pay.net_amount
+        status_label = pay.get_payout_status_display()
+        if requested and pay.payout_status in (
+            GuestPayment.PAYOUT_PENDING,
+            GuestPayment.PAYOUT_FAILED,
+        ):
+            status_label = f"{status_label} · demandé"
         ev["movements"].append(
             {
                 "kind": "in",
-                "label": f"Invité {pay.full_name}",
+                "label": f"{'Billet' if pay.event_id and getattr(pay.event, 'is_ticketing', False) else 'Invité'} {pay.full_name}",
                 "amount": pay.amount,
                 "when": pay.paid_at or pay.created_at,
-                "status": pay.get_payout_status_display(),
+                "status": status_label,
             }
         )
 
-    plans = Payment.objects.filter(
-        status__in=[Payment.STATUS_SUCCESS, Payment.STATUS_PENDING]
-    ).select_related("user", "user__profile", "event", "plan")
-    for pay in plans:
-        group = group_for(pay.user)
-        ev = group["events"].setdefault(pay.event_id, _empty_event_ledger(pay.event))
-        if pay.status == Payment.STATUS_SUCCESS:
-            ev["plan_in"] += pay.amount
-            group["plan_in"] += pay.amount
-        ev["movements"].append(
-            {
-                "kind": "plan" if pay.status == Payment.STATUS_SUCCESS else "pending",
-                "label": f"Formule {pay.plan.name if pay.plan_id else ''}".strip(),
-                "amount": pay.amount,
-                "when": pay.paid_at or pay.created_at,
-                "status": pay.get_status_display(),
-            }
-        )
+    plans = Payment.objects.none()
+    if ticketing is not True:
+        plans = Payment.objects.filter(
+            status__in=[Payment.STATUS_SUCCESS, Payment.STATUS_PENDING]
+        ).select_related("user", "user__profile", "event", "plan")
+        for pay in plans:
+            group = group_for(pay.user)
+            ev = group["events"].setdefault(pay.event_id, _empty_event_ledger(pay.event))
+            if pay.status == Payment.STATUS_SUCCESS:
+                ev["plan_in"] += pay.amount
+                group["plan_in"] += pay.amount
+            ev["movements"].append(
+                {
+                    "kind": "plan" if pay.status == Payment.STATUS_SUCCESS else "pending",
+                    "label": f"Formule {pay.plan.name if pay.plan_id else ''}".strip(),
+                    "amount": pay.amount,
+                    "when": pay.paid_at or pay.created_at,
+                    "status": pay.get_status_display(),
+                }
+            )
 
-    batches = OrganizerPayout.objects.select_related("organizer", "organizer__profile").prefetch_related(
-        "guest_payments__event"
-    )[:80]
+    batch_qs = OrganizerPayout.objects.select_related(
+        "organizer", "organizer__profile"
+    ).prefetch_related("guest_payments__event")
+    if ticketing is True:
+        batch_qs = batch_qs.filter(guest_payments__event__is_ticketing=True).distinct()
+    elif ticketing is False:
+        batch_qs = batch_qs.filter(
+            Q(guest_payments__event__is_ticketing=False)
+            | Q(guest_payments__isnull=True)
+        ).distinct()
+    batches = list(batch_qs[:80])
+
     journal = []
     for pay in guests:
         journal.append(
             {
                 "kind": "in",
                 "when": pay.paid_at or pay.created_at,
-                "label": f"Invité · {pay.full_name}",
+                "label": f"{'Billet' if getattr(pay.event, 'is_ticketing', False) else 'Invité'} · {pay.full_name}",
                 "party": pay.organizer,
                 "event": pay.event,
                 "amount": pay.amount,
@@ -516,6 +556,10 @@ def _accounting_ledger():
             continue
         by_event = defaultdict(lambda: Decimal("0"))
         for gp in batch.guest_payments.all():
+            if ticketing is True and not getattr(gp.event, "is_ticketing", False):
+                continue
+            if ticketing is False and getattr(gp.event, "is_ticketing", False):
+                continue
             if gp.payout_status == GuestPayment.PAYOUT_RECORDED:
                 by_event[gp.event_id] += gp.net_amount
         for event_id, amount in by_event.items():
@@ -535,10 +579,19 @@ def _accounting_ledger():
     for group in groups.values():
         group["event_rows"] = sorted(
             group["events"].values(),
-            key=lambda row: (row["event"].name or "").lower(),
+            key=lambda row: (row["event"].name or "").lower() if row["event"] else "",
         )
         for ev in group["event_rows"]:
+            ev.setdefault("requested_ids", [])
+            ev.setdefault("requested_net", Decimal("0"))
             ev["movements"].sort(key=lambda item: item["when"] or timezone.now(), reverse=True)
+
+    # Drop empty organizers (no activity in this mode)
+    groups = {
+        pk: g
+        for pk, g in groups.items()
+        if g["in_guest"] or g["plan_in"] or g["due"] or g["paid_out"] or g["event_rows"]
+    }
 
     journal.sort(key=lambda item: item["when"] or timezone.now(), reverse=True)
     return {
@@ -550,6 +603,11 @@ def _accounting_ledger():
 @_admin_required
 @require_http_methods(["GET", "POST"])
 def payments_list(request):
+    kind = (request.POST.get("kind") or request.GET.get("kind") or "").strip()
+    is_ticketing = kind == "ticketing"
+    payments_url = "platform_admin_payments"
+    next_qs = "?kind=ticketing" if is_ticketing else ""
+
     if request.method == "POST" and request.POST.get("action") == "payout":
         organizer = get_object_or_404(User, pk=request.POST.get("organizer_id"))
         raw_ids = request.POST.getlist("payment_ids")
@@ -575,65 +633,104 @@ def payments_list(request):
                 messages.warning(request, "Reversement partiel — vérifiez les lignes en échec.")
             else:
                 messages.error(request, "Le reversement n’a pas abouti.")
-        return redirect("platform_admin_payments")
+        return redirect(f"{reverse(payments_url)}{next_qs}")
 
-    qs = Payment.objects.select_related("user", "event", "plan")
     status = request.GET.get("status")
-    if status:
-        qs = qs.filter(status=status)
-    page = Paginator(qs, 40).get_page(request.GET.get("page"))
-    success = Payment.objects.filter(status=Payment.STATUS_SUCCESS)
-    revenue = success.aggregate(t=Sum("amount"))["t"] or 0
-    pending_amount = (
-        Payment.objects.filter(status=Payment.STATUS_PENDING).aggregate(t=Sum("amount"))["t"]
-        or 0
-    )
     guest_qs = GuestPayment.objects.select_related(
         "organizer", "organizer__profile", "event", "invitation"
     )
+    if is_ticketing:
+        guest_qs = guest_qs.filter(event__is_ticketing=True)
+        guest_success = GuestPayment.objects.filter(
+            status=GuestPayment.STATUS_SUCCESS, event__is_ticketing=True
+        )
+        revenue = Decimal("0")
+        pending_amount = Decimal("0")
+        success_count = 0
+        payments_page = []
+    else:
+        guest_qs = guest_qs.filter(event__is_ticketing=False)
+        guest_success = GuestPayment.objects.filter(
+            status=GuestPayment.STATUS_SUCCESS, event__is_ticketing=False
+        )
+        qs = Payment.objects.select_related("user", "event", "plan")
+        if status:
+            qs = qs.filter(status=status)
+        payments_page = Paginator(qs, 40).get_page(request.GET.get("page"))
+        success = Payment.objects.filter(status=Payment.STATUS_SUCCESS)
+        revenue = success.aggregate(t=Sum("amount"))["t"] or 0
+        pending_amount = (
+            Payment.objects.filter(status=Payment.STATUS_PENDING).aggregate(t=Sum("amount"))["t"]
+            or 0
+        )
+        success_count = success.count()
+
     if status:
         guest_qs = guest_qs.filter(status=status)
-    guest_success = GuestPayment.objects.filter(status=GuestPayment.STATUS_SUCCESS)
-    payout_due = guest_success.filter(
+
+    payout_due_qs = guest_success.filter(
         payout_status__in=[GuestPayment.PAYOUT_PENDING, GuestPayment.PAYOUT_FAILED]
-    ).select_related("organizer", "organizer__profile")
+    ).select_related("organizer", "organizer__profile", "event")
+
     buckets: dict[int, dict] = {}
-    for pay in payout_due:
+    request_rows: list[dict] = []
+    for pay in payout_due_qs:
         row = buckets.setdefault(
             pay.organizer_id,
             {
                 "organizer": pay.organizer,
                 "profile": getattr(pay.organizer, "profile", None),
-                "net": 0,
+                "net": Decimal("0"),
                 "count": 0,
                 "ids": [],
+                "requested_ids": [],
+                "requested_net": Decimal("0"),
             },
         )
         row["net"] += pay.net_amount
         row["count"] += 1
         row["ids"].append(pay.pk)
-    ledger = _accounting_ledger()
+        if (pay.metadata or {}).get("payout_requested_at"):
+            row["requested_ids"].append(pay.pk)
+            row["requested_net"] += pay.net_amount
+
+    for row in buckets.values():
+        if row["requested_ids"]:
+            request_rows.append(row)
+    request_rows.sort(key=lambda r: r["organizer"].username)
+
+    ledger = _accounting_ledger(ticketing=True if is_ticketing else False)
+    recent_payouts = OrganizerPayout.objects.select_related("organizer", "actor")
+    if is_ticketing:
+        recent_payouts = recent_payouts.filter(
+            guest_payments__event__is_ticketing=True
+        ).distinct()
+    else:
+        recent_payouts = recent_payouts.exclude(
+            guest_payments__event__is_ticketing=True
+        ).distinct()
+
     return render(
         request,
         "platform_admin/payments.html",
         _ctx(
             {
-                "nav_active": "payments",
-                "payments": page,
+                "nav_active": "ticketing" if is_ticketing else "payments",
+                "kind": kind,
+                "is_ticketing": is_ticketing,
+                "payments": payments_page,
                 "status": status or "",
                 "revenue": revenue,
                 "pending_amount": pending_amount,
-                "success_count": success.count(),
+                "success_count": success_count,
                 "guest_payments": guest_qs[:80],
                 "guest_gross": guest_success.aggregate(t=Sum("amount"))["t"] or 0,
                 "guest_commission": guest_success.aggregate(t=Sum("commission_amount"))["t"] or 0,
                 "guest_net": guest_success.aggregate(t=Sum("net_amount"))["t"] or 0,
-                "payout_due": guest_success.filter(
-                    payout_status__in=[GuestPayment.PAYOUT_PENDING, GuestPayment.PAYOUT_FAILED]
-                ).aggregate(t=Sum("net_amount"))["t"]
-                or 0,
+                "payout_due": payout_due_qs.aggregate(t=Sum("net_amount"))["t"] or 0,
                 "payout_rows": sorted(buckets.values(), key=lambda r: r["organizer"].username),
-                "recent_payouts": OrganizerPayout.objects.select_related("organizer", "actor")[:20],
+                "request_rows": request_rows,
+                "recent_payouts": recent_payouts[:20],
                 "ledger_groups": ledger["groups"],
                 "ledger_journal": ledger["journal"],
                 "singpay_ready": singpay_api.is_configured(),

@@ -73,6 +73,65 @@ def _display(size: int):
     return _typeface("Cinzel-Regular.ttf", size, bold=True)
 
 
+def _sans(size: int, *, bold: bool = False):
+    bundled = "CormorantGaramond-SemiBold.ttf" if bold else "CormorantGaramond-Regular.ttf"
+    font = _typeface(bundled, size, bold=bold)
+    if font is not ImageFont.load_default():
+        return font
+    return _font(size, bold=bold)
+
+
+def _mono(size: int, *, bold: bool = False):
+    candidates = [
+        "C:/Windows/Fonts/consolab.ttf" if bold else "C:/Windows/Fonts/consola.ttf",
+        "C:/Windows/Fonts/courbd.ttf" if bold else "C:/Windows/Fonts/cour.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+        if bold
+        else "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
+    ]
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except OSError:
+            continue
+    return _typeface("Cinzel-Regular.ttf", size, bold=True)
+
+
+def _cover_fill(cover: Path, width: int, height: int) -> Image.Image:
+    photo = Image.open(cover).convert("RGB")
+    src_w, src_h = photo.size
+    scale = max(width / max(src_w, 1), height / max(src_h, 1))
+    nw, nh = max(1, int(src_w * scale)), max(1, int(src_h * scale))
+    photo = photo.resize((nw, nh), Image.Resampling.LANCZOS)
+    left = max(0, (nw - width) // 2)
+    top = max(0, (nh - height) // 2)
+    return photo.crop((left, top, left + width, top + height))
+
+
+def _fade_right(photo: Image.Image, color, start_ratio: float = 0.42) -> Image.Image:
+    width, height = photo.size
+    ramp = Image.new("L", (width, 1))
+    pix = ramp.load()
+    start = int(width * start_ratio)
+    for x in range(width):
+        if x <= start:
+            pix[x, 0] = 0
+        else:
+            pix[x, 0] = min(255, int(255 * (x - start) / max(1, width - start)))
+    alpha = ramp.resize((width, height), Image.Resampling.BILINEAR)
+    veil = Image.new("RGBA", (width, height), color + (0,))
+    veil.putalpha(alpha)
+    return Image.alpha_composite(photo.convert("RGBA"), veil).convert("RGB")
+
+
+def _tracked(draw: ImageDraw.ImageDraw, text: str, xy, font, fill, tracking: int = 4):
+    x, y = xy
+    for ch in text or "":
+        draw.text((x, y), ch, font=font, fill=fill)
+        x += max(4, _text_width(draw, ch if ch != " " else "0", font)) + tracking
+    return x
+
+
 def safe_filename_part(value: str) -> str:
     cleaned = re.sub(r"[^\w\-]+", "_", (value or "").strip(), flags=re.UNICODE)
     cleaned = re.sub(r"_+", "_", cleaned).strip("_")
@@ -157,16 +216,23 @@ def _jpegs_to_pdf(pages: list[tuple[bytes, int, int]]) -> bytes:
 
 
 def invitation_filename(invitation: Invitation) -> str:
-    if invitation.is_vip:
+    event = invitation.event
+    if event is not None and getattr(event, "is_ticketing", False):
+        prefix = "GEB"
+        kind = "billet"
+    elif invitation.is_vip:
         prefix = "VIP"
+        kind = "invitation"
     elif invitation.event_id and invitation.event.code_prefix:
         prefix = invitation.event.code_prefix
+        kind = "invitation"
     else:
         from .constants import RECIPIENT_CODE_PREFIX
 
         prefix = RECIPIENT_CODE_PREFIX
+        kind = "invitation"
     return (
-        f"invitation_{prefix}_"
+        f"{kind}_{prefix}_"
         f"{safe_filename_part(invitation.first_name)}_"
         f"{safe_filename_part(invitation.last_name)}.png"
     )
@@ -204,7 +270,34 @@ def _static_image(rel: str) -> Path | None:
     return None
 
 
-def _cover_path(event) -> Path | None:
+def _site_hero_path() -> Path | None:
+    """Image hero Gab Event (accueil), sinon couverture site, sinon None."""
+    try:
+        from .models import SiteSettings
+
+        site = SiteSettings.objects.first()
+    except Exception:
+        site = None
+    if site:
+        for attr in ("hero_image", "default_cover"):
+            field = getattr(site, attr, None)
+            if not field:
+                continue
+            try:
+                path = Path(field.path)
+                if path.exists():
+                    return path
+            except (ValueError, OSError):
+                pass
+    return None
+
+
+def _cover_path(event, *, ticketing: bool = False) -> Path | None:
+    """
+    Affiche organisateur si uploadée.
+    Billet : sinon hero Gab Event.
+    Invitation classique : sinon image de catégorie, puis hero site.
+    """
     if event is not None and getattr(event, "flyer", None):
         try:
             path = Path(event.flyer.path)
@@ -212,6 +305,13 @@ def _cover_path(event) -> Path | None:
                 return path
         except (ValueError, OSError):
             pass
+    if ticketing:
+        hero = _site_hero_path()
+        if hero:
+            return hero
+        from .branding import DEFAULT_COVER
+
+        return _static_image(DEFAULT_COVER)
     if event is not None:
         try:
             from .models import EventCategory
@@ -230,6 +330,9 @@ def _cover_path(event) -> Path | None:
             static_cover = _static_image(cat.default_image_static)
             if static_cover:
                 return static_cover
+    hero = _site_hero_path()
+    if hero:
+        return hero
     from .branding import DEFAULT_COVER
 
     return _static_image(DEFAULT_COVER)
@@ -377,7 +480,167 @@ def _paste_medallion(base: Image.Image, cover: Path, cx: int, cy: int, size: int
 
 
 def render_invitation_card(invitation: Invitation) -> Image.Image:
-    """Carte-lettre cérémonielle 1080×1620, calligraphie et motifs or."""
+    """Carte-lettre cérémonielle, ou stub billetterie pour les événements payants."""
+    event = invitation.event
+    if event is not None and getattr(event, "is_ticketing", False):
+        return render_ticketing_card(invitation)
+    return render_classic_invitation_card(invitation)
+
+
+def render_ticketing_card(invitation: Invitation) -> Image.Image:
+    """
+    Billet paysage type boarding pass : fort contraste, grand QR, code groupé.
+    Lisible en intérieur sombre, au soleil, et à 40 cm d’un contrôleur.
+    """
+    from .code_service import display_access_code
+    from .models import public_tier_name
+
+    event = invitation.event
+    cfg = ceremony_settings(event)
+    width, height = 1920, 720
+    navy = (14, 22, 40)
+    navy_deep = (8, 14, 28)
+    cream = (247, 244, 236)
+    ink = (16, 24, 42)
+    muted = (70, 80, 102)
+    gold = (196, 158, 74)
+    img = Image.new("RGB", (width, height), navy)
+    draw = ImageDraw.Draw(img)
+
+    photo_w = 560
+    cover = _cover_path(event, ticketing=True)
+    if cover:
+        try:
+            photo = _fade_right(_cover_fill(cover, photo_w + 40, height), navy, 0.58)
+            img.paste(photo, (0, 0))
+        except Exception:  # noqa: BLE001
+            draw.rectangle([0, 0, photo_w, height], fill=navy_deep)
+    else:
+        draw.rectangle([0, 0, photo_w, height], fill=navy_deep)
+
+    overlay = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+    od = ImageDraw.Draw(overlay)
+    od.rectangle([0, 0, photo_w, 64], fill=(8, 14, 28, 150))
+    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    _tracked(draw, "GAB EVENT", (28, 16), _sans(18, bold=True), (255, 255, 255), tracking=4)
+
+    stub_x = 1388
+    draw.rectangle([photo_w - 8, 0, stub_x, height], fill=cream)
+    draw.rectangle([stub_x, 0, width, height], fill=navy_deep)
+
+    for y in range(18, height - 8, 28):
+        draw.ellipse([stub_x - 9, y, stub_x + 9, y + 18], fill=navy)
+    draw.line([(stub_x, 0), (stub_x, height)], fill=(210, 204, 190), width=2)
+
+    title = (cfg.get("title") or (event.name if event else "Événement"))[:72]
+    organizer = (cfg.get("organizer") or "").strip()
+    when = cfg.get("date") or "Date à confirmer"
+    clock = cfg.get("time") or ""
+    venue = cfg.get("venue") or "Lieu à confirmer"
+    if event and getattr(event, "city", ""):
+        if event.city not in venue:
+            venue = f"{venue} · {event.city}" if venue else event.city
+
+    if getattr(invitation, "ticket_tier_id", None) and invitation.ticket_tier:
+        tier_name = public_tier_name(invitation.ticket_tier.name)
+    elif invitation.category:
+        tier_name = public_tier_name(invitation.category)
+    elif invitation.is_vip:
+        tier_name = "VIP"
+    else:
+        tier_name = "Standard"
+
+    x0 = photo_w + 44
+    content_w = stub_x - x0 - 44
+    draw.text((x0, 32), "BILLET D'ENTRÉE", font=_sans(16, bold=True), fill=gold)
+    title_font = _fit_font(draw, title, lambda s: _sans(s, bold=True), 52, 32, content_w)
+    y = 68
+    title_lines = _wrap_text(draw, title, title_font, content_w)[:2]
+    for line in title_lines:
+        draw.text((x0, y), line, font=title_font, fill=ink)
+        bbox = draw.textbbox((0, 0), line, font=title_font)
+        y += max(46, bbox[3] - bbox[1] + 10)
+    if organizer:
+        draw.text((x0, y + 4), f"Organisé par {organizer}", font=_sans(22), fill=muted)
+        y += 42
+    y += 18
+    draw.line([(x0, y), (stub_x - 40, y)], fill=(214, 208, 194), width=2)
+    y += 28
+
+    facts = [("DATE", when), ("HEURE", clock or "—"), ("LIEU", venue)]
+    col_w = content_w // 3
+    val_font = _sans(22, bold=True)
+    lab_font = _sans(13, bold=True)
+    for i, (label, value) in enumerate(facts):
+        fx = x0 + i * col_w
+        draw.text((fx, y), label, font=lab_font, fill=muted)
+        wrapped = _wrap_text(draw, str(value)[:48], val_font, col_w - 16)
+        fy = y + 26
+        for wline in wrapped[:2]:
+            draw.text((fx, fy), wline, font=val_font, fill=ink)
+            fy += 28
+
+    y += 118
+    draw.text((x0, y), "TITULAIRE", font=_sans(13, bold=True), fill=muted)
+    holder = invitation.full_name or "Invité"
+    holder_font = _fit_font(draw, holder, lambda s: _sans(s, bold=True), 40, 26, content_w - 220)
+    draw.text((x0, y + 26), holder, font=holder_font, fill=ink)
+
+    badge = (tier_name or "Standard").upper()
+    badge_font = _sans(18, bold=True)
+    bw = max(132, _text_width(draw, badge, badge_font) + 40)
+    bx1, by1 = stub_x - 52 - bw, y + 20
+    draw.rounded_rectangle([bx1, by1, bx1 + bw, by1 + 48], radius=10, fill=navy)
+    tw = _text_width(draw, badge, badge_font)
+    draw.text((bx1 + (bw - tw) / 2, by1 + 12), badge, font=badge_font, fill=(255, 255, 255))
+
+    draw.text(
+        (x0, height - 72),
+        "Présentez le QR à l'entrée  ·  1 billet = 1 personne  ·  Non reproductible",
+        font=_sans(16),
+        fill=muted,
+    )
+    draw.text((x0, height - 42), "GAB EVENT", font=_sans(15, bold=True), fill=gold)
+
+    qr_box = 300
+    qx = stub_x + (width - stub_x - qr_box) // 2
+    qy = 42
+    draw.rounded_rectangle(
+        [qx - 18, qy - 18, qx + qr_box + 18, qy + qr_box + 18],
+        radius=20,
+        fill=(255, 255, 255),
+    )
+    qr = build_qr_image(invitation.code, box_size=10, border=3, high_contrast=True)
+    qr = qr.resize((qr_box, qr_box), Image.Resampling.NEAREST)
+    img.paste(qr, (qx, qy))
+    draw = ImageDraw.Draw(img)
+
+    readable = display_access_code(invitation.code)
+    code_font = _mono(26, bold=True)
+    cw = _text_width(draw, readable, code_font)
+    code_y = qy + qr_box + 40
+    draw.rounded_rectangle(
+        [stub_x + 24, code_y - 14, width - 24, code_y + 50],
+        radius=12,
+        fill=(255, 255, 255),
+    )
+    draw.text(
+        (stub_x + (width - stub_x - cw) // 2, code_y),
+        readable,
+        font=code_font,
+        fill=(0, 0, 0),
+    )
+    draw.text(
+        (stub_x + (width - stub_x) // 2 - 70, height - 48),
+        "SCAN  ·  ENTRÉE",
+        font=_sans(14, bold=True),
+        fill=gold,
+    )
+    return img
+
+
+def render_classic_invitation_card(invitation: Invitation) -> Image.Image:
     event = invitation.event
     cfg = ceremony_settings(event)
     width, height = 1080, 1620

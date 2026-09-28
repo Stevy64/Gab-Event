@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Configurer la billetterie — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui page-ticketing{% endblock %}
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Billetterie" nav_active="ticketing" %}
+<main class="ge-app ge-sheet-page">
+  <header class="ge-sheet-hero ge-tk-hero">
+    <p class="ge-kicker">Billetterie</p>
+    <h1>{% if event %}Modifier {{ event.name }}{% else %}Nouvel événement payant{% endif %}</h1>
+    <p class="ge-sheet-help">Affiche, organisateur, lieu, date et tarifs : tout est obligatoire avant publication.</p>
+  </header>
+
+  <form method="post" enctype="multipart/form-data" class="ge-studio-form ge-tk-setup">
+    {% csrf_token %}
+    <section class="ge-form-card ge-studio-card">
+      <div class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          {% include "partials/field_icon.html" with name="calendar" %}
+        </span>
+        <div>
+          <h2>L’événement</h2>
+          <p>Ce que le public lira sur l’agenda et le billet.</p>
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="id_flyer">Affiche / image</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="image" %}
+          <input id="id_flyer" type="file" name="flyer" accept="image/*"{% if not event or not event.flyer %} required{% endif %}>
+        </div>
+        {% if event and event.flyer %}
+        <p class="ge-muted">Affiche actuelle en ligne. Choisissez un fichier pour la remplacer.</p>
+        {% endif %}
+      </div>
+      <div class="ge-field">
+        <label for="id_name">Nom de l’événement</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="star" %}
+          <input id="id_name" name="name" required value="{{ initial.name }}" placeholder="Concert au Palais, Soirée de gala…">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="id_organizer_name">Organisé par</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="org" %}
+          <input id="id_organizer_name" name="organizer_name" required value="{{ initial.organizer_name }}" placeholder="Nom de l’organisateur, association, collectif…">
+        </div>
+      </div>
+      <div class="ge-studio-split">
+        <div class="ge-field">
+          <label for="id_event_type">Catégorie</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="tag" %}
+            <select id="id_event_type" name="event_type">
+              <option value="concert" {% if initial.event_type == 'concert' %}selected{% endif %}>Concert</option>
+              <option value="wedding" {% if initial.event_type == 'wedding' %}selected{% endif %}>Mariage</option>
+              <option value="gala" {% if initial.event_type == 'gala' %}selected{% endif %}>Gala</option>
+              <option value="other" {% if initial.event_type == 'other' %}selected{% endif %}>Autre</option>
+            </select>
+          </div>
+        </div>
+        <div class="ge-field">
+          <label for="id_date">Date</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="calendar" %}
+            <input id="id_date" type="date" name="date" required value="{{ initial.date|date:'Y-m-d'|default:initial.date }}">
+          </div>
+        </div>
+      </div>
+      <div class="ge-studio-split">
+        <div class="ge-field">
+          <label for="id_start_time">Heure</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="clock" %}
+            <input id="id_start_time" type="time" name="start_time" required value="{{ initial.start_time }}">
+          </div>
+        </div>
+        <div class="ge-field">
+          <label for="id_city">Ville</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="city" %}
+            <input id="id_city" name="city" value="{{ initial.city }}" placeholder="Libreville">
+          </div>
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="id_venue">Lieu</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="pin" %}
+          <input id="id_venue" name="venue" required value="{{ initial.venue }}" placeholder="Palais des sports, salle…">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="id_address">Adresse</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="home" %}
+          <input id="id_address" name="address" value="{{ initial.address }}">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label for="id_description">Détails de l’événement</label>
+        <div class="ge-field-wrap is-area">
+          {% include "partials/field_icon.html" with name="note" %}
+          <textarea id="id_description" name="description" rows="4" required placeholder="Ambiance, artistes, dress code…">{{ initial.description }}</textarea>
+        </div>
+      </div>
+    </section>
+
+    <section class="ge-form-card ge-studio-card">
+      <div class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          {% include "partials/field_icon.html" with name="ticket" %}
+        </span>
+        <div>
+          <h2>Catégories de billets</h2>
+          <p>Prix en F CFA. Quantité 0 = illimité.</p>
+        </div>
+      </div>
+      <div id="ge-tier-rows" class="ge-tk-tiers">
+        {% for t in tiers %}
+        <div class="ge-tk-tier" data-tier-row>
+          <div class="ge-studio-split">
+            <div class="ge-field">
+              <label>Type</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="ticket" %}
+                <input name="tier_name" value="{{ t.public_name|default:t.name }}" placeholder="Standard, VIP…">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Prix</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="money" %}
+                <input name="tier_price" inputmode="numeric" value="{{ t.price|floatformat:0 }}" placeholder="5000">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Quantité</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="qty" %}
+                <input name="tier_qty" inputmode="numeric" value="{{ t.quantity }}" placeholder="0">
+              </div>
+            </div>
+          </div>
+          <div class="ge-field">
+            <label>Détail</label>
+            <div class="ge-field-wrap">
+              {% include "partials/field_icon.html" with name="text" %}
+              <input name="tier_desc" value="{{ t.description }}" placeholder="Accès, avantages…">
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <p>
+        <button type="button" class="ge-btn-ghost" id="ge-add-presale">Ajouter une prévente</button>
+        <button type="button" class="ge-btn-ghost" id="ge-add-tier">Autre catégorie</button>
+      </p>
+      <p class="ge-muted">Standard et VIP suffisent. La prévente (tarif anticipé) est optionnelle.</p>
+    </section>
+
+    <p class="ge-studio-save">
+      <button class="ok-btn-dark" type="submit">Enregistrer</button>
+      <a class="ge-btn-ghost" href="{% url 'ticketing_hub' %}">Annuler</a>
+    </p>
+  </form>
+</main>
+<template id="ge-tier-tpl">
+  <div class="ge-tk-tier" data-tier-row>
+    <div class="ge-studio-split">
+      <div class="ge-field">
+        <label>Type</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="ticket" %}
+          <input name="tier_name" placeholder="Standard, VIP…">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label>Prix</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="money" %}
+          <input name="tier_price" inputmode="numeric" placeholder="5000">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label>Quantité</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="qty" %}
+          <input name="tier_qty" inputmode="numeric" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="ge-field">
+      <label>Détail</label>
+      <div class="ge-field-wrap">
+        {% include "partials/field_icon.html" with name="text" %}
+        <input name="tier_desc" placeholder="Accès, avantages…">
+      </div>
+    </div>
+  </div>
+</template>
+<template id="ge-tier-presale">
+  <div class="ge-tk-tier" data-tier-row>
+    <div class="ge-studio-split">
+      <div class="ge-field">
+        <label>Type</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="ticket" %}
+          <input name="tier_name" value="Prévente" placeholder="Prévente">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label>Prix</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="money" %}
+          <input name="tier_price" inputmode="numeric" value="3500" placeholder="3500">
+        </div>
+      </div>
+      <div class="ge-field">
+        <label>Quantité</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="qty" %}
+          <input name="tier_qty" inputmode="numeric" value="0" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="ge-field">
+      <label>Détail</label>
+      <div class="ge-field-wrap">
+        {% include "partials/field_icon.html" with name="text" %}
+        <input name="tier_desc" value="Tarif anticipé, places limitées." placeholder="Accès, avantages…">
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+(function () {
+  var rows = document.getElementById("ge-tier-rows");
+  var tpl = document.getElementById("ge-tier-tpl");
+  var presale = document.getElementById("ge-tier-presale");
+  var add = document.getElementById("ge-add-tier");
+  var addPresale = document.getElementById("ge-add-presale");
+  if (!rows) return;
+  if (add && tpl) {
+    add.addEventListener("click", function () {
+      rows.appendChild(tpl.content.cloneNode(true));
+    });
+  }
+  if (addPresale && presale) {
+    addPresale.addEventListener("click", function () {
+      var exists = Array.prototype.some.call(rows.querySelectorAll('input[name="tier_name"]'), function (input) {
+        return (input.value || "").trim().toLowerCase() === "prévente";
+      });
+      if (exists) return;
+      rows.appendChild(presale.content.cloneNode(true));
+    });
+  }
+})();
+</script>
+{% endblock %}

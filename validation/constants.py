@@ -9,6 +9,10 @@ from .branding import DEFAULT_PRIMARY_COLOR, default_cover_url, default_logo_url
 # Préfixe fallback (désormais choisi par événement, ex. GAE26)
 RECIPIENT_CODE_PREFIX = getattr(settings, "RECIPIENT_CODE_PREFIX", None) or year_code_prefix()
 VIP_CODE_PREFIX = getattr(settings, "VIP_CODE_PREFIX", "VIP")
+# Billets payants : nomenclature distincte des invitations (Weezevent / Ticketmaster).
+TICKET_CODE_PREFIX = getattr(settings, "TICKET_CODE_PREFIX", "GEB")
+TICKET_SUFFIX_LENGTH = 8
+TICKET_GROUP_LENGTH = 4
 
 CODE_ALPHABET = getattr(
     settings,

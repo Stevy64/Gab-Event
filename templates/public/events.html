@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Événements du moment — {{ site_name }}{% endblock %}
+{% block body_class %}page-landing page-agenda{% endblock %}
+{% block content %}
+<div class="ok-landing ge-agenda">
+  {% include "partials/public_nav.html" with nav_active="events" %}
+
+  <section class="ok-band ge-agenda-hero">
+    <div class="ok-wrap">
+      <p class="ok-kicker">Agenda</p>
+      <h1 class="ok-display">Événements <em>du moment</em></h1>
+      <p class="ok-intro">Concerts, mariages et autres rendez-vous publiés à venir.</p>
+      <form method="get" class="ok-search-pill ge-agenda-search" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+        <input type="search" name="q" value="{{ q }}" placeholder="Rechercher un événement, un lieu…" aria-label="Rechercher">
+        {% if cat and cat != "all" %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+        <button type="submit" class="ok-search-go" aria-label="Lancer la recherche">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </form>
+      <div class="ge-agenda-cats" role="tablist">
+        {% for key, label, count in groups %}
+        <a class="ge-agenda-cat {% if cat == key %}is-on{% endif %}" href="?q={{ q|urlencode }}&amp;cat={{ key }}">{{ label }} <em>{{ count }}</em></a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <section class="ok-band ge-agenda-list">
+    <div class="ok-wrap">
+      {% if not events %}
+      <div class="ge-empty ge-agenda-empty">
+        <span class="ge-empty-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/></svg>
+        </span>
+        <h2>{% if q %}Aucun résultat{% else %}Rien de prévu pour l’instant{% endif %}</h2>
+        <p>{% if q %}Essayez un autre mot-clé.{% else %}Les prochains concerts, mariages et rendez-vous apparaîtront ici.{% endif %}</p>
+        {% if user.is_authenticated %}
+        <a class="ok-btn-dark" href="{% url 'ticketing_hub' %}">Vendre des billets</a>
+        {% else %}
+        <a class="ok-btn-dark" href="{% url 'landing' %}">Découvrir Gab Event</a>
+        {% endif %}
+      </div>
+      {% else %}
+      <div class="ge-agenda-stack">
+        {% for event in events %}
+        <article class="ge-agenda-item" data-starts-at="{{ event.starts_at_iso }}">
+          <div class="ge-agenda-card">
+            <button type="button" class="ge-agenda-hit" data-event-open="{{ event.id }}" data-no-loader aria-label="Voir {{ event.name }}">
+              <div class="ge-agenda-cover" style="background-image:url('{{ event.cover_url }}')">
+                <div class="ge-agenda-cover-veil"></div>
+                <div class="ge-agenda-cover-copy">
+                  <span class="ge-agenda-badge">{{ event.type_label }}</span>
+                  <h2>{{ event.name }}</h2>
+                  <p>{{ event.display_date_long|default:"Date à confirmer" }}</p>
+                </div>
+              </div>
+              <div class="ge-agenda-body">
+                {% if event.venue or event.city %}
+                <p class="ge-agenda-fact">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+                  <span>{{ event.venue|default:event.city }}{% if event.venue and event.city %} · {{ event.city }}{% endif %}</span>
+                </p>
+                {% endif %}
+                {% if event.display_time %}
+                <p class="ge-agenda-fact">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+                  <span>{{ event.display_time }}</span>
+                </p>
+                {% endif %}
+                {% if event.is_ticketing and event.cheapest_ticket_price %}
+                <p class="ge-agenda-price">À partir de {{ event.cheapest_ticket_price|floatformat:0 }} F CFA</p>
+                {% endif %}
+                <span class="ge-agenda-info-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+                  Voir les infos de l’événement
+                </span>
+              </div>
+            </button>
+          </div>
+          {% if event.starts_at_iso %}
+          <div class="ge-agenda-countdown" aria-label="Temps restant">
+            <p class="ge-agenda-countdown-title">Temps restant pour l’événement</p>
+            <div class="ge-agenda-countdown-grid" data-countdown="{{ event.starts_at_iso }}">
+              <div><strong data-cd="d">—</strong><span>Jours</span></div>
+              <div><strong data-cd="h">—</strong><span>Heures</span></div>
+              <div><strong data-cd="m">—</strong><span>Min</span></div>
+              <div><strong data-cd="s">—</strong><span>Sec</span></div>
+            </div>
+          </div>
+          {% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </section>
+  {% include "partials/legal_foot.html" %}
+  {{ agenda_payload|json_script:"ok-search-json" }}
+  {% include "partials/public_event_sheet.html" %}
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var overlay = document.getElementById("ok-overlay");
+  var sheet = document.getElementById("ok-event-sheet");
+  var closeBtn = document.getElementById("ok-event-close");
+  var data = {};
+  try {
+    var raw = document.getElementById("ok-search-json");
+    if (raw && raw.textContent) {
+      JSON.parse(raw.textContent).forEach(function (ev) {
+        data[String(ev.id)] = ev;
+      });
+    }
+  } catch (err) {}
+
+  function setOpen(el, open) {
+    if (!el) return;
+    el.hidden = !open;
+    if (open) requestAnimationFrame(function () { el.classList.add("is-open"); });
+    else el.classList.remove("is-open");
+  }
+  function closeSheet() {
+    if (sheet) {
+      sheet.style.transform = "";
+      sheet.classList.remove("is-dragging");
+    }
+    setOpen(sheet, false);
+    setOpen(overlay, false);
+    document.body.classList.remove("ok-sheet-open");
+  }
+  function setFact(id, value) {
+    var row = document.getElementById(id);
+    if (!row) return;
+    var span = row.querySelector("span");
+    if (!value) { row.hidden = true; return; }
+    if (span) span.textContent = value;
+    row.hidden = false;
+  }
+  function pad(n) { return String(Math.max(0, n)); }
+  function tickCountdown(root) {
+    var iso = root.getAttribute("data-countdown");
+    if (!iso) return;
+    var target = Date.parse(iso);
+    if (!target) return;
+    var diff = Math.max(0, target - Date.now());
+    var sec = Math.floor(diff / 1000);
+    var d = Math.floor(sec / 86400); sec -= d * 86400;
+    var h = Math.floor(sec / 3600); sec -= h * 3600;
+    var m = Math.floor(sec / 60); sec -= m * 60;
+    var map = { d: d, h: h, m: m, s: sec };
+    root.querySelectorAll("[data-cd]").forEach(function (el) {
+      el.textContent = pad(map[el.getAttribute("data-cd")] || 0);
+    });
+  }
+  function refreshCountdowns() {
+    document.querySelectorAll("[data-countdown]").forEach(tickCountdown);
+  }
+  refreshCountdowns();
+  setInterval(refreshCountdowns, 1000);
+
+  function fillSheet(ev) {
+    var title = document.getElementById("ok-event-title");
+    var type = document.getElementById("ok-event-type");
+    var hero = document.getElementById("ok-event-hero");
+    var flyer = document.getElementById("ok-event-flyer");
+    var logoWrap = document.getElementById("ok-event-logo-wrap");
+    var logo = document.getElementById("ok-event-logo");
+    var desc = document.getElementById("ok-event-desc");
+    var cta = document.getElementById("ok-event-cta");
+    var recover = document.getElementById("ok-event-recover");
+    var cd = document.getElementById("ok-event-countdown");
+    if (title) title.textContent = ev.name || "";
+    if (type) type.textContent = (ev.type || "") + (ev.is_ticketing ? " · Billetterie" : "");
+    if (hero) hero.style.setProperty("--hit-color", ev.color || "#1A2744");
+    if (flyer && hero) {
+      if (ev.flyer) {
+        flyer.src = ev.flyer;
+        flyer.hidden = false;
+        hero.classList.add("has-img");
+      } else {
+        flyer.removeAttribute("src");
+        flyer.hidden = true;
+        hero.classList.remove("has-img");
+      }
+    }
+    if (logoWrap && logo) {
+      if (ev.logo) {
+        logo.src = ev.logo;
+        logoWrap.hidden = false;
+      } else {
+        logo.removeAttribute("src");
+        logoWrap.hidden = true;
+      }
+    }
+    var place = [ev.venue, ev.address, ev.city].filter(Boolean).join(" · ");
+    setFact("ok-event-date", ev.date_long || ev.date || "");
+    setFact("ok-event-time", ev.time || "");
+    setFact("ok-event-place", place);
+    setFact("ok-event-org", ev.organizer || "");
+    setFact("ok-event-price", ev.price ? ("À partir de " + ev.price + " F CFA") : "");
+    if (desc) {
+      desc.textContent = ev.description || "";
+      desc.hidden = !ev.description;
+    }
+    if (cd) {
+      if (ev.starts_at) {
+        cd.setAttribute("data-countdown", ev.starts_at);
+        cd.hidden = false;
+        tickCountdown(cd);
+      } else {
+        cd.hidden = true;
+        cd.removeAttribute("data-countdown");
+      }
+    }
+    if (cta) {
+      var href = ev.buy || "";
+      var label = document.getElementById("ok-event-cta-label");
+      if (href) {
+        cta.href = href;
+        if (label) label.textContent = ev.cta || "Voir l’événement";
+        else cta.textContent = ev.cta || "Voir l’événement";
+        cta.hidden = false;
+      } else {
+        cta.removeAttribute("href");
+        cta.hidden = true;
+      }
+    }
+    if (recover) {
+      if (ev.recover) {
+        recover.href = ev.recover;
+        recover.hidden = false;
+      } else {
+        recover.hidden = true;
+      }
+    }
+  }
+
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest("[data-event-open]");
+    if (!btn) return;
+    var ev = data[btn.getAttribute("data-event-open")];
+    if (!ev || !sheet) return;
+    e.preventDefault();
+    fillSheet(ev);
+    setOpen(overlay, true);
+    setOpen(sheet, true);
+    document.body.classList.add("ok-sheet-open");
+  });
+  if (overlay) overlay.addEventListener("click", closeSheet);
+  if (closeBtn) closeBtn.addEventListener("click", closeSheet);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeSheet();
+  });
+})();
+</script>
+{% endblock %}

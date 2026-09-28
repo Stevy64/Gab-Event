@@ -44,27 +44,42 @@
       </header>
       <div class="ge-field">
         <label for="{{ form.name.id_for_label }}">Nom de l’événement</label>
-        {{ form.name }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="star" %}
+          {{ form.name }}
+        </div>
         {% if form.name.errors %}<span class="ge-field-err">{{ form.name.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.event_type.id_for_label }}">Type</label>
-        {{ form.event_type }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="tag" %}
+          {{ form.event_type }}
+        </div>
         {% if form.event_type.errors %}<span class="ge-field-err">{{ form.event_type.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field" data-custom-type-field {% if form.event_type.value != "other" %}hidden{% endif %}>
         <label for="{{ form.event_type_custom.id_for_label }}">Nommez ce type</label>
-        {{ form.event_type_custom }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="text" %}
+          {{ form.event_type_custom }}
+        </div>
         {% if form.event_type_custom.errors %}<span class="ge-field-err">{{ form.event_type_custom.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.description.id_for_label }}">Description</label>
-        {{ form.description }}
+        <div class="ge-field-wrap is-area">
+          {% include "partials/field_icon.html" with name="note" %}
+          {{ form.description }}
+        </div>
         {% if form.description.errors %}<span class="ge-field-err">{{ form.description.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.code_prefix.id_for_label }}">Préfixe des invitations</label>
-        {{ form.code_prefix }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="hash" %}
+          {{ form.code_prefix }}
+        </div>
         {% if form.code_prefix.help_text %}<small class="ge-field-hint">{{ form.code_prefix.help_text }}</small>{% endif %}
         {% if form.code_prefix.errors %}<span class="ge-field-err">{{ form.code_prefix.errors.0 }}</span>{% endif %}
       </div>
@@ -83,35 +98,53 @@
       <div class="ge-auth-grid ge-auth-grid-3">
         <div class="ge-field">
           <label for="{{ form.date.id_for_label }}">Date</label>
-          {{ form.date }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="calendar" %}
+            {{ form.date }}
+          </div>
           {% if form.date.errors %}<span class="ge-field-err">{{ form.date.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.start_time.id_for_label }}">Début</label>
-          {{ form.start_time }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="clock" %}
+            {{ form.start_time }}
+          </div>
           {% if form.start_time.errors %}<span class="ge-field-err">{{ form.start_time.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.end_time.id_for_label }}">Fin</label>
-          {{ form.end_time }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="clock" %}
+            {{ form.end_time }}
+          </div>
           {% if form.end_time.errors %}<span class="ge-field-err">{{ form.end_time.errors.0 }}</span>{% endif %}
         </div>
       </div>
       <div class="ge-studio-split">
         <div class="ge-field">
           <label for="{{ form.venue.id_for_label }}">Lieu</label>
-          {{ form.venue }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="pin" %}
+            {{ form.venue }}
+          </div>
           {% if form.venue.errors %}<span class="ge-field-err">{{ form.venue.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.city.id_for_label }}">Ville</label>
-          {{ form.city }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="city" %}
+            {{ form.city }}
+          </div>
           {% if form.city.errors %}<span class="ge-field-err">{{ form.city.errors.0 }}</span>{% endif %}
         </div>
       </div>
       <div class="ge-field">
         <label for="{{ form.address.id_for_label }}">Adresse</label>
-        {{ form.address }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="home" %}
+          {{ form.address }}
+        </div>
         {% if form.address.errors %}<span class="ge-field-err">{{ form.address.errors.0 }}</span>{% endif %}
       </div>
       {% if event.is_custom_plan %}
@@ -127,9 +160,9 @@
           {% if form.validity_ends_on.errors %}<span class="ge-field-err">{{ form.validity_ends_on.errors.0 }}</span>{% endif %}
         </div>
       </div>
-      <p class="ge-muted">L’événement Personnalisé sera supprimé automatiquement à la date de fin.</p>
+      <p class="ge-muted">La billetterie sera archivée automatiquement à la date de fin. Vos listes restent consultables.</p>
       {% elif event.expires_at %}
-      <p class="ge-muted">Suppression automatique le {{ event.expires_at|date:"d/m/Y" }}{% if event.days_until_expiry is not None %} ({{ event.days_until_expiry }} j restants){% endif %}.</p>
+      <p class="ge-muted">Archivage automatique le {{ event.expires_at|date:"d/m/Y" }}{% if event.days_until_expiry is not None %} ({{ event.days_until_expiry }} j restants){% endif %}. Les invitations restent disponibles.</p>
       {% endif %}
     </section>
 
@@ -145,13 +178,19 @@
       </header>
       <div class="ge-studio-split">
         <div class="ge-field">
-          <label for="{{ form.organizer_name.id_for_label }}">Nom de l’organisateur</label>
-          {{ form.organizer_name }}
+          <label for="{{ form.organizer_name.id_for_label }}">Organisé par</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="org" %}
+            {{ form.organizer_name }}
+          </div>
           {% if form.organizer_name.errors %}<span class="ge-field-err">{{ form.organizer_name.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.contact_information.id_for_label }}">Contact</label>
-          {{ form.contact_information }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="phone" %}
+            {{ form.contact_information }}
+          </div>
           {% if form.contact_information.errors %}<span class="ge-field-err">{{ form.contact_information.errors.0 }}</span>{% endif %}
         </div>
       </div>
@@ -169,12 +208,18 @@
       </header>
       <div class="ge-field">
         <label for="{{ form.welcome_text.id_for_label }}">Message d’accueil</label>
-        {{ form.welcome_text }}
+        <div class="ge-field-wrap is-area">
+          {% include "partials/field_icon.html" with name="note" %}
+          {{ form.welcome_text }}
+        </div>
         {% if form.welcome_text.errors %}<span class="ge-field-err">{{ form.welcome_text.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field">
         <label for="{{ form.invitation_message.id_for_label }}">Message d’invitation</label>
-        {{ form.invitation_message }}
+        <div class="ge-field-wrap is-area">
+          {% include "partials/field_icon.html" with name="mail" %}
+          {{ form.invitation_message }}
+        </div>
         {% if form.invitation_message.errors %}<span class="ge-field-err">{{ form.invitation_message.errors.0 }}</span>{% endif %}
       </div>
       <div class="ge-field ge-color-row">

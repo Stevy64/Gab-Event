@@ -31,7 +31,7 @@
                data-unlimited="{% if plan.is_custom %}1{% else %}0{% endif %}"
                data-custom="{% if plan.is_custom %}1{% else %}0{% endif %}"
                data-paid="{% if plan.is_free or plan.is_custom or plan.price == 0 %}0{% else %}1{% endif %}"
-               data-price="{% if plan.is_custom %}{{ plan.price_per_regular|floatformat:0 }} F CFA / std{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} F CFA{% endif %}">
+               data-price="{% if plan.is_custom %}{{ site.commission_pct|floatformat:0 }} % par billet{% elif plan.is_free or plan.price == 0 %}Gratuit{% else %}{{ plan.price|floatformat:'0g' }} F CFA{% endif %}">
           <input type="radio" name="plan" value="{{ plan.id }}" required>
           <header class="ge-plan-head">
             <h3>{{ plan.name }}</h3>
@@ -39,8 +39,8 @@
           </header>
           <p class="ge-plan-price">
             {% if plan.is_custom %}
-            <em>{{ plan.price_per_regular|floatformat:0 }}</em>
-            <small>F CFA / std</small>
+            <em>{{ site.commission_pct|floatformat:0 }}&nbsp;%</em>
+            <small>par billet vendu</small>
             {% elif plan.is_free or plan.price == 0 %}
             <em>Gratuit</em>
             {% else %}
@@ -49,14 +49,19 @@
             {% endif %}
           </p>
           {% if plan.is_custom %}
-          <p class="ge-plan-cap">{{ plan.price_per_vip|floatformat:0 }} F CFA / VIP · Au choix</p>
-          {% elif plan.total_invitation_limit %}
-          <p class="ge-plan-cap">Jusqu’à {{ plan.total_invitation_limit }} personnes</p>
-          {% else %}
-          <p class="ge-plan-cap">{{ plan.regular_invitation_limit }} · {{ plan.vip_invitation_limit }} VIP</p>
+          <p class="ge-plan-cap">Billetterie publique</p>
+          {% elif plan.capacity_label %}
+          <p class="ge-plan-cap">{{ plan.capacity_label }}</p>
+          {% endif %}
+          {% if plan.extra_ticket_label %}
+          <p class="ge-plan-extra">{{ plan.extra_ticket_label }}</p>
           {% endif %}
           <p class="ge-plan-life">{{ plan.lifetime_label }}</p>
+          {% if plan.is_custom %}
+          <p class="ge-plan-desc">Créez votre billetterie (concerts, festivals…). 7 % de commission, frais de transfert à votre charge.</p>
+          {% else %}
           <p class="ge-plan-desc">{{ plan.description }}</p>
+          {% endif %}
           <span class="ge-plan-check" aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>
           </span>

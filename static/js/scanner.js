@@ -112,6 +112,9 @@
       compact: function (code) {
         return String(code || "").replace(/[^A-Z0-9]/gi, "").toUpperCase();
       },
+      hashCompact: function (code) {
+        return window.GERoster ? window.GERoster.hashCompact(code) : "";
+      },
       load: function (eventId) {
         try {
           return JSON.parse(localStorage.getItem(this.key(eventId)) || "null");
@@ -129,8 +132,11 @@
         if (!pack || !pack.guests) return null;
         var needle = this.compact(code);
         if (!needle) return null;
+        var hash = this.hashCompact(needle);
         for (var i = 0; i < pack.guests.length; i += 1) {
-          if (this.compact(pack.guests[i].code) === needle) return pack.guests[i];
+          var guest = pack.guests[i];
+          if (hash && guest.code_hash && guest.code_hash === hash) return guest;
+          if (this.compact(guest.code) === needle) return guest;
         }
         return null;
       },
@@ -169,7 +175,12 @@
         try {
           queue = JSON.parse(localStorage.getItem(this.queueKey) || "[]");
         } catch (err) {}
-        queue.push({ event_id: eventId, code: code, at: Date.now() });
+        queue.push({
+          event_id: eventId,
+          code: code,
+          at: Date.now(),
+          by: window.__SCAN_AGENT__ || "",
+        });
         try {
           localStorage.setItem(this.queueKey, JSON.stringify(queue));
         } catch (err) {}
@@ -219,19 +230,9 @@
     const pack = store && eventId ? store.load(eventId) : null;
     const count = pack && pack.guests ? pack.guests.length : 0;
     const pending = store && eventId ? store.pendingCount(eventId) : 0;
-    if (!navigator.onLine) {
-      help.textContent = count
-        ? "Hors-ligne · " + count + " invités synchronisés (liste Excel)."
-        : "Hors-ligne · aucune liste locale. Ouvrez l’événement une fois en ligne pour synchroniser l’Excel.";
-    } else if (count) {
-      help.textContent =
-        count +
-        " invités en mémoire pour le scan hors-ligne" +
-        (pending ? " · " + pending + " entrée(s) à synchroniser" : "") +
-        ".";
-    } else {
-      help.textContent = "La liste des invités (même contenu que l’Excel) se synchronise pour le scan hors-ligne.";
-    }
+    help.textContent = pending
+      ? "Fonctionne sans connexion · " + pending + " présence(s) à synchroniser"
+      : "Fonctionne sans connexion";
   }
 
   function setOnlineUI() {
@@ -376,7 +377,16 @@
         escapeHtml(g.category || "") +
         "</span><code>" +
         escapeHtml(g.code || "") +
-        '</code></div><p class="result-msg">Cette invitation a déjà été scannée et validée.</p>';
+        '</code></div><p class="result-msg">' +
+        escapeHtml(
+          data.message ||
+            "Ce billet a déjà été scanné" +
+              (data.scanned_at_display && data.scanned_by
+                ? " à " + data.scanned_at_display + " par " + data.scanned_by
+                : "") +
+              "."
+        ) +
+        "</p>";
       setResultActions(true, "Scanner le suivant", "Fermer");
       locked = false;
     } else if (data.status === "admitted") {
@@ -901,12 +911,19 @@
 
   window.addEventListener("online", setOnlineUI);
   window.addEventListener("offline", setOnlineUI);
+  window.addEventListener("ge-roster-conflict", function (ev) {
+    const first = ev.detail && ev.detail.conflicts && ev.detail.conflicts[0];
+    if (first) openResultModal(Object.assign({ status: "already_used" }, first));
+  });
   setOnlineUI();
   const eventId = resolveEventId();
   if (roster() && eventId) {
     roster()
       .sync(eventId)
       .then(updateRosterHint);
+  }
+  if (window.GERoster && navigator.onLine) {
+    window.GERoster.flush().then(updateRosterHint);
   }
 
   (function syncEventLabel() {

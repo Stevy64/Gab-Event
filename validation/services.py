@@ -18,7 +18,7 @@ from django.http import HttpResponse
 from django.utils import timezone
 from openpyxl import Workbook, load_workbook
 
-from .code_service import generate_invitation_code, normalize_code
+from .code_service import generate_invitation_code, invitation_code_hash, normalize_code
 from .constants import PARTICIPANT_RECIPIENT, PARTICIPANT_VIP
 from .models import Admission, Event, Invitation, ScanLog
 from .quota_service import can_add_invitations, quota_status
@@ -332,6 +332,34 @@ def import_invitations_from_path(
         workbook.close()
 
 
+def first_admission_info(invitation: Invitation) -> dict:
+    """Premier scan réellement enregistré — sert au popup doublon multi-téléphones."""
+    admission = (
+        invitation.admissions.filter(is_cancelled=False)
+        .order_by("admitted_at")
+        .first()
+    )
+    when = admission.admitted_at if admission else invitation.validated_at
+    by = ""
+    if admission:
+        by = (admission.agent or "").strip()
+    by = by or "un autre téléphone"
+    display = ""
+    if when:
+        display = timezone.localtime(when).strftime("%Hh%M")
+    message = (
+        f"Ce billet a été scanné à {display} par {by}."
+        if display
+        else f"Ce billet a déjà été scanné par {by}."
+    )
+    return {
+        "scanned_at": when,
+        "scanned_at_display": display,
+        "scanned_by": by,
+        "message": message,
+    }
+
+
 def guest_payload(invitation: Invitation) -> dict:
     return {
         "first_name": invitation.first_name,
@@ -343,6 +371,7 @@ def guest_payload(invitation: Invitation) -> dict:
         "places_used": invitation.places_used,
         "places_remaining": invitation.places_remaining,
         "code": invitation.code,
+        "code_hash": invitation_code_hash(invitation.code),
         "is_vip": invitation.is_vip,
         "event_id": invitation.event_id,
     }
@@ -355,6 +384,8 @@ class LookupResult:
     validated_at: datetime | None = None
     invitation: Invitation | None = None
     message: str = ""
+    scanned_at: datetime | None = None
+    scanned_by: str = ""
 
     def to_dict(self) -> dict:
         payload = {"status": self.status}
@@ -364,6 +395,11 @@ class LookupResult:
             payload["validated_at"] = self.validated_at.isoformat()
         if self.message:
             payload["message"] = self.message
+        if self.scanned_at is not None:
+            payload["scanned_at"] = self.scanned_at.isoformat()
+            payload["scanned_at_display"] = timezone.localtime(self.scanned_at).strftime("%Hh%M")
+        if self.scanned_by:
+            payload["scanned_by"] = self.scanned_by
         return payload
 
 
@@ -455,11 +491,15 @@ def lookup_invitation(
             result=ScanLog.RESULT_ALREADY_USED,
             agent=agent,
         )
+        info = first_admission_info(invitation)
         return LookupResult(
             status="already_used",
             guest=guest_payload(invitation),
             validated_at=invitation.validated_at,
             invitation=invitation,
+            message=info["message"],
+            scanned_at=info["scanned_at"],
+            scanned_by=info["scanned_by"],
         )
 
     ScanLog.objects.create(
@@ -487,6 +527,8 @@ class AdmitResult:
     admitted_at: datetime | None = None
     persons: int = 0
     message: str = ""
+    scanned_at: datetime | None = None
+    scanned_by: str = ""
 
     def to_dict(self) -> dict:
         payload = {"status": self.status, "persons": self.persons}
@@ -499,6 +541,11 @@ class AdmitResult:
             payload["admitted_at"] = self.admitted_at.isoformat()
         if self.message:
             payload["message"] = self.message
+        if self.scanned_at is not None:
+            payload["scanned_at"] = self.scanned_at.isoformat()
+            payload["scanned_at_display"] = timezone.localtime(self.scanned_at).strftime("%Hh%M")
+        if self.scanned_by:
+            payload["scanned_by"] = self.scanned_by
         return payload
 
 
@@ -554,10 +601,13 @@ def admit_persons(
             invitation.save(update_fields=["places"])
 
         if invitation.places_used >= 1 or invitation.is_exhausted:
+            info = first_admission_info(invitation)
             return AdmitResult(
                 status="already_used",
                 guest=guest_payload(invitation),
-                message="Cette invitation a déjà été utilisée.",
+                message=info["message"],
+                scanned_at=info["scanned_at"],
+                scanned_by=info["scanned_by"],
             )
 
         now = timezone.now()

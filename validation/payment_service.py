@@ -269,6 +269,13 @@ def activate_free_event(event: Event, plan: EventPlan) -> Event:
     return event
 
 
+def guest_payment_provider() -> str:
+    """Billetterie / invitations payantes : mock en DEBUG pour tout évaluer."""
+    if mock_payments_allowed():
+        return "mock"
+    return active_payment_provider()
+
+
 def create_guest_payment(*, event: Event, payload: dict) -> GuestPayment:
     participant_type = payload.get("participant_type") or Invitation.TYPE_RECIPIENT
     amount = Decimal(str(payload.get("amount") or 0))
@@ -287,19 +294,17 @@ def create_guest_payment(*, event: Event, payload: dict) -> GuestPayment:
         commission_rate=rate,
         commission_amount=commission,
         net_amount=net,
-        provider=active_payment_provider(),
+        provider=guest_payment_provider(),
         provider_reference=f"GINV-{secrets.token_hex(7).upper()}",
         status=GuestPayment.STATUS_PENDING,
     )
 
 
 def start_guest_checkout(payment: GuestPayment) -> PaymentIntent:
-    provider_name = (payment.provider or active_payment_provider()).lower()
+    provider_name = guest_payment_provider()
     base = public_base_url()
     if provider_name == "mock":
-        if not getattr(settings, "DEBUG", False) or not getattr(
-            settings, "ALLOW_MOCK_PAYMENTS", False
-        ):
+        if not mock_payments_allowed():
             raise RuntimeError("Paiement mock indisponible.")
         payment.provider = "mock"
         payment.save(update_fields=["provider", "updated_at"])
@@ -353,18 +358,25 @@ def confirm_guest_payment_success(payment: GuestPayment, *, provider_payload: di
         payment.metadata = meta
     if payment.invitation_id is None:
         extra = dict(payment.extra_data or {})
+        tier = None
+        raw_tier = extra.get("ticket_tier_id")
+        if raw_tier:
+            from .models import TicketTier
+
+            tier = TicketTier.objects.filter(pk=raw_tier, event=payment.event).first()
         invitation = create_invitation_with_unique_code(
             event=payment.event,
             first_name=payment.first_name,
             last_name=payment.last_name,
             participant_type=payment.participant_type,
-            category=extra.get("category") or "",
+            category=extra.get("category") or extra.get("ticket_tier") or "",
             email=payment.email,
             phone=payment.phone,
             extra_data=extra,
             source=Invitation.SOURCE_FORM,
             places=1,
             status=Invitation.STATUS_VALID,
+            ticket_tier=tier,
         )
         payment.invitation = invitation
     payment.save()

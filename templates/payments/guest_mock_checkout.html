@@ -1,13 +1,24 @@
 {% extends "base.html" %}
-{% block title %}Paiement invitation{% endblock %}
+{% block title %}Paiement test — {{ event.name }}{% endblock %}
 {% block body_class %}page-auth{% endblock %}
 {% block content %}
-<main class="ge-auth">
+<main class="ge-auth ge-invite">
+  {% if event.cover_url %}
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  {% endif %}
   <div class="ge-auth-stage">
-    <div class="ge-auth-card ge-auth-card-sm">
-      <p class="ge-auth-kicker">Paiement test</p>
+    <div class="ge-auth-card ge-auth-card-sm ge-mock-card">
+      <p class="ge-auth-kicker">Paiement de démonstration</p>
       <h1>{{ payment.amount|floatformat:0 }} F CFA</h1>
-      <p class="ge-auth-lead">{{ payment.full_name }} — {{ payment.get_participant_type_display }}</p>
+      <p class="ge-auth-lead">{{ event.name }}</p>
+      <div class="ge-pay-rows">
+        <div><span>Acheteur</span><strong>{{ payment.full_name }}</strong></div>
+        <div><span>Catégorie</span><strong>{{ tier_name }}</strong></div>
+      </div>
+      <p class="ge-muted ge-mock-note">Aucun prélèvement réel. Validez pour voir le billet, la page de remerciement et le tableau de bord organisateur.</p>
       <form method="post">
         {% csrf_token %}
         <button type="submit" class="ok-btn-dark ge-auth-submit">Simuler le paiement</button>

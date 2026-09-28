@@ -876,6 +876,75 @@
     });
   }
 
+  function sha256hex(ascii) {
+    function rightRotate(value, amount) {
+      return (value >>> amount) | (value << (32 - amount));
+    }
+    var maxWord = Math.pow(2, 32);
+    var result = '';
+    var words = [];
+    var asciiBitLength = ascii.length * 8;
+    var hash = [];
+    var k = [];
+    var primeCounter = 0;
+    var isComposite = {};
+    var candidate, i, j;
+    for (candidate = 2; primeCounter < 64; candidate += 1) {
+      if (!isComposite[candidate]) {
+        for (i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+        hash[primeCounter] = (Math.pow(candidate, 0.5) * maxWord) | 0;
+        k[primeCounter] = (Math.pow(candidate, 1 / 3) * maxWord) | 0;
+        primeCounter += 1;
+      }
+    }
+    ascii += '\x80';
+    while ((ascii.length % 64) - 56) ascii += '\x00';
+    for (i = 0; i < ascii.length; i += 1) {
+      j = ascii.charCodeAt(i);
+      if (j >> 8) return '';
+      words[i >> 2] |= j << (((3 - i) % 4) * 8);
+    }
+    words[words.length] = (asciiBitLength / maxWord) | 0;
+    words[words.length] = asciiBitLength;
+    for (j = 0; j < words.length; ) {
+      var w = words.slice(j, (j += 16));
+      var oldHash = hash.slice(0);
+      for (i = 0; i < 64; i += 1) {
+        var w15 = w[i - 15];
+        var w2 = w[i - 2];
+        var a = hash[0];
+        var e = hash[4];
+        var temp1 =
+          hash[7] +
+          (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+          ((e & hash[5]) ^ (~e & hash[6])) +
+          k[i] +
+          (w[i] =
+            i < 16
+              ? w[i]
+              : (w[i - 16] +
+                  (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                  w[i - 7] +
+                  (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+                0);
+        var temp2 =
+          (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+          ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+        hash = [(temp1 + temp2) | 0].concat(hash);
+        hash[4] = (hash[4] + temp1) | 0;
+        hash.pop();
+      }
+      for (i = 0; i < 8; i += 1) hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+    for (i = 0; i < 8; i += 1) {
+      for (j = 3; j + 1; j -= 1) {
+        var b = (hash[i] >> (j * 8)) & 255;
+        result += (b < 16 ? '0' : '') + b.toString(16);
+      }
+    }
+    return result;
+  }
+
   window.GERoster = {
     queueKey: 'ge-admit-queue',
     key: function (eventId) {
@@ -883,6 +952,10 @@
     },
     compact: function (code) {
       return String(code || '').replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    },
+    hashCompact: function (code) {
+      var needle = this.compact(code);
+      return needle ? sha256hex(needle) : '';
     },
     load: function (eventId) {
       try {
@@ -901,8 +974,11 @@
       if (!pack || !pack.guests) return null;
       var needle = this.compact(code);
       if (!needle) return null;
+      var hash = this.hashCompact(needle);
       for (var i = 0; i < pack.guests.length; i += 1) {
-        if (this.compact(pack.guests[i].code) === needle) return pack.guests[i];
+        var guest = pack.guests[i];
+        if (hash && guest.code_hash && guest.code_hash === hash) return guest;
+        if (this.compact(guest.code) === needle) return guest;
       }
       return null;
     },
@@ -923,9 +999,11 @@
       var pack = this.load(eventId);
       if (!pack || !pack.guests) return null;
       var needle = this.compact(code);
+      var hash = this.hashCompact(needle);
       for (var i = 0; i < pack.guests.length; i += 1) {
         var guest = pack.guests[i];
-        if (this.compact(guest.code) !== needle) continue;
+        var hashed = hash && guest.code_hash && guest.code_hash === hash;
+        if (!hashed && this.compact(guest.code) !== needle) continue;
         guest.places_used = (guest.places_used || 0) + 1;
         guest.places_remaining = Math.max(0, (guest.places || 1) - guest.places_used);
         this.save(eventId, pack);
@@ -936,7 +1014,12 @@
     queueAdmit: function (eventId, code) {
       var queue = [];
       try { queue = JSON.parse(localStorage.getItem(this.queueKey) || '[]'); } catch (err) {}
-      queue.push({ event_id: eventId, code: code, at: Date.now() });
+      queue.push({
+        event_id: eventId,
+        code: code,
+        at: Date.now(),
+        by: window.__SCAN_AGENT__ || '',
+      });
       try { localStorage.setItem(this.queueKey, JSON.stringify(queue)); } catch (err) {}
     },
     pendingCount: function (eventId) {
@@ -963,10 +1046,10 @@
     },
     flush: function () {
       var self = this;
-      if (!navigator.onLine) return Promise.resolve();
+      if (!navigator.onLine) return Promise.resolve({ conflicts: [] });
       var queue = [];
       try { queue = JSON.parse(localStorage.getItem(this.queueKey) || '[]'); } catch (err) {}
-      if (!queue.length) return Promise.resolve();
+      if (!queue.length) return Promise.resolve({ conflicts: [] });
       var token = '';
       var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
       if (csrf) token = csrf.value;
@@ -975,10 +1058,14 @@
         token = match ? match[1] : '';
       }
       var left = queue.slice();
+      var conflicts = [];
       function next() {
         if (!left.length) {
           try { localStorage.setItem(self.queueKey, '[]'); } catch (err) {}
-          return Promise.resolve();
+          if (conflicts.length) {
+            window.dispatchEvent(new CustomEvent('ge-roster-conflict', { detail: { conflicts: conflicts } }));
+          }
+          return Promise.resolve({ conflicts: conflicts });
         }
         var row = left.shift();
         return fetch('/api/admit/', {
@@ -990,10 +1077,16 @@
           },
           body: JSON.stringify({ code: row.code, persons: 1, event_id: row.event_id }),
         })
-          .then(function () { return next(); })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (data && data.status === 'already_used') conflicts.push(data);
+              return next();
+            }).catch(function () { return next(); });
+          })
           .catch(function () {
             left.unshift(row);
             try { localStorage.setItem(self.queueKey, JSON.stringify(left)); } catch (err) {}
+            return { conflicts: conflicts };
           });
       }
       return next();

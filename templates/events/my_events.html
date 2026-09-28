@@ -54,17 +54,22 @@
   <div class="ge-hub-grid">
     {% for e in events %}
     {% with life=e.lifecycle_actions %}
-    <article class="ge-hub-card{% if e.is_disabled %} is-disabled{% endif %}{% if e.status == 'archived' %} is-archived{% endif %}" style="--event-color: {{ e.display_primary_color }}; --hub-delay: {{ forloop.counter0 }}">
-      <a class="ge-hub-card-link" href="{% if e.needs_payment %}{% url 'event_payment' e.id %}{% else %}{% url 'event_dashboard' e.id %}{% endif %}">
+    <article class="ge-hub-card{% if e.is_ticketing %} is-ticketing{% endif %}{% if e.is_disabled %} is-disabled{% endif %}{% if e.status == 'archived' %} is-archived{% endif %}" style="--event-color: {{ e.display_primary_color }}; --hub-delay: {{ forloop.counter0 }}">
+      <a class="ge-hub-card-link" href="{% if e.needs_payment %}{% url 'event_payment' e.id %}{% elif e.is_ticketing %}{% url 'ticketing_dashboard' e.id %}{% else %}{% url 'event_dashboard' e.id %}{% endif %}">
         <div class="ge-hub-card-cover has-flyer">
           <img src="{{ e.cover_url }}" alt="" decoding="async">
           <span class="ge-status ge-status-{{ e.status }}">{{ e.get_status_display }}</span>
+          {% if e.is_ticketing %}<span class="ge-hub-badge is-ticket">Billetterie</span>{% endif %}
         </div>
         <span class="ge-hub-card-ico" aria-hidden="true">
+          {% if e.is_ticketing %}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8.2A2.2 2.2 0 016.2 6h11.6A2.2 2.2 0 0120 8.2v2a2 2 0 000 3.6v2A2.2 2.2 0 0117.8 18H6.2A2.2 2.2 0 014 15.8v-2a2 2 0 000-3.6v-2z"/><path d="M12 6.4v11.2"/></svg>
+          {% else %}
           {% include "partials/event_type_icon.html" with event_type=e.event_type %}
+          {% endif %}
         </span>
         <div class="ge-hub-card-body">
-          <p class="ge-hub-card-kicker">{{ e.type_label }}</p>
+          <p class="ge-hub-card-kicker">{% if e.is_ticketing %}Billetterie · {% endif %}{{ e.type_label }}</p>
           <h2>{{ e.name }}</h2>
           <p class="ge-hub-card-meta">
             {{ e.date|date:"d F Y"|default:"Date à confirmer" }}
@@ -76,7 +81,7 @@
           <div class="ge-hub-card-stats">
             <div>
               <strong data-ge-count="{{ e.inv_regular }}">0</strong>
-              <span>Invitations</span>
+              <span>{% if e.is_ticketing %}Billets{% else %}Invitations{% endif %}</span>
             </div>
             <div>
               <strong data-ge-count="{{ e.inv_vip }}">0</strong>

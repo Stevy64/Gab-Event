@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Contrôle — {{ event.name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth ge-invite">
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm">
+      <p class="ge-auth-kicker">Contrôleur</p>
+      <h1>{{ event.name }}</h1>
+      <p class="ge-auth-lead">{{ controller.label }} — saisissez le code défini par l’organisateur pour ouvrir le scan.</p>
+      {% if error %}<div class="ge-auth-errors">{{ error }}</div>{% endif %}
+      <form method="post" class="ge-auth-form">
+        {% csrf_token %}
+        <div class="ge-field">
+          <label for="id_access_code">Code de vérification</label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
+            <input id="id_access_code" type="text" name="access_code" required autocomplete="one-time-code" placeholder="Code">
+          </div>
+        </div>
+        <button class="ok-btn-dark ge-auth-submit" type="submit">Ouvrir le scan</button>
+      </form>
+    </div>
+  </div>
+</main>
+{% endblock %}

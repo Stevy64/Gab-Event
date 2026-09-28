@@ -86,6 +86,33 @@ class CodeGenerationTests(TestCase):
         codes2 = {generate_invitation_code(PARTICIPANT_RECIPIENT) for _ in range(10)}
         self.assertTrue(codes.isdisjoint(codes2))
 
+    def test_ticketing_code_nomenclature(self):
+        from validation.models import Event
+
+        user = User.objects.create_user("org", "org@example.com", "secret123")
+        event = Event.objects.create(owner=user, name="Concert GEB", is_ticketing=True)
+        code = generate_invitation_code(PARTICIPANT_RECIPIENT, event=event)
+        self.assertTrue(code.startswith("GEB-"))
+        parts = code.split("-")
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(len(parts[1]), 4)
+        self.assertEqual(len(parts[2]), 4)
+        vip = generate_invitation_code(PARTICIPANT_VIP, event=event)
+        self.assertTrue(vip.startswith("GEB-"))
+        self.assertTrue(vip.split("-")[1].startswith("V"))
+        self.assertEqual(normalize_code(code.replace("-", " ")), code)
+        from validation.card_service import render_ticketing_card
+
+        inv = Invitation.objects.create(
+            event=event,
+            code=code,
+            first_name="Lea",
+            last_name="Mba",
+            participant_type=PARTICIPANT_RECIPIENT,
+        )
+        card = render_ticketing_card(inv)
+        self.assertEqual(card.size, (1920, 720))
+
 
 class ImportPhase2Tests(TestCase):
     def test_import_recipient_generates_atc24(self):

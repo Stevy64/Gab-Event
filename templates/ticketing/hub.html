@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Billetterie — Gab Event{% endblock %}
+{% block body_class %}page-app page-sheet-ui page-ticketing{% endblock %}
+{% block content %}
+{% include "partials/user_nav.html" with admin_title="Billetterie" nav_active="ticketing" %}
+<main class="ge-app ge-sheet-page">
+  <header class="ge-sheet-hero ge-tk-hero">
+    <div class="ge-blob" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/><path d="M8 6V4.8M16 6V4.8"/></svg>
+    </div>
+    <p class="ge-kicker">Vendre vos billets</p>
+    <h1>Votre billetterie</h1>
+    <p class="ge-sheet-help">Vendez vos places en ligne. Le public achète, vous encaissez.</p>
+    <p class="ge-tk-hero-actions">
+      <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Nouvel événement</a>
+      <a class="ge-btn-ghost" href="{% url 'public_events' %}">Voir l’agenda public</a>
+    </p>
+  </header>
+
+  {% if not events %}
+  <div class="ge-empty ge-tk-empty">
+    <span class="ge-empty-ico" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/></svg>
+    </span>
+    <h2>Aucun événement en vente</h2>
+    <p>Créez un concert, un gala ou un mariage payant. Tarifs, affiche, puis publication en un geste.</p>
+    <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Créer ma première vente</a>
+  </div>
+  {% else %}
+  <div class="ge-tk-grid">
+    {% for event in events %}
+    <a class="ge-tk-card" href="{% url 'ticketing_dashboard' event.id %}">
+      <div class="ge-tk-card-cover" style="background-image:url('{{ event.cover_url }}')"></div>
+      <div class="ge-tk-card-body">
+        <p class="ge-tk-card-status {% if event.invite_link_enabled %}is-live{% else %}is-draft{% endif %}">
+          {% if event.invite_link_enabled %}En vente{% else %}Brouillon{% endif %}
+        </p>
+        <h3>{{ event.name }}</h3>
+        <p class="ge-tk-card-meta">{{ event.display_date|default:"Date à confirmer" }}{% if event.venue %} · {{ event.venue }}{% endif %}</p>
+        <p class="ge-tk-card-stats">
+          <span>{{ event.sold|default:0 }} vendu{{ event.sold|default:0|pluralize }}</span>
+          {% if event.cheapest_ticket_price %}
+          <span>dès {{ event.cheapest_ticket_price|floatformat:0 }} F CFA</span>
+          {% endif %}
+        </p>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</main>
+{% endblock %}

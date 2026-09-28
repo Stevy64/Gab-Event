@@ -1,8 +1,8 @@
 """
 Génération des QR codes PNG.
 
-Le contenu du QR est **uniquement** le code invitation (ex. ATC24-XXXXXX),
-sans URL — pour rester robuste hors-ligne côté décodage terrain.
+Le contenu du QR est **uniquement** le code (invitation ATC24-XXXXXX ou
+billet GEB-XXXX-XXXX), sans URL — robuste hors-ligne au scan.
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 import qrcode
 from django.conf import settings
-from qrcode.constants import ERROR_CORRECT_M
+from qrcode.constants import ERROR_CORRECT_H, ERROR_CORRECT_M
 
 from .models import Invitation
 
@@ -22,16 +22,23 @@ def qr_output_dir() -> Path:
     return path
 
 
-def build_qr_image(code: str, box_size: int = 12, border: int = 2):
+def build_qr_image(
+    code: str,
+    box_size: int = 12,
+    border: int = 2,
+    *,
+    high_contrast: bool = False,
+):
     qr = qrcode.QRCode(
         version=None,
-        error_correction=ERROR_CORRECT_M,
+        error_correction=ERROR_CORRECT_H if high_contrast else ERROR_CORRECT_M,
         box_size=box_size,
         border=border,
     )
     qr.add_data(code)
     qr.make(fit=True)
-    return qr.make_image(fill_color="#1A2744", back_color="white").convert("RGB")
+    ink = "#000000" if high_contrast else "#1A2744"
+    return qr.make_image(fill_color=ink, back_color="white").convert("RGB")
 
 
 def generate_invitation_qr(invitation: Invitation, outdir: Path | None = None) -> Path:

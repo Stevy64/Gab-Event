@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Inscription — {{ event.name }}{% endblock %}
+{% block title %}{% if event.is_ticketing %}Billet — {{ event.name }}{% else %}Inscription — {{ event.name }}{% endif %}{% endblock %}
 {% block body_class %}page-auth{% endblock %}
 {% block content %}
 <main class="ge-auth ge-invite">
@@ -25,26 +25,38 @@
       <p class="ge-auth-lead">Vous pouvez réessayer depuis le lien d’invitation.</p>
       <p class="ge-auth-foot"><a href="{% url 'public_invite' event.invite_token %}">Réessayer</a></p>
       {% else %}
+      {% if event.is_ticketing %}
+      <p class="ge-auth-kicker">Billetterie</p>
+      <h1>Billet confirmé</h1>
+      <p class="ge-auth-lead ge-invite-important"><strong>Important !</strong> Téléchargez votre billet : il sera scanné à l’entrée.</p>
+      {% else %}
       <p class="ge-auth-kicker">C’est noté</p>
       <h1>Inscription enregistrée</h1>
       <p class="ge-auth-lead ge-invite-important"><strong>Important !</strong> Veuillez télécharger votre billet d’invitation qui sera scanné à l’entrée.</p>
-      {% if code %}<p class="ge-muted">Code : <strong>{{ code }}</strong></p>{% endif %}
+      {% endif %}
+      {% if code %}<p class="ge-ticket-code">N° de billet <strong>{{ invitation.display_code|default:code }}</strong></p>{% endif %}
       {% if invitation %}
       <div class="ge-invite-downloads">
-        <a class="ok-btn-dark" href="{% url 'public_invite_card' event.invite_token %}?fmt=png" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PNG…" download>Télécharger PNG</a>
+        {% if event.animated_card %}
+        <a class="ok-btn-dark" href="{% url 'public_invite_reveal' event.invite_token %}">Voir la carte animée</a>
+        {% endif %}
+        <a class="{% if event.animated_card %}ge-btn-ghost{% else %}ok-btn-dark{% endif %}" href="{% url 'public_invite_card' event.invite_token %}?fmt=png" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PNG…" download>Télécharger PNG</a>
         <a class="ge-btn-ghost" href="{% url 'public_invite_card' event.invite_token %}?fmt=pdf" data-ge-download data-no-loader data-ge-dl-msg="Préparation du billet PDF…" download>Télécharger PDF</a>
+        {% include "partials/whatsapp_share.html" with href=wa_share_href %}
       </div>
       <p class="ge-invite-dl-status" data-ge-dl-status hidden aria-live="polite"></p>
       {% endif %}
       {% endif %}
       </header>
       <p class="ge-auth-foot ge-invite-foot">
-        <a href="{% url 'faq' %}" data-sheet="ge-sheet-faq">FAQ</a>
+        <a href="{% url 'public_ticket_recover' event.invite_token %}">Récupérer mon ticket perdu</a>
         <span aria-hidden="true">·</span>
-        <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" title="Conditions générales d’utilisation">CGU</a>
+        <a href="{% url 'faq' %}" data-sheet="ge-sheet-faq" data-no-loader>FAQ</a>
+        <span aria-hidden="true">·</span>
+        <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" data-no-loader title="Conditions générales d’utilisation">CGU</a>
       </p>
     </div>
   </div>
-  {% include "partials/legal_sheets.html" %}
 </main>
+{% include "partials/legal_sheets.html" %}
 {% endblock %}

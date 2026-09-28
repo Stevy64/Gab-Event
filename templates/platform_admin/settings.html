@@ -17,6 +17,7 @@
   <a href="#liens">Liens</a>
   <a href="#singpay">SingPay</a>
   <a href="#commissions">Commissions</a>
+  <a href="#facture">Facture</a>
 </nav>
 
 <form method="post" enctype="multipart/form-data" class="cx-settings">
@@ -113,10 +114,28 @@
       </section>
 
       <section class="cx-card" id="commissions">
-        <h2>Commissions</h2>
+        <h2>Commissions — billetterie</h2>
+        <p class="cx-help">7 % du prix de chaque billet. Les frais de transfert (SingPay) restent à la charge de l’organisateur. Le frais fixe n’est plus appliqué sur la billetterie.</p>
         <div class="cx-fields-2">
-          {% include "platform_admin/_field.html" with field=form.commission_regular_pct %}
-          {% include "platform_admin/_field.html" with field=form.commission_vip_pct %}
+          {% include "platform_admin/_field.html" with field=form.commission_pct %}
+          {% include "platform_admin/_field.html" with field=form.commission_fixed %}
+          {% include "platform_admin/_field.html" with field=form.payout_sla_hours %}
+          {% include "platform_admin/_field.html" with field=form.singpay_fees_on_platform %}
+          {% include "platform_admin/_field.html" with field=form.animated_card_price %}
+        </div>
+      </section>
+
+      <section class="cx-card" id="facture">
+        <h2>Facture (NIF)</h2>
+        <p class="cx-help">Sans NIF, aucune entreprise gabonaise ne peut vous payer.</p>
+        <div class="cx-fields-2">
+          {% include "platform_admin/_field.html" with field=form.legal_company_name %}
+          {% include "platform_admin/_field.html" with field=form.legal_nif %}
+          {% include "platform_admin/_field.html" with field=form.legal_rccm %}
+          {% include "platform_admin/_field.html" with field=form.legal_address %}
+          {% include "platform_admin/_field.html" with field=form.legal_city %}
+          {% include "platform_admin/_field.html" with field=form.legal_phone %}
+          {% include "platform_admin/_field.html" with field=form.legal_email %}
         </div>
       </section>
     </div>

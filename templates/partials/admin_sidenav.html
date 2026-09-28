@@ -11,6 +11,10 @@
     <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="users" %}</span>
     <span>Utilisateurs</span>
   </a>
+  <a href="{% url 'platform_admin_payments' %}?kind=ticketing" class="cx-nav-item {% if nav_active == 'ticketing' %}is-active{% endif %}" title="Billetterie">
+    <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="ticket" %}</span>
+    <span>Billetterie</span>
+  </a>
   <a href="{% url 'platform_admin_payments' %}" class="cx-nav-item {% if nav_active == 'payments' %}is-active{% endif %}" title="Comptabilité">
     <span class="cx-nav-ico">{% include "partials/admin_icon.html" with name="wallet" %}</span>
     <span>Comptabilité</span>

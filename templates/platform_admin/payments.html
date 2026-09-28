@@ -1,27 +1,90 @@
 {% extends "platform_admin/base_admin.html" %}
 {% load money %}
-{% block title %}Comptabilité — Console{% endblock %}
+{% block title %}{% if is_ticketing %}Billetterie{% else %}Comptabilité{% endif %} — Console{% endblock %}
 {% block content %}
 <header class="cx-top">
   <div>
     <p class="cx-kicker">Pilotage</p>
-    <h1>Comptabilité</h1>
-    <p class="cx-lead">Entrées et sorties par organisateur et événement. Reversement Mobile Money via SingPay vers le numéro confirmé.</p>
+    <h1>{% if is_ticketing %}Billetterie{% else %}Comptabilité{% endif %}</h1>
+    <p class="cx-lead">
+      {% if is_ticketing %}
+      Ventes de billets, commissions et reversements organisateurs (événements billetterie uniquement).
+      {% else %}
+      Formules organisateur et invitations payantes classiques. Les ventes billetterie sont dans Billetterie.
+      {% endif %}
+    </p>
   </div>
 </header>
-{% if not singpay_ready %}
-<p class="cx-flash cx-flash-error">SingPay n’est pas configuré — les reversements resteront simulés ou bloqués. Renseignez les clés dans Configuration.</p>
-{% endif %}
-<div class="cx-kpis">
-  <article class="cx-kpi"><span>Formules</span><strong>{{ revenue }}</strong><small>{{ success_count }} paiements · F CFA</small></article>
-  <article class="cx-kpi"><span>En attente</span><strong>{{ pending_amount }}</strong><small>À confirmer · F CFA</small></article>
-  <article class="cx-kpi"><span>Invités collecté</span><strong>{{ guest_gross }}</strong><small>Commission {{ guest_commission }} · Net {{ guest_net }} F CFA</small></article>
-  <article class="cx-kpi"><span>À reverser</span><strong>{{ payout_due }}</strong><small>F CFA · Mobile Money</small></article>
+
+<div class="cx-mode-tabs" role="tablist" aria-label="Espace financier">
+  <a class="cx-mode-tab {% if is_ticketing %}is-active{% endif %}" href="{% url 'platform_admin_payments' %}?kind=ticketing">Billetterie</a>
+  <a class="cx-mode-tab {% if not is_ticketing %}is-active{% endif %}" href="{% url 'platform_admin_payments' %}">Comptabilité</a>
 </div>
 
+{% if not singpay_ready %}
+<p class="cx-flash cx-flash-error">Passerelle Mobile Money non configurée — les reversements resteront simulés ou bloqués. Renseignez les clés dans Configuration.</p>
+{% endif %}
+
+<div class="cx-kpis">
+  {% if is_ticketing %}
+  <article class="cx-kpi is-blue"><span>Collecté</span><strong>{{ guest_gross }}</strong><small>Billets · F CFA</small></article>
+  <article class="cx-kpi"><span>Commission</span><strong>{{ guest_commission }}</strong><small>Gab Event · F CFA</small></article>
+  <article class="cx-kpi is-green"><span>Net organisateurs</span><strong>{{ guest_net }}</strong><small>Après commission · F CFA</small></article>
+  <article class="cx-kpi {% if payout_due %}is-warn{% endif %}"><span>À reverser</span><strong>{{ payout_due }}</strong><small>F CFA · Mobile Money</small></article>
+  {% else %}
+  <article class="cx-kpi"><span>Formules</span><strong>{{ revenue }}</strong><small>{{ success_count }} paiements · F CFA</small></article>
+  <article class="cx-kpi"><span>En attente</span><strong>{{ pending_amount }}</strong><small>À confirmer · F CFA</small></article>
+  <article class="cx-kpi is-blue"><span>Invités collecté</span><strong>{{ guest_gross }}</strong><small>Commission {{ guest_commission }} · Net {{ guest_net }}</small></article>
+  <article class="cx-kpi is-green {% if payout_due %}is-warn{% endif %}"><span>À reverser</span><strong>{{ payout_due }}</strong><small>Invitations payantes · F CFA</small></article>
+  {% endif %}
+</div>
+
+{% if request_rows %}
+<section class="cx-card cx-request-card">
+  <h2>Demandes de reversement</h2>
+  <p class="cx-lead">Organisateurs ayant confirmé leur numéro et demandé un envoi.</p>
+  <div class="cx-table-wrap">
+  <table class="cx-table">
+    <thead>
+      <tr><th>Organisateur</th><th>Mobile Money</th><th>Montant demandé</th><th></th></tr>
+    </thead>
+    <tbody>
+    {% for row in request_rows %}
+      <tr>
+        <td><a href="{% url 'platform_admin_user' row.organizer.id %}">{{ row.organizer }}</a></td>
+        <td>{% if row.profile %}{{ row.profile.momo_label }}{% else %}—{% endif %}</td>
+        <td><strong>{{ row.requested_net }}</strong></td>
+        <td class="cx-row-actions">
+          {% if row.profile and row.profile.momo_ready %}
+          <form method="post" data-cx-confirm="Envoyer {{ row.requested_net }} vers {{ row.profile.momo_label }} ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement demandé">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="payout">
+            <input type="hidden" name="kind" value="{{ kind }}">
+            <input type="hidden" name="organizer_id" value="{{ row.organizer.id }}">
+            {% for pid in row.requested_ids %}<input type="hidden" name="payment_ids" value="{{ pid }}">{% endfor %}
+            <button class="cx-btn" type="submit">Reverser la demande</button>
+          </form>
+          {% else %}
+          <span class="cx-pill is-warn">Numéro manquant</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
 <section class="cx-ledger-wrap">
-  <h2>Flux par organisateur</h2>
-  <p class="cx-lead">Collectes invités, commissions Gab Event, reversements déjà envoyés et solde à virer sur Mobile Money.</p>
+  <h2>{% if is_ticketing %}Ventes par organisateur{% else %}Flux par organisateur{% endif %}</h2>
+  <p class="cx-lead">
+    {% if is_ticketing %}
+    Collectes billets, commissions et solde à virer.
+    {% else %}
+    Formules et invitations payantes classiques.
+    {% endif %}
+  </p>
   {% for group in ledger_groups %}
   <article class="cx-card cx-ledger-card">
     <header class="cx-ledger-head">
@@ -35,12 +98,14 @@
           {% else %}
           <p class="cx-ledger-momo"><span class="cx-pill is-warn">Numéro non confirmé</span></p>
           {% endif %}
+          {% if group.requested_net %}<p class="cx-ledger-momo"><span class="cx-pill is-ok">Demande {{ group.requested_net }} F CFA</span></p>{% endif %}
         </div>
       </div>
       {% if group.due and group.profile and group.profile.momo_ready %}
-      <form method="post" data-cx-confirm="Envoyer {{ group.due }} vers {{ group.profile.momo_label }} via SingPay ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement Mobile Money">
+      <form method="post" data-cx-confirm="Envoyer {{ group.due }} vers {{ group.profile.momo_label }} ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement Mobile Money">
         {% csrf_token %}
         <input type="hidden" name="action" value="payout">
+        <input type="hidden" name="kind" value="{{ kind }}">
         <input type="hidden" name="organizer_id" value="{{ group.organizer.id }}">
         {% for pid in group.due_ids %}<input type="hidden" name="payment_ids" value="{{ pid }}">{% endfor %}
         <button class="cx-btn" type="submit">{% include "partials/admin_icon.html" with name="send" %} Reverser {{ group.due }}</button>
@@ -48,25 +113,29 @@
       {% endif %}
     </header>
     <dl class="cx-ledger-totals">
-      <div><dt>Invités</dt><dd>{{ group.in_guest }} <small>F CFA</small></dd></div>
+      <div class="is-blue"><dt>{% if is_ticketing %}Collecté{% else %}Invités{% endif %}</dt><dd>{{ group.in_guest }} <small>F CFA</small></dd></div>
       <div><dt>Commission</dt><dd>{{ group.commission }} <small>F CFA</small></dd></div>
-      <div><dt>Net</dt><dd>{{ group.net }} <small>F CFA</small></dd></div>
+      <div class="is-green"><dt>Net</dt><dd>{{ group.net }} <small>F CFA</small></dd></div>
       <div><dt>Reversé</dt><dd>{{ group.paid_out }} <small>F CFA</small></dd></div>
       <div><dt>À envoyer</dt><dd>{{ group.due }} <small>F CFA</small></dd></div>
-      {% if group.plan_in %}<div><dt>Formules</dt><dd>{{ group.plan_in }} <small>F CFA</small></dd></div>{% endif %}
+      {% if group.plan_in and not is_ticketing %}<div><dt>Formules</dt><dd>{{ group.plan_in }} <small>F CFA</small></dd></div>{% endif %}
     </dl>
     {% for row in group.event_rows %}
     <section class="cx-ledger-event">
       <div class="cx-ledger-event-top">
         <div>
-          <h3>{{ row.event.name }}</h3>
+          <h3>
+            {{ row.event.name }}
+            {% if row.event.is_ticketing %}<span class="cx-pill">Billetterie</span>{% endif %}
+          </h3>
           <p>Collecté {{ row.in_guest }} · Commission {{ row.commission }} · Net {{ row.net }}</p>
           <p>Reversé {{ row.paid_out }} · À envoyer {{ row.due }}{% if row.plan_in %} · Formule {{ row.plan_in }}{% endif %}</p>
         </div>
         {% if row.due and group.profile and group.profile.momo_ready %}
-        <form method="post" data-cx-confirm="Reverser {{ row.due }} de « {{ row.event.name }} » vers {{ group.profile.momo_label }} via SingPay ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement événement">
+        <form method="post" data-cx-confirm="Reverser {{ row.due }} de « {{ row.event.name }} » vers {{ group.profile.momo_label }} ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement événement">
           {% csrf_token %}
           <input type="hidden" name="action" value="payout">
+          <input type="hidden" name="kind" value="{{ kind }}">
           <input type="hidden" name="organizer_id" value="{{ group.organizer.id }}">
           <input type="hidden" name="event_id" value="{{ row.event.id }}">
           {% for pid in row.due_ids %}<input type="hidden" name="payment_ids" value="{{ pid }}">{% endfor %}
@@ -91,14 +160,14 @@
     {% endfor %}
   </article>
   {% empty %}
-  <p class="cx-lead">Aucune entrée ou sortie pour le moment.</p>
+  <p class="cx-lead">{% if is_ticketing %}Aucune vente billetterie pour le moment.{% else %}Aucune entrée ou sortie pour le moment.{% endif %}</p>
   {% endfor %}
 </section>
 
 {% if payout_rows %}
 <section class="cx-card">
-  <h2>Reversements Mobile Money</h2>
-  <p class="cx-lead">File d’attente consolidée — envoi Airtel Money / Moov Money après commission.</p>
+  <h2>File de reversement</h2>
+  <p class="cx-lead">Soldes encore à envoyer sur Mobile Money.</p>
   <div class="cx-table-wrap">
   <table class="cx-table" data-zyz-kicker="Reversement">
     <thead>
@@ -119,9 +188,10 @@
         <td>{{ row.net }}</td>
         <td class="cx-row-actions">
           {% if row.profile and row.profile.momo_ready %}
-          <form method="post" data-cx-confirm="Envoyer {{ row.net }} vers {{ row.profile.momo_label }} via SingPay ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement Mobile Money">
+          <form method="post" data-cx-confirm="Envoyer {{ row.net }} vers {{ row.profile.momo_label }} ?" data-cx-confirm-ok="Reverser" data-cx-confirm-title="Reversement Mobile Money">
             {% csrf_token %}
             <input type="hidden" name="action" value="payout">
+            <input type="hidden" name="kind" value="{{ kind }}">
             <input type="hidden" name="organizer_id" value="{{ row.organizer.id }}">
             {% for pid in row.ids %}<input type="hidden" name="payment_ids" value="{{ pid }}">{% endfor %}
             <button class="cx-btn" type="submit">Reverser</button>
@@ -162,8 +232,8 @@
 {% endif %}
 
 <section class="cx-card">
-  <h2>Journal des mouvements</h2>
-  <p class="cx-lead">Toutes les entrées (invités, formules) et sorties (reversements organisateurs).</p>
+  <h2>Journal</h2>
+  <p class="cx-lead">{% if is_ticketing %}Entrées billets et sorties de reversement.{% else %}Formules, invitations payantes et reversements.{% endif %}</p>
   <div class="cx-table-wrap">
   <table class="cx-table" data-zyz-kicker="Mouvement">
     <thead><tr><th>Date</th><th>Sens</th><th>Libellé</th><th>Organisateur</th><th>Événement</th><th>Montant</th><th>Statut</th></tr></thead>
@@ -186,6 +256,7 @@
   </div>
 </section>
 
+{% if not is_ticketing %}
 <form method="get" class="cx-filters">
   <select name="status">
     <option value="">Tous</option>
@@ -217,14 +288,26 @@
   </table>
   </div>
 </section>
+{% endif %}
+
 <section class="cx-card">
-  <h2>Paiements invités</h2>
-  <p class="cx-lead">Traçabilité par organisateur — encaissement wallet, commission et montant à reverser.</p>
+  <h2>{% if is_ticketing %}Paiements billets{% else %}Paiements invités{% endif %}</h2>
+  <p class="cx-lead">Traçabilité — encaissement, commission et montant à reverser.</p>
+  <form method="get" class="cx-filters">
+    {% if is_ticketing %}<input type="hidden" name="kind" value="ticketing">{% endif %}
+    <select name="status">
+      <option value="">Tous</option>
+      <option value="success" {% if status == 'success' %}selected{% endif %}>Réussi</option>
+      <option value="pending" {% if status == 'pending' %}selected{% endif %}>En attente</option>
+      <option value="failed" {% if status == 'failed' %}selected{% endif %}>Échoué</option>
+    </select>
+    <button class="cx-btn" type="submit">Filtrer</button>
+  </form>
   <div class="cx-table-wrap">
-  <table class="cx-table" data-zyz-kicker="Paiement invité">
+  <table class="cx-table" data-zyz-kicker="Paiement">
     <thead>
       <tr>
-        <th>Date</th><th>Organisateur</th><th>Événement</th><th>Invité</th><th>Type</th>
+        <th>Date</th><th>Organisateur</th><th>Événement</th><th>{% if is_ticketing %}Acheteur{% else %}Invité{% endif %}</th><th>Type</th>
         <th>Brut</th><th>Commission</th><th>Net</th><th>Statut</th><th>Reversement</th><th>Mobile Money</th>
       </tr>
     </thead>
@@ -233,18 +316,22 @@
       <tr>
         <td>{{ p.created_at|date:"d/m/Y H:i" }}</td>
         <td><a href="{% url 'platform_admin_user' p.organizer_id %}">{{ p.organizer }}</a></td>
-        <td>{{ p.event.name }}</td>
+        <td>{{ p.event.name }}{% if p.event.is_ticketing %} <span class="cx-pill">Billet</span>{% endif %}</td>
         <td>{{ p.full_name }}</td>
         <td>{{ p.get_participant_type_display }}</td>
         <td>{{ p.amount|fcfa }}</td>
         <td>{{ p.commission_amount }} ({{ p.commission_rate }}%)</td>
         <td>{{ p.net_amount }}</td>
         <td><span class="cx-pill {% if p.status == 'success' %}is-ok{% elif p.status == 'pending' %}is-warn{% else %}is-muted{% endif %}">{{ p.get_status_display }}</span></td>
-        <td>{{ p.get_payout_status_display }}{% if p.payout_error %}<br><small>{{ p.payout_error }}</small>{% endif %}</td>
+        <td>
+          {{ p.get_payout_status_display }}
+          {% if p.metadata.payout_requested_at %}<br><span class="cx-pill is-ok">Demandé</span>{% endif %}
+          {% if p.payout_error %}<br><small>{{ p.payout_error }}</small>{% endif %}
+        </td>
         <td>{% if p.organizer.profile %}{{ p.organizer.profile.momo_label }}{% endif %}</td>
       </tr>
     {% empty %}
-      <tr><td colspan="11">Aucun paiement invité.</td></tr>
+      <tr><td colspan="11">Aucun paiement.</td></tr>
     {% endfor %}
     </tbody>
   </table>

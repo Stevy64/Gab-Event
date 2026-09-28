@@ -28,32 +28,13 @@
 
         <input type="hidden" name="contact_method" value="email">
 
-        <div class="ge-auth-grid">
-          <div class="ge-field">
-            <label for="{{ form.first_name.id_for_label }}">Prénom</label>
-            <div class="ge-field-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-              {{ form.first_name }}
-            </div>
-            {% if form.first_name.errors %}<span class="ge-field-err">{{ form.first_name.errors.0 }}</span>{% endif %}
-          </div>
-          <div class="ge-field">
-            <label for="{{ form.last_name.id_for_label }}">Nom</label>
-            <div class="ge-field-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20v-1a7 7 0 0114 0v1"/><circle cx="12" cy="7" r="3.4"/></svg>
-              {{ form.last_name }}
-            </div>
-            {% if form.last_name.errors %}<span class="ge-field-err">{{ form.last_name.errors.0 }}</span>{% endif %}
-          </div>
-        </div>
-
         <div class="ge-field">
-          <label for="{{ form.email.id_for_label }}">E-mail</label>
+          <label for="{{ form.first_name.id_for_label }}">Prénom</label>
           <div class="ge-field-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
-            {{ form.email }}
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+            {{ form.first_name }}
           </div>
-          {% if form.email.errors %}<span class="ge-field-err">{{ form.email.errors.0 }}</span>{% endif %}
+          {% if form.first_name.errors %}<span class="ge-field-err">{{ form.first_name.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.phone.id_for_label }}">Téléphone</label>
@@ -61,30 +42,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
             {{ form.phone }}
           </div>
-          {% if form.phone.errors %}<span class="ge-field-err">{{ form.phone.errors.0 }}</span>{% elif form.phone.help_text %}<span class="ge-field-hint">{{ form.phone.help_text }}</span>{% else %}<span class="ge-field-hint">Obligatoire — sert aussi à récupérer le compte.</span>{% endif %}
+          {% if form.phone.errors %}<span class="ge-field-err">{{ form.phone.errors.0 }}</span>{% else %}<span class="ge-field-hint">Obligatoire — sert à vous connecter et à récupérer le compte.</span>{% endif %}
         </div>
         <div class="ge-field">
-          <label for="{{ form.momo_operator.id_for_label }}">Mobile Money</label>
-          {{ form.momo_operator }}
-          {% if form.momo_operator.errors %}<span class="ge-field-err">{{ form.momo_operator.errors.0 }}</span>{% endif %}
-        </div>
-        <div class="ge-auth-grid">
-          <div class="ge-field">
-            <label for="{{ form.momo_phone.id_for_label }}">Numéro Airtel / Moov</label>
-            <div class="ge-field-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
-              {{ form.momo_phone }}
-            </div>
-            {% if form.momo_phone.errors %}<span class="ge-field-err">{{ form.momo_phone.errors.0 }}</span>{% else %}<span class="ge-field-hint">Pour recevoir les reversements des invitations payantes.</span>{% endif %}
+          <label for="{{ form.email.id_for_label }}">E-mail <small>(optionnel)</small></label>
+          <div class="ge-field-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+            {{ form.email }}
           </div>
-          <div class="ge-field">
-            <label for="{{ form.momo_phone_confirm.id_for_label }}">Confirmer le numéro</label>
-            <div class="ge-field-wrap">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>
-              {{ form.momo_phone_confirm }}
-            </div>
-            {% if form.momo_phone_confirm.errors %}<span class="ge-field-err">{{ form.momo_phone_confirm.errors.0 }}</span>{% endif %}
-          </div>
+          {% if form.email.errors %}<span class="ge-field-err">{{ form.email.errors.0 }}</span>{% else %}<span class="ge-field-hint">Inutile si vous utilisez surtout WhatsApp.</span>{% endif %}
         </div>
 
         <div class="ge-auth-grid">
@@ -94,7 +60,7 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
               {{ form.password1 }}
             </div>
-            {% if form.password1.errors %}<span class="ge-field-err">{{ form.password1.errors.0 }}</span>{% elif form.password1.help_text %}<span class="ge-field-hint">{{ form.password1.help_text }}</span>{% endif %}
+            {% if form.password1.errors %}<span class="ge-field-err">{{ form.password1.errors.0 }}</span>{% endif %}
           </div>
           <div class="ge-field">
             <label for="{{ form.password2.id_for_label }}">Confirmation</label>
@@ -105,10 +71,13 @@
             {% if form.password2.errors %}<span class="ge-field-err">{{ form.password2.errors.0 }}</span>{% endif %}
           </div>
         </div>
+        {% if not form.password1.errors and form.password1.help_text %}
+        <span class="ge-field-hint">{{ form.password1.help_text }}</span>
+        {% endif %}
 
         <label class="ge-legal-check">
           {{ form.accept_terms }}
-          <span>J’accepte les <a href="{% url 'terms' %}" target="_blank" rel="noopener" title="Conditions générales d’utilisation">CGU</a>.</span>
+          <span>J’accepte les <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" data-no-loader title="Conditions générales d’utilisation">CGU</a>.</span>
         </label>
         {% if form.accept_terms.errors %}<span class="ge-field-err">{{ form.accept_terms.errors.0 }}</span>{% endif %}
 
@@ -125,4 +94,5 @@
     </div>
   </div>
 </main>
+{% include "partials/legal_sheets.html" %}
 {% endblock %}

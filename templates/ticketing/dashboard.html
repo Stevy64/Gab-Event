@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% block title %}{{ event.name }} — Billetterie{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui page-ticketing{% endblock %}
+{% block content %}
+{% url 'ticketing_hub' as tk_back %}
+{% include "partials/event_nav.html" with nav_active="ticketing" back_url=tk_back back_label="Billetterie" %}
+<main class="ge-app ge-sheet-page ge-tk-dash">
+  <header class="ge-sheet-hero ge-tk-hero">
+    <p class="ge-kicker">Billetterie</p>
+    <h1>{{ event.name }}</h1>
+    <p class="ge-sheet-help">
+      {% if event.invite_link_enabled %}
+      Vos billets sont en vente. Le public les achète en quelques clics.
+      {% else %}
+      Prêt à vendre ? Publiez pour que le public trouve votre événement.
+      {% endif %}
+    </p>
+  </header>
+
+  <section class="ge-dash-cards" aria-label="Statistiques">
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/></svg>
+      </span>
+      <strong data-ge-count="{{ sold }}">0</strong>
+      <span>Billets vendus</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h16"/><path d="M12 4v16"/><circle cx="12" cy="12" r="9"/></svg>
+      </span>
+      <strong data-ge-count="{{ present }}">0</strong>
+      <span>Présents</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2"/></svg>
+      </span>
+      <strong>{{ gross|floatformat:0 }}</strong>
+      <span>Collecté (F CFA)</span>
+    </article>
+    <article class="ge-dash-card">
+      <span class="ge-dash-card-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+      </span>
+      <strong>{{ net|floatformat:0 }}</strong>
+      <span>Net à reverser</span>
+    </article>
+  </section>
+  {% if pending %}
+  <p class="ge-muted ge-tk-pending">{{ pending }} paiement{{ pending|pluralize }} en attente.</p>
+  {% endif %}
+
+  <nav class="ge-tk-tabs" role="tablist" aria-label="Sections billetterie">
+    <button type="button" class="ge-tk-tab is-active" role="tab" aria-selected="true" data-tk-tab="publish" id="tk-tab-publish">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M10 13a5 5 0 007.07 0l1.41-1.41a5 5 0 00-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 00-7.07 0L5.52 12.41a5 5 0 007.07 7.07L14 18.07"/></svg>
+      Publication
+    </button>
+    <button type="button" class="ge-tk-tab" role="tab" aria-selected="false" data-tk-tab="tiers" id="tk-tab-tiers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2"/></svg>
+      Tarifs
+      <em>{{ tiers|length }}</em>
+    </button>
+    <button type="button" class="ge-tk-tab" role="tab" aria-selected="false" data-tk-tab="sales" id="tk-tab-sales">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+      Ventes
+      <em>{{ sales_count }}</em>
+    </button>
+  </nav>
+
+  <div class="ge-tk-panels">
+    <section class="ge-form-card ge-studio-card ge-tk-panel is-active" role="tabpanel" data-tk-panel="publish" aria-labelledby="tk-tab-publish">
+      <div class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 007.07 0l1.41-1.41a5 5 0 00-7.07-7.07L10 5.93"/><path d="M14 11a5 5 0 00-7.07 0L5.52 12.41a5 5 0 007.07 7.07L14 18.07"/></svg>
+        </span>
+        <div>
+          <h2>Liens &amp; publication</h2>
+          <p>{% if event.invite_link_enabled %}Visible sur l’agenda public.{% else %}Encore en brouillon.{% endif %}</p>
+        </div>
+      </div>
+      <div class="ge-invite-url">
+        <label for="ge-listing-url">Page publique</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="search" %}
+          <input id="ge-listing-url" type="text" readonly value="{{ listing_url }}" onclick="this.select()">
+        </div>
+        <div class="ge-invite-url-actions">
+          <button type="button" class="ok-btn-dark" data-copy-input="#ge-listing-url">
+            <span data-copy-idle>Copier</span>
+            <span data-copy-done hidden>Copié</span>
+          </button>
+          <a class="ge-btn-ghost" href="{{ listing_url }}" target="_blank" rel="noopener">Ouvrir</a>
+        </div>
+      </div>
+      <div class="ge-invite-url">
+        <label for="ge-buy-url">Achat</label>
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="ticket" %}
+          <input id="ge-buy-url" type="text" readonly value="{{ public_url }}" onclick="this.select()">
+        </div>
+        <div class="ge-invite-url-actions">
+          <button type="button" class="ok-btn-dark" data-copy-input="#ge-buy-url">
+            <span data-copy-idle>Copier</span>
+            <span data-copy-done hidden>Copié</span>
+          </button>
+          <a class="ge-btn-ghost" href="{{ public_url }}" target="_blank" rel="noopener">Tester l’achat</a>
+        </div>
+      </div>
+      <form method="post" class="ge-tk-actions">
+        {% csrf_token %}
+        <input type="hidden" name="tab" value="publish">
+        {% if event.invite_link_enabled %}
+        <button class="ge-btn-ghost" name="action" value="unpublish">Retirer du public</button>
+        {% else %}
+        <button class="ok-btn-dark" name="action" value="publish">Publier la billetterie</button>
+        {% endif %}
+        {% if can_simulate %}
+        <button class="ge-btn-ghost" name="action" value="simulate_sale">Simuler un achat</button>
+        {% endif %}
+        <a class="ge-btn-ghost" href="{% url 'ticketing_edit' event.id %}">Modifier l’événement</a>
+      </form>
+      {% if can_simulate %}
+      <p class="ge-muted">Paiement test : le formulaire public ouvre une caisse simulée. « Simuler un achat » crédite le tableau en un clic.</p>
+      {% endif %}
+    </section>
+
+    <section class="ge-form-card ge-studio-card ge-tk-panel" role="tabpanel" data-tk-panel="tiers" aria-labelledby="tk-tab-tiers" hidden>
+      <div class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2"/></svg>
+        </span>
+        <div>
+          <h2>Tarifs</h2>
+          <p>Ajustez les catégories en vente.</p>
+        </div>
+      </div>
+      <form method="post" class="ge-tk-tiers">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_tiers">
+        <input type="hidden" name="tab" value="tiers">
+        {% for t in tiers %}
+        <div class="ge-tk-tier">
+          <div class="ge-studio-split">
+            <div class="ge-field">
+              <label>Type</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="ticket" %}
+                <input name="tier_name" value="{{ t.public_name|default:t.name }}">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Prix</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="money" %}
+                <input name="tier_price" value="{{ t.price|floatformat:0 }}">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Quantité</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="qty" %}
+                <input name="tier_qty" value="{{ t.quantity }}">
+              </div>
+            </div>
+          </div>
+          <p class="ge-muted">{{ t.sold_count }} vendu{{ t.sold_count|pluralize }}{% if t.remaining != None %} · {{ t.remaining }} restant{{ t.remaining|pluralize }}{% endif %}</p>
+          <input type="hidden" name="tier_desc" value="{{ t.description }}">
+        </div>
+        {% empty %}
+        <div class="ge-tk-tier">
+          <div class="ge-studio-split">
+            <div class="ge-field">
+              <label>Type</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="ticket" %}
+                <input name="tier_name" value="Standard">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Prix</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="money" %}
+                <input name="tier_price" value="5000">
+              </div>
+            </div>
+            <div class="ge-field">
+              <label>Quantité</label>
+              <div class="ge-field-wrap">
+                {% include "partials/field_icon.html" with name="qty" %}
+                <input name="tier_qty" value="0">
+              </div>
+            </div>
+          </div>
+          <input type="hidden" name="tier_desc" value="">
+        </div>
+        {% endfor %}
+        <button class="ok-btn-dark" type="submit">Enregistrer les tarifs</button>
+      </form>
+    </section>
+
+    <section class="ge-form-card ge-studio-card ge-tk-panel" role="tabpanel" data-tk-panel="sales" aria-labelledby="tk-tab-sales" hidden>
+      <div class="ge-studio-card-head">
+        <span class="ge-dash-card-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+        </span>
+        <div>
+          <h2>Ventes</h2>
+          <p>{{ sales_count }} paiement{{ sales_count|pluralize }} confirmé{{ sales_count|pluralize }}.</p>
+        </div>
+      </div>
+
+      {% if not payments %}
+      <p class="ge-muted">Pas encore de paiement confirmé.{% if can_simulate %} Simulez un achat pour voir la liste se remplir.{% endif %}</p>
+      {% else %}
+      <div class="ge-sales-toolbar">
+        <label class="ge-sales-search" for="ge-sales-q">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.2-3.2"/></svg>
+          <input id="ge-sales-q" type="search" placeholder="Rechercher un acheteur…" autocomplete="off" data-sales-filter>
+        </label>
+        <span class="ge-sales-meta" data-sales-count>{{ payments|length }} affiché{{ payments|length|pluralize }}</span>
+      </div>
+      <div class="ge-sales-board" role="list" aria-label="Liste des ventes">
+        <div class="ge-sales-head" aria-hidden="true">
+          <span>Acheteur</span>
+          <span>Type</span>
+          <span>Montant</span>
+          <span>Net</span>
+        </div>
+        <div class="ge-sales-scroll" data-sales-list>
+          {% for p in payments %}
+          <article class="ge-sales-row" role="listitem" data-sales-row data-sales-text="{{ p.full_name|lower }} {{ p.get_participant_type_display|lower }}">
+            <div class="ge-sales-who">
+              <span class="ge-sales-avatar" aria-hidden="true">{{ p.first_name|slice:":1"|upper }}</span>
+              <div>
+                <strong>{{ p.full_name }}</strong>
+                <small>{% if p.paid_at %}{{ p.paid_at|date:"d/m/Y H:i" }}{% else %}{{ p.created_at|date:"d/m/Y H:i" }}{% endif %}</small>
+              </div>
+            </div>
+            <span class="ge-sales-chip">{{ p.get_participant_type_display }}</span>
+            <span class="ge-sales-amount">{{ p.amount|floatformat:0 }} <small>F</small></span>
+            <span class="ge-sales-net">{{ p.net_amount|floatformat:0 }}</span>
+          </article>
+          {% endfor %}
+        </div>
+      </div>
+      {% if sales_count > payments|length %}
+      <p class="ge-muted ge-sales-more-hint">Aperçu des {{ payments|length }} dernières ventes sur {{ sales_count }}.</p>
+      {% endif %}
+      {% endif %}
+      <p class="ge-tk-more"><a href="{% url 'event_guest_payments' event.id %}">Tous les paiements →</a></p>
+    </section>
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var tabs = document.querySelectorAll("[data-tk-tab]");
+  var panels = document.querySelectorAll("[data-tk-panel]");
+  if (!tabs.length) return;
+
+  function activate(name) {
+    tabs.forEach(function (tab) {
+      var on = tab.getAttribute("data-tk-tab") === name;
+      tab.classList.toggle("is-active", on);
+      tab.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    panels.forEach(function (panel) {
+      var on = panel.getAttribute("data-tk-panel") === name;
+      panel.classList.toggle("is-active", on);
+      panel.hidden = !on;
+    });
+    try {
+      var url = new URL(window.location.href);
+      url.searchParams.set("tab", name);
+      history.replaceState(null, "", url.pathname + "?" + url.searchParams.toString());
+    } catch (err) {}
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      activate(tab.getAttribute("data-tk-tab"));
+    });
+  });
+
+  var initial = "publish";
+  try {
+    initial = new URLSearchParams(window.location.search).get("tab") || initial;
+  } catch (err) {}
+  if (![].some.call(tabs, function (t) { return t.getAttribute("data-tk-tab") === initial; })) {
+    initial = "publish";
+  }
+  activate(initial);
+
+  var input = document.querySelector("[data-sales-filter]");
+  var rows = document.querySelectorAll("[data-sales-row]");
+  var countEl = document.querySelector("[data-sales-count]");
+  if (!input || !rows.length) return;
+  input.addEventListener("input", function () {
+    var q = (input.value || "").trim().toLowerCase();
+    var visible = 0;
+    rows.forEach(function (row) {
+      var hay = row.getAttribute("data-sales-text") || "";
+      var show = !q || hay.indexOf(q) !== -1;
+      row.hidden = !show;
+      if (show) visible += 1;
+    });
+    if (countEl) {
+      countEl.textContent = visible + " affiché" + (visible > 1 ? "s" : "");
+    }
+  });
+})();
+</script>
+{% endblock %}

@@ -15,6 +15,12 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Aperçu
     </a>
+    {% if event.is_ticketing %}
+    <a href="{% url 'ticketing_dashboard' event.id %}" class="{% if nav_active == 'ticketing' %}is-active{% endif %}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+      Billetterie
+    </a>
+    {% endif %}
     <a href="{% url 'event_guests' event.id %}" class="{% if nav_active == 'guests' %}is-active{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       Invités
@@ -27,9 +33,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
       Cartes
     </a>
-    <a href="{% url 'home' %}?scan=1&event={{ event.id }}">
+    <a href="{% url 'event_control' event.id %}" class="{% if nav_active == 'control' %}is-active{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
-      Scan
+      Contrôle
     </a>
     <a href="{% url 'event_presence' event.id %}" class="{% if nav_active == 'presence' %}is-active{% endif %}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
@@ -56,9 +62,9 @@
       <span class="ge-dock-bubble" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></span>
       <span class="ge-dock-label">Invités</span>
     </a>
-    <a class="ge-dock-item" href="{% url 'home' %}?scan=1&event={{ event.id }}" data-dock="scan">
+    <a class="ge-dock-item {% if nav_active == 'control' %}is-active{% endif %}" href="{% url 'event_control' event.id %}" data-dock="control">
       <span class="ge-dock-bubble" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></span>
-      <span class="ge-dock-label">Scan</span>
+      <span class="ge-dock-label">Contrôle</span>
     </a>
     <a class="ge-dock-item {% if nav_active == 'presence' %}is-active{% endif %}" href="{% url 'event_presence' event.id %}" data-dock="presence">
       <span class="ge-dock-bubble" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></span>
@@ -82,6 +88,14 @@
     </button>
   </header>
   <div class="ge-sheet-list">
+    {% if event.is_ticketing %}
+    <a href="{% url 'ticketing_dashboard' event.id %}">
+      <span class="ge-sheet-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+      </span>
+      Billetterie
+    </a>
+    {% endif %}
     <a href="{% url 'event_invitations' event.id %}">
       <span class="ge-sheet-ico" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>

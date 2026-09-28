@@ -30,38 +30,56 @@
 
       <div class="ge-field">
         <label for="{{ form.name.id_for_label }}">Nom de l’événement</label>
-        {{ form.name }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="star" %}
+          {{ form.name }}
+        </div>
         {% if form.name.errors %}<span class="ge-field-err">{{ form.name.errors.0 }}</span>{% endif %}
       </div>
 
       <div class="ge-studio-split">
         <div class="ge-field">
           <label for="{{ form.date.id_for_label }}">Date</label>
-          {{ form.date }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="calendar" %}
+            {{ form.date }}
+          </div>
           {% if form.date.errors %}<span class="ge-field-err">{{ form.date.errors.0 }}</span>{% endif %}
         </div>
         <div class="ge-field">
           <label for="{{ form.start_time.id_for_label }}">Heure</label>
-          {{ form.start_time }}
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="clock" %}
+            {{ form.start_time }}
+          </div>
           {% if form.start_time.errors %}<span class="ge-field-err">{{ form.start_time.errors.0 }}</span>{% endif %}
         </div>
       </div>
 
       <div class="ge-field">
         <label for="{{ form.venue.id_for_label }}">Lieu</label>
-        {{ form.venue }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="pin" %}
+          {{ form.venue }}
+        </div>
         {% if form.venue.errors %}<span class="ge-field-err">{{ form.venue.errors.0 }}</span>{% endif %}
       </div>
 
       <div class="ge-field">
         <label for="{{ form.expected_guests.id_for_label }}">Nombre d’invités (estimation)</label>
-        {{ form.expected_guests }}
+        <div class="ge-field-wrap">
+          {% include "partials/field_icon.html" with name="users" %}
+          {{ form.expected_guests }}
+        </div>
         {% if form.expected_guests.errors %}<span class="ge-field-err">{{ form.expected_guests.errors.0 }}</span>{% endif %}
       </div>
 
       <div class="ge-field">
         <label for="{{ form.description.id_for_label }}">Description <span class="ge-opt">(optionnel)</span></label>
-        {{ form.description }}
+        <div class="ge-field-wrap is-area">
+          {% include "partials/field_icon.html" with name="note" %}
+          {{ form.description }}
+        </div>
       </div>
 
       <div class="ge-wizard-actions">

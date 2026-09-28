@@ -6,11 +6,13 @@ from .models import (
     AdminAuditLog,
     Admission,
     Event,
+    EventController,
     EventLimitAdjustment,
     EventPlan,
     Invitation,
     Payment,
     ScanLog,
+    TicketTier,
     UserProfile,
 )
 
@@ -24,6 +26,7 @@ class EventPlanAdmin(admin.ModelAdmin):
         "vip_invitation_limit",
         "total_invitation_limit",
         "price",
+        "extra_ticket_price",
         "currency",
         "is_free",
         "lifetime_days",
@@ -34,6 +37,18 @@ class EventPlanAdmin(admin.ModelAdmin):
     prepopulated_fields = {"slug": ("name",)}
 
 
+@admin.register(TicketTier)
+class TicketTierAdmin(admin.ModelAdmin):
+    list_display = ("name", "event", "price", "quantity", "is_active")
+    list_filter = ("is_active",)
+
+
+@admin.register(EventController)
+class EventControllerAdmin(admin.ModelAdmin):
+    list_display = ("label", "event", "is_active", "last_used_at", "created_at")
+    list_filter = ("is_active",)
+
+
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
     list_display = (
@@ -41,13 +56,14 @@ class EventAdmin(admin.ModelAdmin):
         "owner",
         "event_type",
         "plan",
+        "is_ticketing",
         "status",
         "date",
         "expires_at",
         "code_prefix",
         "is_legacy",
     )
-    list_filter = ("status", "event_type", "plan", "is_legacy")
+    list_filter = ("status", "event_type", "plan", "is_ticketing", "is_public", "is_legacy")
     search_fields = ("name", "owner__username", "code_prefix")
     readonly_fields = (
         "plan_name_snapshot",

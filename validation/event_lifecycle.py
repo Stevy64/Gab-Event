@@ -1,9 +1,10 @@
 """
-Suppression automatique selon la formule, et fermeture des liens d’invitation.
+Archivage automatique selon la formule, et fermeture des liens d’invitation.
 
-Durées par défaut (depuis la création) :
-  Gratuit 14 j · Petit 21 j · Moyen 30 j · Grand 60 j
+Durées par défaut (après la date de l’événement) :
+  Gratuit J+14 · Petit J+21 · Moyen J+30 · Grand J+60
   Personnalisé : fin de la fenêtre définie à la création.
+  Jamais de suppression automatique : les listes restent consultables.
 """
 from __future__ import annotations
 
@@ -63,14 +64,20 @@ def expire_due_events(*, force: bool = False) -> ExpireResult:
     result = ExpireResult()
     result.links_closed = close_expired_invite_links(now=now)
 
-    to_delete = list(
+    to_archive = list(
         Event.objects.filter(expires_at__isnull=False, expires_at__lte=now)
         .exclude(is_legacy=True)
+        .exclude(status=Event.STATUS_ARCHIVED)
         .select_related("plan")
     )
-    for event in to_delete:
-        delete_event(event)
-        result.deleted += 1
+    for event in to_archive:
+        event.status = Event.STATUS_ARCHIVED
+        event.archived_at = now
+        _close_invite_link(event)
+        event.save(
+            update_fields=["status", "archived_at", "invite_link_enabled", "updated_at"]
+        )
+        result.archived += 1
 
     return result
 

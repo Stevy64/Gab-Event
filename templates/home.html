@@ -102,8 +102,9 @@
   window.__OPEN_SCANNER__ = {{ open_scanner|yesno:"true,false" }};
   window.__SCAN_EVENT_ID__ = {% if event %}{{ event.id }}{% else %}null{% endif %};
   window.__SCAN_EVENT_NAME__ = {% if event %}"{{ event.name|escapejs }}"{% else %}null{% endif %};
+  window.__SCAN_AGENT__ = "{{ request.user.get_full_name|default:request.user.username|escapejs }}";
 </script>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<script src="{% static 'js/scanner.js' %}?v=19"></script>
+<script src="{% static 'js/scanner.js' %}?v=20"></script>
 {% endif %}
 {% endblock %}

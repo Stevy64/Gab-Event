@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}Invitation — {{ event.name }}{% endblock %}
+{% block title %}{% if event.is_ticketing %}Billet — {{ event.name }}{% else %}Invitation — {{ event.name }}{% endif %}{% endblock %}
 {% block body_class %}page-auth{% endblock %}
 {% block content %}
-<main class="ge-auth ge-invite">
+<main class="ge-auth ge-invite{% if event.is_ticketing %} ge-invite-ticket{% endif %}">
   <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
     <img src="{{ event.cover_url }}" alt="" decoding="async">
     <div class="ge-auth-veil"></div>
@@ -37,6 +37,9 @@
         </div>
         <p class="ge-auth-kicker">{{ event.type_label }}</p>
         <h1>{{ event.name }}</h1>
+        {% if event.organizer_name %}
+        <p class="ge-invite-org">Organisé par {{ event.organizer_name }}</p>
+        {% endif %}
         <p class="ge-auth-lead ge-invite-lead">
           {{ event.display_date|default:"Date à confirmer" }}
           {% if event.venue %} · {{ event.venue }}{% endif %}
@@ -46,13 +49,19 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3.5v3.2M16 3.5v3.2M3.5 10h17"/></svg>
             {{ event.display_date|default:"Date à confirmer" }}
           </span>
+          {% if event.start_time %}
+          <span class="ge-invite-chip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+            {{ event.start_time }}
+          </span>
+          {% endif %}
           {% if event.venue %}
           <span class="ge-invite-chip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-5.4 7-11a7 7 0 10-14 0c0 5.6 7 11 7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
-            {{ event.venue }}
+            {{ event.venue }}{% if event.city %} · {{ event.city }}{% endif %}
           </span>
           {% endif %}
-          {% if paid %}
+          {% if paid and not tiers %}
           <span class="ge-invite-chip is-gold">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.4 9.4c.7-1 2-1.5 3.4-1.2"/></svg>
             Standard {{ price_regular|floatformat:0 }} · VIP {{ price_vip|floatformat:0 }}
@@ -65,7 +74,7 @@
       <div class="ge-auth-errors">{{ errors.0 }}</div>
       {% endif %}
 
-      <form method="post" class="ge-auth-form ge-invite-form">
+      <form method="post" class="ge-auth-form ge-invite-form{% if event.is_ticketing %} is-ticketing{% endif %}">
         {% csrf_token %}
         {% if "first_name" in fields %}
         <div class="ge-field">
@@ -85,7 +94,22 @@
           </div>
         </div>
         {% endif %}
-        {% if "participant_type" in fields %}
+        {% if tiers %}
+        <div class="ge-field ge-tk-picks">
+          <label>Choisissez votre billet</label>
+          {% for t in tiers %}
+          <label class="ge-tk-pick{% if t.sold_out %} is-sold{% endif %}">
+            <input type="radio" name="ticket_tier" value="{{ t.id }}" {% if t.sold_out %}disabled{% endif %} {% if payload.ticket_tier and payload.ticket_tier.id == t.id %}checked{% elif forloop.first and not t.sold_out and not payload.ticket_tier %}required checked{% endif %}>
+            <span class="ge-tk-pick-copy">
+              <strong>{{ t.public_name }}</strong>
+              {% if t.description %}<small>{{ t.description }}</small>{% endif %}
+              {% if t.sold_out %}<em>Épuisé</em>{% elif t.quantity %}<small>{{ t.remaining }} restant{{ t.remaining|pluralize }}</small>{% endif %}
+            </span>
+            <span class="ge-tk-pick-price">{{ t.price|floatformat:0 }} <small>F CFA</small></span>
+          </label>
+          {% endfor %}
+        </div>
+        {% elif "participant_type" in fields %}
         <div class="ge-field">
           <label for="id_participant_type">Type d’invitation</label>
           <div class="ge-field-wrap">
@@ -99,19 +123,19 @@
         {% endif %}
         {% if "email" in fields %}
         <div class="ge-field">
-          <label for="id_email">E-mail</label>
+          <label for="id_email">E-mail <small>(optionnel)</small></label>
           <div class="ge-field-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h16v12H4z"/><path d="M4 8l8 6 8-6"/></svg>
+            {% include "partials/field_icon.html" with name="mail" %}
             <input id="id_email" type="email" name="email" value="{{ payload.email|default:'' }}" placeholder="vous@email.com" autocomplete="email">
           </div>
         </div>
         {% endif %}
-        {% if "phone" in fields %}
+        {% if event.is_ticketing or "phone" in fields %}
         <div class="ge-field">
-          <label for="id_phone">Téléphone</label>
+          <label for="id_phone">Téléphone{% if not event.is_ticketing %} <small>(optionnel)</small>{% endif %}</label>
           <div class="ge-field-wrap">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><circle cx="12" cy="18" r="1"/></svg>
-            <input id="id_phone" type="tel" name="phone" value="{{ payload.phone|default:'' }}" placeholder="+241 06 00 00 00" autocomplete="tel">
+            {% include "partials/field_icon.html" with name="phone" %}
+            <input id="id_phone" type="tel" name="phone" value="{{ payload.phone|default:'' }}" placeholder="+241 06 00 00 00" autocomplete="tel"{% if event.is_ticketing %} required{% endif %}>
           </div>
         </div>
         {% endif %}
@@ -145,22 +169,28 @@
 
         <label class="ge-legal-check ge-invite-wide">
           <input type="checkbox" name="accept_terms" value="on" required{% if request.POST.accept_terms %} checked{% endif %}>
-          <span>J’accepte les <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" title="Conditions générales d’utilisation">CGU</a>.</span>
+          <span>J’accepte les <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" data-no-loader title="Conditions générales d’utilisation">CGU</a>{% if event.is_ticketing %} et les <a href="{% url 'terms' %}#cgv" data-sheet="ge-sheet-cgv" data-no-loader title="Conditions générales de vente">CGV</a>{% endif %}.</span>
         </label>
 
         <button type="submit" class="ok-btn-dark ge-auth-submit">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
-          {% if paid %}Payer et confirmer{% else %}Confirmer ma présence{% endif %}
+          {% if event.is_ticketing %}Acheter mon billet{% elif paid %}Payer et confirmer{% else %}Confirmer ma présence{% endif %}
         </button>
       </form>
 
       <p class="ge-auth-foot ge-invite-foot">
-        <a href="{% url 'faq' %}" data-sheet="ge-sheet-faq">Comment ça marche ?</a>
+        <a href="{% url 'public_ticket_recover' event.invite_token %}">Récupérer mon ticket perdu</a>
         <span aria-hidden="true">·</span>
-        <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" title="Conditions générales d’utilisation">CGU</a>
+        <a href="{% url 'faq' %}" data-sheet="ge-sheet-faq" data-no-loader>Comment ça marche ?</a>
+        <span aria-hidden="true">·</span>
+        <a href="{% url 'terms' %}" data-sheet="ge-sheet-cgu" data-no-loader title="Conditions générales d’utilisation">CGU</a>
+        {% if event.is_ticketing %}
+        <span aria-hidden="true">·</span>
+        <a href="{% url 'terms' %}#cgv" data-sheet="ge-sheet-cgv" data-no-loader title="Conditions générales de vente">CGV</a>
+        {% endif %}
       </p>
     </div>
   </div>
-  {% include "partials/legal_sheets.html" %}
 </main>
+{% include "partials/legal_sheets.html" %}
 {% endblock %}

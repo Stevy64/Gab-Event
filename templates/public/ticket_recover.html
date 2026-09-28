@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Récupérer mon billet — {{ event.name }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<main class="ge-auth ge-invite">
+  <div class="ge-auth-bg" aria-hidden="true" style="background-image:url('{{ event.cover_url }}')">
+    <img src="{{ event.cover_url }}" alt="" decoding="async">
+    <div class="ge-auth-veil"></div>
+  </div>
+  <div class="ge-auth-stage">
+    <div class="ge-auth-card ge-auth-card-sm ge-invite-card">
+      <header class="ge-invite-head">
+        <p class="ge-auth-kicker">{% if event.is_ticketing %}Billetterie{% else %}Invitation{% endif %}</p>
+        <h1>Récupérer mon billet</h1>
+        <p class="ge-auth-lead">Saisissez le numéro utilisé lors de l’inscription pour retrouver et télécharger votre billet.</p>
+      </header>
+      {% if error %}
+      <div class="ge-auth-errors">{{ error }}</div>
+      {% endif %}
+      <form method="post" class="ge-auth-form ge-invite-form">
+        {% csrf_token %}
+        <div class="ge-field">
+          <label for="id_phone">Téléphone</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="phone" %}
+            <input id="id_phone" type="tel" name="phone" value="{{ phone }}" required placeholder="+241 06 00 00 00" autocomplete="tel">
+          </div>
+        </div>
+        <div class="ge-field">
+          <label for="id_last_name">Nom de famille <small>(si plusieurs billets)</small></label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="user" %}
+            <input id="id_last_name" type="text" name="last_name" value="{{ last_name }}" placeholder="Optionnel" autocomplete="family-name">
+          </div>
+        </div>
+        <button type="submit" class="ok-btn-dark ge-auth-submit">Retrouver mon billet</button>
+      </form>
+      <p class="ge-auth-foot ge-invite-foot">
+        <a href="{% url 'public_invite' event.invite_token %}">Retour à l’achat</a>
+      </p>
+    </div>
+  </div>
+</main>
+{% include "partials/legal_sheets.html" %}
+{% endblock %}
