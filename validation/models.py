@@ -260,7 +260,10 @@ class RecoveryOtp(models.Model):
         verbose_name = "Code de récupération"
         verbose_name_plural = "Codes de récupération"
         indexes = [
-            models.Index(fields=["user", "consumed_at"]),
+            models.Index(
+                fields=["user", "consumed_at"],
+                name="validation__user_id_recov_idx",
+            ),
         ]
 
     def __str__(self):
