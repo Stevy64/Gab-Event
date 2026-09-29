@@ -2,7 +2,8 @@
 {% block title %}Billetterie — Gab Event{% endblock %}
 {% block body_class %}page-app page-sheet-ui page-ticketing{% endblock %}
 {% block content %}
-{% include "partials/user_nav.html" with admin_title="Billetterie" nav_active="ticketing" %}
+{% url 'my_events' as events_back %}
+{% include "partials/ticketing_nav.html" with nav_active="hub" back_url=events_back back_label="Événements" %}
 <main class="ge-app ge-sheet-page">
   <header class="ge-sheet-hero ge-tk-hero">
     <div class="ge-blob" aria-hidden="true">
@@ -29,20 +30,38 @@
   {% else %}
   <div class="ge-tk-grid">
     {% for event in events %}
-    <a class="ge-tk-card" href="{% url 'ticketing_dashboard' event.id %}">
-      <div class="ge-tk-card-cover" style="background-image:url('{{ event.cover_url }}')"></div>
-      <div class="ge-tk-card-body">
-        <p class="ge-tk-card-status {% if event.invite_link_enabled %}is-live{% else %}is-draft{% endif %}">
+    <a class="ge-tk-card" href="{% url 'ticketing_dashboard' event.id %}" style="--hub-delay: {{ forloop.counter0 }}">
+      <div class="ge-tk-card-cover">
+        <img src="{{ event.cover_url }}" alt="" decoding="async" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+        <span class="ge-tk-card-badge {% if event.invite_link_enabled %}is-live{% else %}is-draft{% endif %}">
           {% if event.invite_link_enabled %}En vente{% else %}Brouillon{% endif %}
-        </p>
+        </span>
+      </div>
+      <div class="ge-tk-card-body">
+        <p class="ge-tk-card-kicker">{{ event.type_label|default:"Événement" }}</p>
         <h3>{{ event.name }}</h3>
-        <p class="ge-tk-card-meta">{{ event.display_date|default:"Date à confirmer" }}{% if event.venue %} · {{ event.venue }}{% endif %}</p>
-        <p class="ge-tk-card-stats">
-          <span>{{ event.sold|default:0 }} vendu{{ event.sold|default:0|pluralize }}</span>
-          {% if event.cheapest_ticket_price %}
-          <span>dès {{ event.cheapest_ticket_price|floatformat:0 }} F CFA</span>
+        <p class="ge-tk-card-meta">
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+            {{ event.display_date|default:"Date à confirmer" }}
+          </span>
+          {% if event.venue %}
+          <span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+            {{ event.venue }}
+          </span>
           {% endif %}
         </p>
+        <div class="ge-tk-card-stats">
+          <div>
+            <strong>{{ event.sold|default:0 }}</strong>
+            <span>vendu{{ event.sold|default:0|pluralize }}</span>
+          </div>
+          <div>
+            <strong>{{ event.collected|default:0|floatformat:0 }}</strong>
+            <span>F CFA · collectés</span>
+          </div>
+        </div>
       </div>
     </a>
     {% endfor %}

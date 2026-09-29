@@ -7,6 +7,11 @@
   <nav class="ok-nav-center" aria-label="Navigation">
     <a href="{% url 'landing' %}">Accueil</a>
     <a href="{% url 'public_events' %}"{% if nav_active == 'events' %} class="is-active"{% endif %}>Événements</a>
+    {% if user.is_authenticated %}
+    <a class="ok-nav-ticket{% if nav_active == 'ticketing' %} is-active{% endif %}" href="{% url 'ticketing_hub' %}">Billetterie</a>
+    {% else %}
+    <a class="ok-nav-ticket" href="{% url 'login' %}?next={% url 'ticketing_hub' %}">Billetterie</a>
+    {% endif %}
     <a href="{% url 'landing' %}#offres">Offres</a>
     <a href="{% url 'faq' %}">FAQ</a>
   </nav>

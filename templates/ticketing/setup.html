@@ -2,7 +2,13 @@
 {% block title %}Configurer la billetterie — Gab Event{% endblock %}
 {% block body_class %}page-app page-sheet-ui page-ticketing{% endblock %}
 {% block content %}
-{% include "partials/user_nav.html" with admin_title="Billetterie" nav_active="ticketing" %}
+{% if event %}
+{% url 'ticketing_dashboard' event.id as tk_back %}
+{% include "partials/ticketing_nav.html" with nav_active="create" back_url=tk_back back_label="Tableau de bord" %}
+{% else %}
+{% url 'ticketing_hub' as tk_back %}
+{% include "partials/ticketing_nav.html" with nav_active="create" back_url=tk_back back_label="Billetterie" %}
+{% endif %}
 <main class="ge-app ge-sheet-page">
   <header class="ge-sheet-hero ge-tk-hero">
     <p class="ge-kicker">Billetterie</p>
@@ -23,14 +29,26 @@
         </div>
       </div>
       <div class="ge-field">
-        <label for="id_flyer">Affiche / image</label>
-        <div class="ge-field-wrap">
-          {% include "partials/field_icon.html" with name="image" %}
-          <input id="id_flyer" type="file" name="flyer" accept="image/*"{% if not event or not event.flyer %} required{% endif %}>
+        <label>Affiche / image</label>
+        <div class="ge-photo-picker ge-photo-picker-banner{% if event and event.flyer %} has-photo{% endif %}" data-photo-picker>
+          <div class="ge-photo-preview">
+            <img data-photo-img{% if event and event.flyer %} src="{{ event.flyer.url }}"{% else %} hidden{% endif %} alt="">
+            <span class="ge-photo-ph" data-photo-ph {% if event and event.flyer %}hidden{% endif %} aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3.2"/><path d="M8 5l1.2-1.6h5.6L16 5"/></svg>
+            </span>
+          </div>
+          <div class="ge-photo-meta">
+            <p class="ge-photo-name" data-photo-name>{% if event and event.flyer %}Affiche actuelle{% else %}Aucune affiche{% endif %}</p>
+            <p class="ge-photo-hint">JPG ou PNG · visible sur l’agenda et le billet</p>
+            <div class="ge-photo-actions">
+              <label class="ge-photo-btn" for="id_flyer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V8M8.5 11.5L12 8l3.5 3.5"/><path d="M5 16.5V18a1 1 0 001 1h12a1 1 0 001-1v-1.5"/></svg>
+                <span data-photo-cta>{% if event and event.flyer %}Remplacer{% else %}Ajouter une affiche{% endif %}</span>
+              </label>
+            </div>
+            <input id="id_flyer" class="ge-photo-file" type="file" name="flyer" accept="image/*"{% if not event or not event.flyer %} required{% endif %}>
+          </div>
         </div>
-        {% if event and event.flyer %}
-        <p class="ge-muted">Affiche actuelle en ligne. Choisissez un fichier pour la remplacer.</p>
-        {% endif %}
       </div>
       <div class="ge-field">
         <label for="id_name">Nom de l’événement</label>

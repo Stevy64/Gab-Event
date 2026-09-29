@@ -4,49 +4,53 @@
   <button type="button" class="ok-event-sheet-x" id="ok-event-close" aria-label="Fermer">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
   </button>
-  <div class="ok-event-hero" id="ok-event-hero" aria-hidden="true">
-    <img id="ok-event-flyer" alt="">
-    <div class="ok-event-hero-veil"></div>
-    <span class="ok-event-logo" id="ok-event-logo-wrap" hidden>
-      <img id="ok-event-logo" alt="">
-    </span>
-  </div>
-  <div class="ok-event-sheet-body">
-    <p class="ok-event-type" id="ok-event-type"></p>
-    <h2 id="ok-event-title"></h2>
-    <ul class="ok-event-facts">
-      <li id="ok-event-date" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-        <span></span>
-      </li>
-      <li id="ok-event-time" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
-        <span></span>
-      </li>
-      <li id="ok-event-place" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
-        <span></span>
-      </li>
-      <li id="ok-event-org" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-        <span></span>
-      </li>
-      <li id="ok-event-price" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2"/></svg>
-        <span></span>
-      </li>
-    </ul>
-    <div class="ge-agenda-countdown ok-event-cd" id="ok-event-countdown" hidden data-countdown="">
-      <p class="ge-agenda-countdown-title">Temps restant pour l’événement</p>
-      <div class="ge-agenda-countdown-grid">
-        <div><strong data-cd="d">—</strong><span>Jours</span></div>
-        <div><strong data-cd="h">—</strong><span>Heures</span></div>
-        <div><strong data-cd="m">—</strong><span>Min</span></div>
-        <div><strong data-cd="s">—</strong><span>Sec</span></div>
-      </div>
+  <div class="ok-event-sheet-scroll">
+    <div class="ok-event-hero" id="ok-event-hero" aria-hidden="true">
+      <img id="ok-event-flyer" alt="">
+      <div class="ok-event-hero-veil"></div>
+      <span class="ok-event-logo" id="ok-event-logo-wrap" hidden>
+        <img id="ok-event-logo" alt="">
+      </span>
     </div>
-    <p class="ok-event-desc" id="ok-event-desc" hidden></p>
-    <a class="ok-btn-dark ok-event-cta is-attn" id="ok-event-cta" hidden>
+    <div class="ok-event-sheet-body">
+      <p class="ok-event-type" id="ok-event-type"></p>
+      <h2 id="ok-event-title"></h2>
+      <ul class="ok-event-facts">
+        <li id="ok-event-date" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-time" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-place" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-org" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+          <span></span>
+        </li>
+        <li id="ok-event-price" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2"/></svg>
+          <span></span>
+        </li>
+      </ul>
+      <div class="ge-agenda-countdown ok-event-cd" id="ok-event-countdown" hidden data-countdown="">
+        <p class="ge-agenda-countdown-title">Temps restant pour l’événement</p>
+        <div class="ge-agenda-countdown-grid">
+          <div><strong data-cd="d">—</strong><span>Jours</span></div>
+          <div><strong data-cd="h">—</strong><span>Heures</span></div>
+          <div><strong data-cd="m">—</strong><span>Min</span></div>
+          <div><strong data-cd="s">—</strong><span>Sec</span></div>
+        </div>
+      </div>
+      <p class="ok-event-desc" id="ok-event-desc" hidden></p>
+    </div>
+  </div>
+  <div class="ok-event-sheet-actions" id="ok-event-actions">
+    <a class="ok-btn-dark ok-event-cta is-attn is-buy" id="ok-event-cta" hidden>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><path d="M4 8.5V7a2 2 0 012-2h12a2 2 0 012 2v1.5"/><path d="M4 15.5V17a2 2 0 002 2h12a2 2 0 002-2v-1.5"/><path d="M4 12h16"/><circle cx="8.2" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.8" cy="12" r="1.15" fill="currentColor" stroke="none"/></svg>
       <span id="ok-event-cta-label">Acheter un billet</span>
     </a>

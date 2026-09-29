@@ -200,13 +200,17 @@ def ticketing_hub(request):
             sold=Count(
                 "invitations",
                 filter=Q(invitations__status=Invitation.STATUS_VALID),
-            )
+            ),
+            collected=Sum(
+                "guest_payments__amount",
+                filter=Q(guest_payments__status=GuestPayment.STATUS_SUCCESS),
+            ),
         )
     )
     return render(
         request,
         "ticketing/hub.html",
-        {"events": events, "nav_active": "ticketing"},
+        {"events": events, "nav_active": "hub"},
     )
 
 
@@ -407,7 +411,7 @@ def ticketing_setup(request, event_id=None):
                     "initial": initial,
                     "tiers": tiers,
                     "categories": EventCategory.objects.filter(is_active=True),
-                    "nav_active": "ticketing",
+                    "nav_active": "create",
                 },
             )
         plan = _ticketing_plan()
@@ -495,7 +499,7 @@ def ticketing_setup(request, event_id=None):
             "initial": initial,
             "tiers": tiers,
             "categories": categories,
-            "nav_active": "ticketing",
+            "nav_active": "create",
         },
     )
 

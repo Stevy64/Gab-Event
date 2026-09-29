@@ -114,7 +114,7 @@
     }
 
     function scroller() {
-      return sheet.querySelector('.ge-sheet-scroll') || sheet;
+      return sheet.querySelector('.ge-sheet-scroll, .ok-event-sheet-scroll') || sheet;
     }
 
     function applyOffset(offset) {

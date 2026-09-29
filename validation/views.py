@@ -849,6 +849,7 @@ def my_events(request):
     q = (request.GET.get("q") or "").strip()
     events = (
         user_events_qs(request.user)
+        .filter(is_ticketing=False)
         .select_related("plan")
         .annotate(
             inv_total=Count("invitations"),
