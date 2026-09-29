@@ -1590,6 +1590,13 @@ class SiteSettings(models.Model):
         blank=True,
         null=True,
     )
+    auth_login_image = models.ImageField(
+        "Image pages de connexion",
+        upload_to="site/",
+        blank=True,
+        null=True,
+        help_text="Fond des écrans login / inscription / mot de passe. Vide = image hero, sinon galerie.",
+    )
     hero_line1 = models.CharField(
         "Titre hero — ligne 1",
         max_length=120,

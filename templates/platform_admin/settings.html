@@ -53,6 +53,11 @@
         </div>
       </section>
 
+      <section class="cx-card" id="connexion">
+        <h2>Pages de connexion</h2>
+        {% include "platform_admin/_field.html" with field=form.auth_login_image %}
+      </section>
+
       <section class="cx-card" id="contact">
         <h2>Contact &amp; WhatsApp</h2>
         <div class="cx-fields-2">
@@ -151,6 +156,10 @@
           {% if site.hero_image %}
           <p><strong>Hero</strong></p>
           <img class="cx-preview-cover" src="{{ site.hero_image.url }}" alt="">
+          {% endif %}
+          {% if site.auth_login_image %}
+          <p><strong>Connexion</strong></p>
+          <img class="cx-preview-cover" src="{{ site.auth_login_image.url }}" alt="">
           {% endif %}
           {% if site.default_cover %}
           <p><strong>Couverture</strong></p>

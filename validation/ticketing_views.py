@@ -56,16 +56,55 @@ PUBLIC_GROUPS = (
 
 
 def _public_events_qs():
+    """Événements visibles sur l’agenda : publics, homepage, ou billetterie (ouverte ou déjà publiée puis fermée)."""
     return (
         Event.objects.filter(status=Event.STATUS_ACTIVE)
         .filter(
             Q(is_ticketing=True, invite_link_enabled=True)
+            | Q(is_ticketing=True, invite_published_at__isnull=False)
             | Q(is_public=True)
             | Q(show_on_homepage=True)
         )
         .select_related("owner", "plan")
         .prefetch_related("ticket_tiers")
     )
+
+
+def _agenda_sale_state(event: Event) -> dict:
+    """État vente / échéance pour la bottom sheet agenda."""
+    from django.utils import timezone as dj_tz
+
+    ended = False
+    iso = event.starts_at_iso()
+    if iso:
+        try:
+            from datetime import datetime
+
+            start = datetime.fromisoformat(iso)
+            if dj_tz.is_naive(start):
+                start = dj_tz.make_aware(start, dj_tz.get_current_timezone())
+            ended = start <= dj_tz.now()
+        except ValueError:
+            ended = False
+    closed = bool(
+        event.is_ticketing
+        and not event.invite_link_enabled
+        and event.invite_published_at is not None
+    )
+    if ended:
+        status = "ended"
+        status_label = "Événement terminé"
+    elif closed:
+        status = "closed"
+        status_label = "Billetterie fermée"
+    else:
+        status = "open"
+        status_label = ""
+    return {
+        "sale_status": status,
+        "sale_status_label": status_label,
+        "tickets_open": bool(event.is_ticketing and event.invite_link_enabled and not ended),
+    }
 
 
 def _agenda_card(event: Event, request) -> dict:
@@ -82,8 +121,9 @@ def _agenda_card(event: Event, request) -> dict:
             logo = event.logo.url
     except ValueError:
         pass
+    sale = _agenda_sale_state(event)
     buy = ""
-    if event.invite_token:
+    if sale["tickets_open"] and event.invite_token:
         buy = request.build_absolute_uri(reverse("public_invite", args=[event.invite_token]))
     tiers = []
     for tier in event.ticket_tiers.all():
@@ -134,6 +174,9 @@ def _agenda_card(event: Event, request) -> dict:
         "price": f"{cheapest:.0f}" if cheapest is not None else "",
         "tiers": tiers,
         "cta": "Acheter un billet" if event.is_ticketing else "S’inscrire",
+        "sale_status": sale["sale_status"],
+        "sale_status_label": sale["sale_status_label"],
+        "tickets_open": sale["tickets_open"],
     }
 
 

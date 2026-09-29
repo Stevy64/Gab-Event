@@ -2028,13 +2028,16 @@ body.page-event .ge-page-loader-ring {
 }
 
 .ok-nav-center {
-  display: none; gap: 1.35rem;
+  display: none;
+  align-items: center;
+  gap: 1.35rem;
   font-size: 0.82rem; font-weight: 500; letter-spacing: 0.02em;
 }
 .ok-nav-center a {
   position: relative;
   color: rgba(255,255,255,0.82);
   padding-bottom: 0.15rem;
+  line-height: 1.2;
 }
 .ok-nav-center a::after {
   content: "";
@@ -2050,20 +2053,29 @@ body.page-event .ge-page-loader-ring {
 .ok-nav-center a.ok-nav-ticket {
   display: inline-flex;
   align-items: center;
-  padding: 0.38rem 0.85rem;
+  justify-content: center;
+  align-self: center;
+  height: 2rem;
+  padding: 0 0.9rem;
+  margin: 0;
   border-radius: 999px;
   background: var(--ok);
   color: #fff !important;
   font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.01em;
+  line-height: 1;
   box-shadow: 0 8px 18px rgba(21, 153, 71, 0.28);
   transition: background 0.18s ease, transform 0.18s ease;
+  transform: none;
+  vertical-align: middle;
 }
-.ok-nav-center a.ok-nav-ticket::after { display: none; }
+.ok-nav-center a.ok-nav-ticket::after { display: none; content: none; }
 .ok-nav-center a.ok-nav-ticket:hover,
 .ok-nav-center a.ok-nav-ticket.is-active {
   background: #0f7a38;
   color: #fff !important;
-  transform: translateY(-1px);
+  transform: none;
 }
 .ok-nav.is-scrolled .ok-nav-center a.ok-nav-ticket,
 .ok-nav.is-scrolled .ok-nav-center a.ok-nav-ticket:hover,
@@ -2918,31 +2930,105 @@ body.ok-sheet-open { overflow: hidden; }
   margin: 0 0 1rem;
   padding: 0;
   display: grid;
-  gap: 0.45rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
 }
 .ok-event-facts li {
   display: grid;
-  grid-template-columns: 36px 1fr;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.7rem 0.8rem;
+  grid-template-columns: 28px 1fr;
+  align-items: start;
+  gap: 0.45rem;
+  padding: 0.7rem 0.75rem;
   background: #fff;
   border-radius: 16px;
   box-shadow: 0 10px 22px rgba(201, 162, 74, 0.1);
   font-weight: 650;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   line-height: 1.35;
+  min-width: 0;
+}
+.ok-event-facts li#ok-event-place,
+.ok-event-facts li#ok-event-org,
+.ok-event-facts li#ok-event-price {
+  grid-column: 1 / -1;
 }
 .ok-event-facts svg {
-  width: 18px; height: 18px;
+  width: 16px; height: 16px;
   color: #8A7040;
   justify-self: center;
+  margin-top: 0.12rem;
+}
+.ok-event-facts span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.ok-event-status {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0 0.45rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #FFF4E0;
+  color: #9a6700;
+}
+.ok-event-status.is-closed {
+  background: #FEE2E2;
+  color: #b42318;
+}
+.ok-event-status.is-ended {
+  background: #EEE8DC;
+  color: #5c6780;
 }
 .ok-event-desc {
   margin: 0 0 1.05rem;
   color: var(--ok-muted);
   font-size: 0.94rem;
   line-height: 1.5;
+}
+.ok-event-cd-ended {
+  margin: 0.65rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b42318;
+}
+.ok-event-cd.is-ended .ge-agenda-countdown-grid {
+  opacity: 0.55;
+}
+.ok-plan.is-featured.is-ticket,
+.ok-plan.is-ticket {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(21, 153, 71, 0.14), transparent 42%),
+    linear-gradient(165deg, #fff 36%, #ECFDF3);
+  box-shadow: 0 0 0 2px var(--ok), 0 18px 40px rgba(21, 153, 71, 0.18);
+  z-index: 1;
+}
+@media (min-width: 1024px) {
+  .ok-plan.is-featured.is-ticket,
+  .ok-plan.is-ticket {
+    transform: translateY(-8px);
+  }
+  .ok-plan.is-featured.is-ticket:hover,
+  .ok-plan.is-ticket:hover {
+    transform: translateY(-11px);
+  }
+}
+.ok-plan-badge.is-ticket {
+  background: var(--ok);
+  color: #fff;
+}
+.ok-plan.is-ticket .ok-plan-cta {
+  background: var(--ok);
+  box-shadow: 0 10px 22px rgba(21, 153, 71, 0.28);
+}
+.ok-plan.is-ticket .ok-plan-cta:hover {
+  background: #0f7a38;
 }
 .ok-event-sheet-actions {
   display: none;
@@ -4810,6 +4896,19 @@ body.ge-sheet-open .ge-dock {
   box-shadow: 0 0 0 2px #1A2744, 0 14px 30px rgba(26, 39, 68, 0.12);
 }
 .ge-plan-card.is-featured { background: linear-gradient(165deg, #fff 55%, #FFF6E0); }
+.ge-plan-card.is-featured.is-ticket,
+.ge-plan-card.is-ticket {
+  background:
+    radial-gradient(circle at 88% 12%, rgba(21, 153, 71, 0.14), transparent 42%),
+    linear-gradient(165deg, #fff 36%, #ECFDF3);
+  border-color: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok), 0 16px 34px rgba(21, 153, 71, 0.16);
+}
+.ge-plan-card.is-ticket .ok-badge,
+.ok-badge.is-ticket {
+  background: var(--ok);
+  color: #fff;
+}
 .ge-plan-card.is-free { background: linear-gradient(165deg, #fff 50%, #F3F8F4); }
 .ge-plan-head {
   display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
@@ -6932,6 +7031,11 @@ button.ge-sent-btn.is-go:focus-visible,
 }
 .page-sheet-ui .ge-plan-card.is-featured {
   box-shadow: 0 0 0 1.5px #E8D6A8, 0 16px 34px rgba(201, 162, 74, 0.16);
+}
+.page-sheet-ui .ge-plan-card.is-ticket,
+.page-sheet-ui .ge-plan-card.is-featured.is-ticket {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 2px var(--ok), 0 16px 34px rgba(21, 153, 71, 0.16);
 }
 .page-sheet-ui .ge-plan-card.is-selected {
   border-color: #1A2744;

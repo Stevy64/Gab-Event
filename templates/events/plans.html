@@ -25,7 +25,7 @@
       {% csrf_token %}
       <div class="ge-plan-grid">
         {% for plan in plans %}
-        <label class="ge-plan-card {% if plan.is_recommended %}is-featured{% endif %} {% if plan.is_free %}is-free{% endif %} {% if not plan.is_custom and plan.potential_total < expected %}is-tight{% endif %}"
+        <label class="ge-plan-card {% if plan.is_custom %}is-featured is-ticket{% elif plan.is_recommended %}is-featured{% endif %} {% if plan.is_free %}is-free{% endif %} {% if not plan.is_custom and plan.potential_total < expected %}is-tight{% endif %}"
                data-name="{{ plan.name }}"
                data-capacity="{{ plan.potential_total }}"
                data-unlimited="{% if plan.is_custom %}1{% else %}0{% endif %}"
@@ -35,7 +35,7 @@
           <input type="radio" name="plan" value="{{ plan.id }}" required>
           <header class="ge-plan-head">
             <h3>{{ plan.name }}</h3>
-            {% if plan.is_recommended %}<span class="ok-badge">Recommandé</span>{% elif plan.is_popular %}<span class="ok-badge">Populaire</span>{% endif %}
+            {% if plan.is_custom %}<span class="ok-badge is-ticket">Recommandé</span>{% elif plan.is_popular %}<span class="ok-badge">Populaire</span>{% endif %}
           </header>
           <p class="ge-plan-price">
             {% if plan.is_custom %}

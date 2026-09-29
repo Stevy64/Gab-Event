@@ -98,6 +98,7 @@
   </section>
   {% include "partials/legal_foot.html" %}
   {{ agenda_payload|json_script:"ok-search-json" }}
+  <div class="ok-overlay" id="ok-overlay" hidden></div>
   {% include "partials/public_event_sheet.html" %}
 </div>
 {% endblock %}
@@ -147,6 +148,7 @@
     var target = Date.parse(iso);
     if (!target) return;
     var diff = Math.max(0, target - Date.now());
+    var ended = diff <= 0;
     var sec = Math.floor(diff / 1000);
     var d = Math.floor(sec / 86400); sec -= d * 86400;
     var h = Math.floor(sec / 3600); sec -= h * 3600;
@@ -155,6 +157,25 @@
     root.querySelectorAll("[data-cd]").forEach(function (el) {
       el.textContent = pad(map[el.getAttribute("data-cd")] || 0);
     });
+    root.classList.toggle("is-ended", ended);
+    var endedLabel = document.getElementById("ok-event-cd-ended");
+    if (endedLabel && root.id === "ok-event-countdown") {
+      endedLabel.hidden = !ended;
+    }
+    if (ended && root.id === "ok-event-countdown") {
+      var statusEl = document.getElementById("ok-event-status");
+      var cta = document.getElementById("ok-event-cta");
+      if (statusEl) {
+        statusEl.textContent = "Événement terminé";
+        statusEl.hidden = false;
+        statusEl.className = "ok-event-status is-ended";
+      }
+      if (cta) {
+        cta.hidden = true;
+        cta.removeAttribute("href");
+      }
+    }
+    return ended;
   }
   function refreshCountdowns() {
     document.querySelectorAll("[data-countdown]").forEach(tickCountdown);
@@ -165,6 +186,7 @@
   function fillSheet(ev) {
     var title = document.getElementById("ok-event-title");
     var type = document.getElementById("ok-event-type");
+    var statusEl = document.getElementById("ok-event-status");
     var hero = document.getElementById("ok-event-hero");
     var flyer = document.getElementById("ok-event-flyer");
     var logoWrap = document.getElementById("ok-event-logo-wrap");
@@ -175,6 +197,26 @@
     var cd = document.getElementById("ok-event-countdown");
     if (title) title.textContent = ev.name || "";
     if (type) type.textContent = (ev.type || "") + (ev.is_ticketing ? " · Billetterie" : "");
+    var liveEnded = false;
+    if (ev.starts_at) {
+      var t = Date.parse(ev.starts_at);
+      liveEnded = !!(t && t <= Date.now());
+    }
+    var saleStatus = liveEnded ? "ended" : (ev.sale_status || "open");
+    var saleLabel = liveEnded
+      ? "Événement terminé"
+      : (ev.sale_status_label || "");
+    if (statusEl) {
+      statusEl.className = "ok-event-status";
+      if (saleLabel) {
+        statusEl.textContent = saleLabel;
+        statusEl.hidden = false;
+        statusEl.classList.add(saleStatus === "closed" ? "is-closed" : saleStatus === "ended" ? "is-ended" : "");
+      } else {
+        statusEl.textContent = "";
+        statusEl.hidden = true;
+      }
+    }
     if (hero) hero.style.setProperty("--hit-color", ev.color || "#1A2744");
     if (flyer && hero) {
       if (ev.flyer) {
@@ -214,13 +256,16 @@
       } else {
         cd.hidden = true;
         cd.removeAttribute("data-countdown");
+        cd.classList.remove("is-ended");
+        var endedLabel = document.getElementById("ok-event-cd-ended");
+        if (endedLabel) endedLabel.hidden = true;
       }
     }
+    var canBuy = !!ev.buy && saleStatus === "open" && !liveEnded;
     if (cta) {
-      var href = ev.buy || "";
       var label = document.getElementById("ok-event-cta-label");
-      if (href) {
-        cta.href = href;
+      if (canBuy) {
+        cta.href = ev.buy;
         if (label) label.textContent = ev.cta || "Voir l’événement";
         else cta.textContent = ev.cta || "Voir l’événement";
         cta.hidden = false;
@@ -230,7 +275,7 @@
       }
     }
     if (recover) {
-      if (ev.recover) {
+      if (ev.recover && ev.is_ticketing) {
         recover.href = ev.recover;
         recover.hidden = false;
       } else {

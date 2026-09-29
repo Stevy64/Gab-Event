@@ -257,43 +257,7 @@
 
   {{ search_payload|json_script:"ok-search-json" }}
 
-  <div class="ok-event-sheet" id="ok-event-sheet" role="dialog" aria-modal="true" aria-labelledby="ok-event-title" hidden>
-    <div class="ok-event-sheet-handle" aria-hidden="true"></div>
-    <button type="button" class="ok-event-sheet-x" id="ok-event-close" aria-label="Fermer">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
-    <div class="ok-event-hero" id="ok-event-hero" aria-hidden="true">
-      <img id="ok-event-flyer" alt="">
-      <div class="ok-event-hero-veil"></div>
-      <span class="ok-event-logo" id="ok-event-logo-wrap" hidden>
-        <img id="ok-event-logo" alt="">
-      </span>
-    </div>
-    <div class="ok-event-sheet-body">
-      <p class="ok-event-type" id="ok-event-type"></p>
-      <h2 id="ok-event-title"></h2>
-      <ul class="ok-event-facts">
-        <li id="ok-event-date" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-          <span></span>
-        </li>
-        <li id="ok-event-time" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/></svg>
-          <span></span>
-        </li>
-        <li id="ok-event-place" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
-          <span></span>
-        </li>
-        <li id="ok-event-org" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-          <span></span>
-        </li>
-      </ul>
-      <p class="ok-event-desc" id="ok-event-desc" hidden></p>
-      <a class="ok-btn-dark ok-event-cta" id="ok-event-cta" hidden>Ouvrir l’événement</a>
-    </div>
-  </div>
+  {% include "partials/public_event_sheet.html" %}
 
   <section class="ok-band ok-essentials" id="fonctionnalites">
     <div class="ok-essentials-glow" aria-hidden="true"></div>
@@ -342,9 +306,9 @@
       </header>
       <div class="ok-plan-grid">
         {% for plan in plans %}
-        <article class="ok-plan ok-reveal {% if plan.is_recommended or plan.slug == 'moyen' %}is-featured{% endif %} {% if plan.is_popular %}is-popular{% endif %} {% if plan.is_free %}is-free{% endif %}">
-          {% if plan.is_recommended or plan.slug == 'moyen' %}
-          <span class="ok-plan-badge">Recommandé</span>
+        <article class="ok-plan ok-reveal {% if plan.is_custom %}is-featured is-ticket{% elif plan.is_popular %}is-popular{% endif %} {% if plan.is_free %}is-free{% endif %}">
+          {% if plan.is_custom %}
+          <span class="ok-plan-badge is-ticket">Recommandé</span>
           {% elif plan.is_popular %}
           <span class="ok-plan-badge is-popular">Populaire</span>
           {% endif %}
@@ -603,17 +567,79 @@
     row.hidden = false;
   }
 
+  function pad(n) { return String(Math.max(0, n)); }
+  function tickCountdown(root) {
+    if (!root) return;
+    var iso = root.getAttribute('data-countdown');
+    if (!iso) return;
+    var target = Date.parse(iso);
+    if (!target) return;
+    var diff = Math.max(0, target - Date.now());
+    var ended = diff <= 0;
+    var sec = Math.floor(diff / 1000);
+    var d = Math.floor(sec / 86400); sec -= d * 86400;
+    var h = Math.floor(sec / 3600); sec -= h * 3600;
+    var m = Math.floor(sec / 60); sec -= m * 60;
+    var map = { d: d, h: h, m: m, s: sec };
+    root.querySelectorAll('[data-cd]').forEach(function (el) {
+      el.textContent = pad(map[el.getAttribute('data-cd')] || 0);
+    });
+    root.classList.toggle('is-ended', ended);
+    var endedLabel = document.getElementById('ok-event-cd-ended');
+    if (endedLabel && root.id === 'ok-event-countdown') {
+      endedLabel.hidden = !ended;
+    }
+    if (ended && root.id === 'ok-event-countdown') {
+      var statusEl = document.getElementById('ok-event-status');
+      var cta = document.getElementById('ok-event-cta');
+      if (statusEl) {
+        statusEl.textContent = 'Événement terminé';
+        statusEl.hidden = false;
+        statusEl.className = 'ok-event-status is-ended';
+      }
+      if (cta) {
+        cta.hidden = true;
+        cta.removeAttribute('href');
+      }
+    }
+    return ended;
+  }
+  setInterval(function () {
+    document.querySelectorAll('[data-countdown]').forEach(tickCountdown);
+  }, 1000);
+
   function fillEventSheet(ev) {
     var title = document.getElementById('ok-event-title');
     var type = document.getElementById('ok-event-type');
+    var statusEl = document.getElementById('ok-event-status');
     var hero = document.getElementById('ok-event-hero');
     var flyer = document.getElementById('ok-event-flyer');
     var logoWrap = document.getElementById('ok-event-logo-wrap');
     var logo = document.getElementById('ok-event-logo');
     var desc = document.getElementById('ok-event-desc');
     var cta = document.getElementById('ok-event-cta');
+    var recover = document.getElementById('ok-event-recover');
+    var cd = document.getElementById('ok-event-countdown');
     if (title) title.textContent = ev.name || '';
-    if (type) type.textContent = ev.type || '';
+    if (type) type.textContent = (ev.type || '') + (ev.is_ticketing ? ' · Billetterie' : '');
+    var liveEnded = false;
+    if (ev.starts_at) {
+      var t = Date.parse(ev.starts_at);
+      liveEnded = !!(t && t <= Date.now());
+    }
+    var saleStatus = liveEnded ? 'ended' : (ev.sale_status || 'open');
+    var saleLabel = liveEnded ? 'Événement terminé' : (ev.sale_status_label || '');
+    if (statusEl) {
+      statusEl.className = 'ok-event-status';
+      if (saleLabel) {
+        statusEl.textContent = saleLabel;
+        statusEl.hidden = false;
+        statusEl.classList.add(saleStatus === 'closed' ? 'is-closed' : saleStatus === 'ended' ? 'is-ended' : '');
+      } else {
+        statusEl.textContent = '';
+        statusEl.hidden = true;
+      }
+    }
     if (hero) hero.style.setProperty('--hit-color', ev.color || '#1A2744');
     if (flyer && hero) {
       if (ev.flyer) {
@@ -636,21 +662,50 @@
       }
     }
     var place = [ev.venue, ev.address, ev.city].filter(Boolean).join(' · ');
-    setFact('ok-event-date', ev.date || '');
+    setFact('ok-event-date', ev.date_long || ev.date || '');
     setFact('ok-event-time', ev.time || '');
     setFact('ok-event-place', place);
     setFact('ok-event-org', ev.organizer || '');
+    setFact('ok-event-price', ev.price ? ('À partir de ' + ev.price + ' F CFA') : '');
     if (desc) {
       desc.textContent = ev.description || '';
       desc.hidden = !ev.description;
     }
+    if (cd) {
+      if (ev.starts_at) {
+        cd.setAttribute('data-countdown', ev.starts_at);
+        cd.hidden = false;
+        tickCountdown(cd);
+      } else {
+        cd.hidden = true;
+        cd.removeAttribute('data-countdown');
+        cd.classList.remove('is-ended');
+        var endedLabel = document.getElementById('ok-event-cd-ended');
+        if (endedLabel) endedLabel.hidden = true;
+      }
+    }
+    var canBuy = !!ev.buy && saleStatus === 'open' && !liveEnded;
     if (cta) {
-      if (ev.own && ev.href) {
+      var label = document.getElementById('ok-event-cta-label');
+      if (canBuy) {
+        cta.href = ev.buy;
+        if (label) label.textContent = ev.cta || 'Acheter un billet';
+        cta.hidden = false;
+      } else if (ev.own && ev.href) {
         cta.href = ev.href;
+        if (label) label.textContent = 'Gérer';
         cta.hidden = false;
       } else {
         cta.removeAttribute('href');
         cta.hidden = true;
+      }
+    }
+    if (recover) {
+      if (ev.recover && ev.is_ticketing) {
+        recover.href = ev.recover;
+        recover.hidden = false;
+      } else {
+        recover.hidden = true;
       }
     }
   }

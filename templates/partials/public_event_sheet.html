@@ -1,4 +1,3 @@
-<div class="ok-overlay" id="ok-overlay" hidden></div>
 <div class="ok-event-sheet" id="ok-event-sheet" role="dialog" aria-modal="true" aria-labelledby="ok-event-title" hidden>
   <div class="ok-event-sheet-handle" aria-hidden="true"></div>
   <button type="button" class="ok-event-sheet-x" id="ok-event-close" aria-label="Fermer">
@@ -14,6 +13,7 @@
     </div>
     <div class="ok-event-sheet-body">
       <p class="ok-event-type" id="ok-event-type"></p>
+      <p class="ok-event-status" id="ok-event-status" hidden></p>
       <h2 id="ok-event-title"></h2>
       <ul class="ok-event-facts">
         <li id="ok-event-date" hidden>
@@ -37,6 +37,7 @@
           <span></span>
         </li>
       </ul>
+      <p class="ok-event-desc" id="ok-event-desc" hidden></p>
       <div class="ge-agenda-countdown ok-event-cd" id="ok-event-countdown" hidden data-countdown="">
         <p class="ge-agenda-countdown-title">Temps restant pour l’événement</p>
         <div class="ge-agenda-countdown-grid">
@@ -45,8 +46,8 @@
           <div><strong data-cd="m">—</strong><span>Min</span></div>
           <div><strong data-cd="s">—</strong><span>Sec</span></div>
         </div>
+        <p class="ok-event-cd-ended" id="ok-event-cd-ended" hidden>Événement terminé</p>
       </div>
-      <p class="ok-event-desc" id="ok-event-desc" hidden></p>
     </div>
   </div>
   <div class="ok-event-sheet-actions" id="ok-event-actions">

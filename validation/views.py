@@ -318,7 +318,8 @@ def landing(request):
     q = (request.GET.get("q") or "").strip()
     if q:
         return redirect(f"{reverse('public_events')}?{urlencode({'q': q})}")
-    plans = EventPlan.objects.filter(is_active=True)
+    plans = list(EventPlan.objects.filter(is_active=True))
+    plans.sort(key=lambda p: (0 if getattr(p, "is_custom", False) else 1, getattr(p, "display_order", 0), p.pk))
     search_results = []
 
     from .lifetime import hero_lifetime_stats
@@ -965,10 +966,11 @@ def event_plans(request):
     if "name" not in wizard:
         return redirect("event_create")
     expected = int(wizard.get("expected_guests") or 50)
-    plans = EventPlan.objects.filter(is_active=True)
+    plans = list(EventPlan.objects.filter(is_active=True))
+    plans.sort(key=lambda p: (0 if getattr(p, "is_custom", False) else 1, getattr(p, "display_order", 0), p.pk))
     # Mettre en avant les plans capables d'accueillir expected
     form = EventPlanSelectForm(request.POST or None)
-    form.fields["plan"].queryset = plans
+    form.fields["plan"].queryset = EventPlan.objects.filter(is_active=True)
     if request.method == "POST" and form.is_valid():
         plan = form.cleaned_data["plan"]
         if not plan.covers_guest_count(expected):

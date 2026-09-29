@@ -54,7 +54,25 @@ def static_url(path: str) -> str:
 
 
 def auth_cover_url() -> str:
-    """Fond des pages auth : image galerie en position 0 (Gab Event)."""
+    """Fond des pages auth : image login admin, sinon hero, sinon galerie."""
+    try:
+        from .models import SiteSettings
+
+        site = SiteSettings.objects.first()
+        if site:
+            login_img = getattr(site, "auth_login_image", None)
+            if login_img:
+                try:
+                    return login_img.url
+                except ValueError:
+                    pass
+            if site.hero_image:
+                try:
+                    return site.hero_image.url
+                except ValueError:
+                    pass
+    except Exception:
+        pass
     try:
         from .models import GalleryImage
 

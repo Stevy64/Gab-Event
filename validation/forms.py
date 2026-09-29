@@ -1077,6 +1077,7 @@ class SiteSettingsForm(forms.ModelForm):
             "logo",
             "default_cover",
             "hero_image",
+            "auth_login_image",
             "hero_line1",
             "hero_line2",
             "hero_lead",
@@ -1125,6 +1126,7 @@ class SiteSettingsForm(forms.ModelForm):
             "logo": StyledImageInput(),
             "default_cover": StyledImageInput(),
             "hero_image": StyledImageInput(),
+            "auth_login_image": StyledImageInput(),
             "hero_lead": forms.Textarea(attrs={"rows": 3}),
             "meta_description": forms.TextInput(attrs={"placeholder": "Gérez vos invitations avec QR Code"}),
             "banner_text": forms.TextInput(attrs={"placeholder": "Offre de lancement, nouveau plan…"}),
@@ -1140,6 +1142,7 @@ class SiteSettingsForm(forms.ModelForm):
             "animated_card_price": "Prix de l’option prestige (carte animée).",
             "public_base_url": "Adresse utilisée pour les retours SingPay. Laissez vide pour garder la valeur .env.",
             "hero_image": "Si renseignée, elle s’affiche en premier sur le carrousel d’accueil.",
+            "auth_login_image": "Personnalise le fond login / inscription. Si vide, l’image hero est utilisée.",
             "meta_description": "Texte des onglets / Google. Vide = accroche.",
             "default_from_email": "Ex. noreply@gabevent.com — utilisé pour mot de passe oublié.",
             "allow_mock_payments": "En local seulement. Décochez une fois SingPay prêt.",
@@ -1148,7 +1151,7 @@ class SiteSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         inst = self.instance
-        for name in ("logo", "default_cover", "hero_image"):
+        for name in ("logo", "default_cover", "hero_image", "auth_login_image"):
             widget = self.fields[name].widget
             widget.existing_url = ""
             widget.existing_name = ""
