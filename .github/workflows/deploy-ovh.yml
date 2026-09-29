@@ -1,4 +1,11 @@
-name: Déployer OVH
+name: Déployer OVH (microservices Docker)
+
+# Déploiement SSH vers VPS OVH :
+# 1. Secrets : OVH_SSH_HOST, OVH_SSH_USER, OVH_SSH_KEY
+# 2. Prérequis VPS : /opt/gab-event cloné + .env production (DEBUG=False)
+# 3. Enchaînement : pull → compose build → migrate → collectstatic → health
+#
+# Voir docs/DEPLOY_MICROSERVICES.md et docs/guides/03_*.docx
 
 on:
   workflow_dispatch:

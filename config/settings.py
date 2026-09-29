@@ -2,7 +2,11 @@
 Django settings — Gab Event (plateforme multi-événements).
 
 Configuration via variables d'environnement (fichier `.env` en local / prod).
-Voir `.env.example` et `DEPLOY_PYTHONANYWHERE.md`.
+Références :
+- `.env.example` — variables locales
+- `DEPLOY_PYTHONANYWHERE.md` — hébergement PythonAnywhere
+- `docs/DEPLOY_OVH.md` — VPS OVH / Docker microservices
+- `docs/guides/` — guides Word utilisateur, admin et installation
 """
 from __future__ import annotations
 
@@ -240,7 +244,10 @@ WHATSAPP_ACCESS_TOKEN = _env("WHATSAPP_ACCESS_TOKEN", default="")
 WHATSAPP_PHONE_NUMBER_ID = _env("WHATSAPP_PHONE_NUMBER_ID", default="")
 SMS_API_URL = _env("SMS_API_URL", default="")
 SMS_API_KEY = _env("SMS_API_KEY", default="")
-ALLOW_MOCK_PAYMENTS = _env("ALLOW_MOCK_PAYMENTS", default="True").lower() in (
+ALLOW_MOCK_PAYMENTS = _env(
+    "ALLOW_MOCK_PAYMENTS",
+    default="True" if DEBUG else "False",
+).lower() in (
     "1",
     "true",
     "yes",

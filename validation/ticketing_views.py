@@ -1,4 +1,10 @@
-"""Billetterie publique, contrôleurs et page Événements."""
+"""
+Billetterie publique, contrôleurs et page Événements.
+
+Ce module isole le parcours « ventes de billets » (hub, configuration, tableau de bord)
+du parcours invitations classiques. Les simulations de paiement ne sont disponibles
+que lorsque ``mock_payments_allowed()`` est vrai (DEBUG + config site).
+"""
 from __future__ import annotations
 
 import secrets
@@ -7,8 +13,8 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncDate
+from django.db.models import Count, DecimalField, OuterRef, Q, Subquery, Sum, Value
+from django.db.models.functions import Coalesce, TruncDate
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -192,6 +198,16 @@ def public_event_detail(request, slug):
 @login_required
 @require_http_methods(["GET", "POST"])
 def ticketing_hub(request):
+    """Liste des événements billetterie de l’organisateur connecté."""
+    collected_sq = (
+        GuestPayment.objects.filter(
+            event_id=OuterRef("pk"),
+            status=GuestPayment.STATUS_SUCCESS,
+        )
+        .values("event_id")
+        .annotate(total=Sum("amount"))
+        .values("total")[:1]
+    )
     events = (
         Event.objects.filter(owner=request.user, is_ticketing=True)
         .exclude(status__in=[Event.STATUS_ARCHIVED, Event.STATUS_CANCELLED])
@@ -200,10 +216,14 @@ def ticketing_hub(request):
             sold=Count(
                 "invitations",
                 filter=Q(invitations__status=Invitation.STATUS_VALID),
+                distinct=True,
             ),
-            collected=Sum(
-                "guest_payments__amount",
-                filter=Q(guest_payments__status=GuestPayment.STATUS_SUCCESS),
+            collected=Coalesce(
+                Subquery(
+                    collected_sq,
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+                Value(0),
             ),
         )
     )

@@ -1,4 +1,10 @@
-"""Configuration runtime du site (console admin, puis .env)."""
+"""
+Configuration runtime du site (console ``/platform-admin/``, puis variables ``.env``).
+
+Les helpers ici centralisent le nom affiché, l’URL publique, l’e-mail expéditeur
+et le basculement mock / SingPay. En production, ``mock_payments_allowed()``
+doit toujours renvoyer ``False``.
+"""
 from __future__ import annotations
 
 from django.conf import settings
