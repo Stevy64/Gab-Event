@@ -12,7 +12,7 @@
       <header class="ge-invite-head">
         <p class="ge-auth-kicker">{% if event.is_ticketing %}Billetterie{% else %}Invitation{% endif %}</p>
         <h1>Récupérer mon billet</h1>
-        <p class="ge-auth-lead">Saisissez le numéro utilisé lors de l’inscription pour retrouver et télécharger votre billet.</p>
+        <p class="ge-auth-lead">Pour protéger votre billet, indiquez le téléphone, le prénom et le nom utilisés à l’achat.</p>
       </header>
       {% if error %}
       <div class="ge-auth-errors">{{ error }}</div>
@@ -27,10 +27,17 @@
           </div>
         </div>
         <div class="ge-field">
-          <label for="id_last_name">Nom de famille <small>(si plusieurs billets)</small></label>
+          <label for="id_first_name">Prénom</label>
           <div class="ge-field-wrap">
             {% include "partials/field_icon.html" with name="user" %}
-            <input id="id_last_name" type="text" name="last_name" value="{{ last_name }}" placeholder="Optionnel" autocomplete="family-name">
+            <input id="id_first_name" type="text" name="first_name" value="{{ first_name }}" required placeholder="Comme sur le billet" autocomplete="given-name">
+          </div>
+        </div>
+        <div class="ge-field">
+          <label for="id_last_name">Nom de famille</label>
+          <div class="ge-field-wrap">
+            {% include "partials/field_icon.html" with name="user" %}
+            <input id="id_last_name" type="text" name="last_name" value="{{ last_name }}" required placeholder="Comme sur le billet" autocomplete="family-name">
           </div>
         </div>
         <button type="submit" class="ok-btn-dark ge-auth-submit">Retrouver mon billet</button>

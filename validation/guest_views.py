@@ -452,14 +452,24 @@ def _guest_invitation_from_session(request, event):
     return Invitation.objects.filter(event=event, code=code).first()
 
 
-def _find_invitation_by_phone(event, phone: str, last_name: str = ""):
-    """Retrouve une invitation valide via le téléphone (et nom optionnel)."""
+def _norm_name(value: str) -> str:
+    return " ".join((value or "").strip().casefold().split())
+
+
+def _find_invitation_by_phone(
+    event,
+    phone: str,
+    last_name: str = "",
+    first_name: str = "",
+):
+    """Retrouve une invitation valide via téléphone + identité (nom/prénom obligatoires)."""
     from .identity import phone_digits_key
 
     key = phone_digits_key(phone)
-    if not key:
+    last = _norm_name(last_name)
+    first = _norm_name(first_name)
+    if not key or not last or not first:
         return None
-    last = (last_name or "").strip().casefold()
     matches = []
     qs = (
         Invitation.objects.filter(event=event, status=Invitation.STATUS_VALID)
@@ -469,7 +479,9 @@ def _find_invitation_by_phone(event, phone: str, last_name: str = ""):
     for inv in qs[:250]:
         if phone_digits_key(inv.phone) != key:
             continue
-        if last and last not in (inv.last_name or "").casefold():
+        if _norm_name(inv.last_name) != last:
+            continue
+        if _norm_name(inv.first_name) != first:
             continue
         matches.append(inv)
     if not matches:
@@ -489,13 +501,15 @@ def _find_invitation_by_phone(event, phone: str, last_name: str = ""):
             inv = pay.invitation
             if not inv or inv.status != Invitation.STATUS_VALID:
                 continue
-            if last and last not in (inv.last_name or "").casefold():
+            pay_last = _norm_name(pay.last_name) or _norm_name(inv.last_name)
+            pay_first = _norm_name(pay.first_name) or _norm_name(inv.first_name)
+            if pay_last != last or pay_first != first:
                 continue
             if inv not in matches:
                 matches.append(inv)
     if not matches:
         return None
-    if len(matches) > 1 and not last:
+    if len(matches) > 1:
         return "ambiguous"
     return matches[0]
 
@@ -508,18 +522,29 @@ def public_ticket_recover(request, token):
     error = ""
     phone = ""
     last_name = ""
+    first_name = ""
     if request.method == "POST":
         phone = (request.POST.get("phone") or "").strip()
         last_name = (request.POST.get("last_name") or "").strip()
-        found = _find_invitation_by_phone(event, phone, last_name)
-        if found == "ambiguous":
-            error = "Plusieurs billets correspondent. Précisez le nom de famille."
-        elif not found:
-            error = "Aucun billet trouvé pour ce numéro. Vérifiez le téléphone utilisé à l’achat."
+        first_name = (request.POST.get("first_name") or "").strip()
+        if not phone or not last_name or not first_name:
+            error = "Téléphone, prénom et nom sont obligatoires pour vérifier que le billet vous appartient."
         else:
-            request.session["guest_invite_code"] = found.code
-            messages.success(request, "Billet retrouvé. Vous pouvez le télécharger.")
-            return redirect("public_invite_thanks", token=token)
+            found = _find_invitation_by_phone(event, phone, last_name, first_name)
+            if found == "ambiguous":
+                error = (
+                    "Plusieurs billets correspondent à ces informations. "
+                    "Contactez l’organisateur avec votre preuve d’achat."
+                )
+            elif not found:
+                error = (
+                    "Aucun billet trouvé. Vérifiez le téléphone, le prénom et le nom "
+                    "exactement tels qu’à l’achat."
+                )
+            else:
+                request.session["guest_invite_code"] = found.code
+                messages.success(request, "Billet retrouvé. Vous pouvez le télécharger.")
+                return redirect("public_invite_thanks", token=token)
     return render(
         request,
         "public/ticket_recover.html",
@@ -528,6 +553,7 @@ def public_ticket_recover(request, token):
             "error": error,
             "phone": phone,
             "last_name": last_name,
+            "first_name": first_name,
             **_legal_sheet_context(),
         },
     )
