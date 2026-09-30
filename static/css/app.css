@@ -8341,6 +8341,125 @@ a[data-ge-download].is-busy::after {
 .ge-pub-back { margin: 1rem 0 0; }
 .ge-pub-back a { color: #1A2744; font-weight: 650; }
 
+.page-ticketing .ge-tk-hub {
+  padding-top: 0;
+  max-width: 1100px;
+}
+.ge-tk-flaque {
+  position: relative;
+  margin: -0.35rem -0.15rem 1.35rem;
+  padding: 1.35rem 1.15rem 1.25rem;
+  border-radius: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(21, 153, 71, 0.16), transparent 42%),
+    radial-gradient(circle at 88% 0%, rgba(201, 162, 74, 0.22), transparent 38%),
+    linear-gradient(165deg, #F7FBF8 0%, #FFF8EC 55%, #F4F0E6 100%);
+  border: 1px solid rgba(21, 153, 71, 0.12);
+  box-shadow: 0 18px 40px rgba(22, 19, 15, 0.06);
+}
+.ge-tk-flaque-glow {
+  position: absolute;
+  inset: auto -10% -40% 35%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(21, 153, 71, 0.12), transparent 68%);
+  pointer-events: none;
+}
+.ge-tk-flaque-inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.1rem;
+}
+.ge-tk-hello {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #12853d;
+}
+.ge-tk-flaque-copy h1 {
+  margin: 0;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-size: clamp(1.85rem, 5vw, 2.45rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #1A2744;
+}
+.ge-tk-lede {
+  margin: 0.45rem 0 0;
+  max-width: 42ch;
+  color: #5c6780;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.ge-tk-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.ge-tk-stats .ge-dash-card {
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(232, 214, 168, 0.7);
+  box-shadow: 0 10px 22px rgba(22, 19, 15, 0.05);
+}
+.ge-tk-stats .ge-dash-card-ico.is-ok {
+  background: #ECFDF3;
+  color: #12853d;
+}
+.ge-tk-stats .ge-dash-card-ico.is-gold {
+  background: #FFF6E0;
+  color: #8A7040;
+}
+.ge-tk-stats .ge-dash-card-ico.is-live {
+  background: #E8F5EE;
+  color: #0f7a38;
+}
+.ge-tk-flaque-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin: 0;
+}
+.ge-tk-hub-body {
+  display: grid;
+  gap: 1rem;
+}
+.ge-tk-section-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.85rem;
+}
+.ge-tk-section-head .ge-kicker {
+  margin: 0 0 0.2rem;
+  color: #8A7040;
+}
+.ge-tk-section-head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #1A2744;
+}
+.ge-tk-section-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 999px;
+  background: var(--ok);
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: 0 10px 22px rgba(21, 153, 71, 0.24);
+}
+.ge-tk-section-cta svg { width: 15px; height: 15px; }
+.ge-tk-section-cta:hover { background: #0f7a38; color: #fff; }
 .page-ticketing .ge-tk-hero { margin-bottom: 1.5rem; }
 .ge-tk-hero-actions {
   display: flex;
@@ -8349,7 +8468,15 @@ a[data-ge-download].is-busy::after {
   gap: 0.55rem;
   margin-top: 1rem;
 }
-.ge-tk-empty { margin-top: 0.4rem; }
+.ge-tk-empty {
+  margin-top: 0.2rem;
+  padding: 1.6rem 1.2rem;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 80% 0%, rgba(21, 153, 71, 0.08), transparent 42%),
+    #fff;
+  border: 1px dashed rgba(21, 153, 71, 0.28);
+}
 .ge-tk-empty p { max-width: 38ch; }
 .ge-tk-grid {
   display: grid;
@@ -8365,14 +8492,16 @@ a[data-ge-download].is-busy::after {
   background: #fff;
   text-decoration: none;
   color: inherit;
+  border: 1px solid rgba(232, 214, 168, 0.65);
   box-shadow: 0 14px 34px rgba(22, 19, 15, 0.07);
   animation: ok-rise 0.55s ease-out both;
   animation-delay: calc(var(--hub-delay, 0) * 0.07s);
-  transition: transform 0.22s ease, box-shadow 0.22s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 .ge-tk-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 20px 42px rgba(22, 19, 15, 0.12);
+  border-color: rgba(21, 153, 71, 0.35);
+  box-shadow: 0 20px 42px rgba(21, 153, 71, 0.12);
 }
 .ge-tk-card-cover {
   position: relative;
@@ -8482,6 +8611,47 @@ a[data-ge-download].is-busy::after {
   font-weight: 650;
   color: var(--ok-muted);
 }
+.ge-tk-card-new {
+  min-height: 280px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 1.5rem 1.2rem;
+  text-align: center;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(21, 153, 71, 0.1), transparent 48%),
+    linear-gradient(165deg, #fff 40%, #ECFDF3);
+  border: 1.5px dashed rgba(21, 153, 71, 0.42);
+  box-shadow: none;
+}
+.ge-tk-card-new-ico {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ECFDF3;
+  color: #12853d;
+  margin-bottom: 0.2rem;
+}
+.ge-tk-card-new-ico svg { width: 24px; height: 24px; }
+.ge-tk-card-new strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1A2744;
+}
+.ge-tk-card-new > span {
+  color: #5c6780;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.ge-tk-card-new:hover {
+  background:
+    radial-gradient(circle at 50% 28%, rgba(21, 153, 71, 0.16), transparent 48%),
+    linear-gradient(165deg, #fff 30%, #DCFCE7);
+  border-color: var(--ok);
+}
 .ge-app-top-switch {
   justify-self: end;
   grid-column: 2;
@@ -8515,6 +8685,10 @@ a[data-ge-download].is-busy::after {
 }
 @media (min-width: 640px) {
   .ge-tk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 720px) {
+  .ge-tk-flaque { padding: 1.6rem 1.55rem 1.45rem; margin-bottom: 1.55rem; }
+  .ge-tk-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (min-width: 900px) {
   .ge-app-top-switch { display: none; }

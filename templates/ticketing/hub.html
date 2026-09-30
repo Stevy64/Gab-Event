@@ -4,68 +4,122 @@
 {% block content %}
 {% url 'my_events' as events_back %}
 {% include "partials/ticketing_nav.html" with nav_active="hub" back_url=events_back back_label="Événements" %}
-<main class="ge-app ge-sheet-page">
-  <header class="ge-sheet-hero ge-tk-hero">
-    <div class="ge-blob" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/><path d="M8 6V4.8M16 6V4.8"/></svg>
-    </div>
-    <p class="ge-kicker">Vendre vos billets</p>
-    <h1>Votre billetterie</h1>
-    <p class="ge-sheet-help">Vendez vos places en ligne. Le public achète, vous encaissez.</p>
-    <p class="ge-tk-hero-actions">
-      <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Nouvel événement</a>
-      <a class="ge-btn-ghost" href="{% url 'public_events' %}">Voir l’agenda public</a>
-    </p>
-  </header>
-
-  {% if not events %}
-  <div class="ge-empty ge-tk-empty">
-    <span class="ge-empty-ico" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/></svg>
-    </span>
-    <h2>Aucun événement en vente</h2>
-    <p>Créez un concert, un gala ou un mariage payant. Tarifs, affiche, puis publication en un geste.</p>
-    <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Créer ma première vente</a>
-  </div>
-  {% else %}
-  <div class="ge-tk-grid">
-    {% for event in events %}
-    <a class="ge-tk-card" href="{% url 'ticketing_dashboard' event.id %}" style="--hub-delay: {{ forloop.counter0 }}">
-      <div class="ge-tk-card-cover">
-        <img src="{{ event.cover_url }}" alt="" decoding="async" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
-        <span class="ge-tk-card-badge {% if event.invite_link_enabled %}is-live{% else %}is-draft{% endif %}">
-          {% if event.invite_link_enabled %}En vente{% else %}Brouillon{% endif %}
-        </span>
+<main class="ge-app ge-sheet-page ge-tk-hub">
+  <section class="ge-tk-flaque">
+    <div class="ge-tk-flaque-glow" aria-hidden="true"></div>
+    <div class="ge-tk-flaque-inner">
+      <div class="ge-tk-flaque-copy">
+        <p class="ge-tk-hello">Billetterie</p>
+        <h1>Vos ventes en cours</h1>
+        <p class="ge-tk-lede">Publiez, suivez les billets vendus et le montant collecté — tout depuis cet espace.</p>
       </div>
-      <div class="ge-tk-card-body">
-        <p class="ge-tk-card-kicker">{{ event.type_label|default:"Événement" }}</p>
-        <h3>{{ event.name }}</h3>
-        <p class="ge-tk-card-meta">
-          <span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
-            {{ event.display_date|default:"Date à confirmer" }}
+      <div class="ge-dash-cards ge-tk-stats">
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8.5V7a2 2 0 012-2h12a2 2 0 012 2v1.5"/><path d="M4 15.5V17a2 2 0 002 2h12a2 2 0 002-2v-1.5"/><path d="M4 12h16"/></svg>
           </span>
-          {% if event.venue %}
-          <span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
-            {{ event.venue }}
+          <strong>{{ hub.events }}</strong>
+          <span>Événement{{ hub.events|pluralize }}</span>
+        </article>
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico is-ok" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           </span>
-          {% endif %}
-        </p>
-        <div class="ge-tk-card-stats">
-          <div>
-            <strong>{{ event.sold|default:0 }}</strong>
-            <span>vendu{{ event.sold|default:0|pluralize }}</span>
-          </div>
-          <div>
-            <strong>{{ event.collected|default:0|floatformat:0 }}</strong>
-            <span>F CFA · collectés</span>
+          <strong>{{ hub.sold }}</strong>
+          <span>Billet{{ hub.sold|pluralize }} vendu{{ hub.sold|pluralize }}</span>
+        </article>
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico is-gold" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v9.2M9.2 9.6h4.2a1.8 1.8 0 010 3.6H9.2"/></svg>
+          </span>
+          <strong>{{ hub.collected|floatformat:0 }}</strong>
+          <span>F CFA collectés</span>
+        </article>
+        <article class="ge-dash-card">
+          <span class="ge-dash-card-ico is-live" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2"/></svg>
+          </span>
+          <strong>{{ hub.live }}</strong>
+          <span>En vente</span>
+        </article>
+      </div>
+      <p class="ge-tk-flaque-actions">
+        <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Nouvel événement</a>
+        <a class="ge-btn-ghost" href="{% url 'public_events' %}">Agenda public</a>
+      </p>
+    </div>
+  </section>
+
+  <div class="ge-tk-hub-body">
+    <header class="ge-tk-section-head">
+      <div>
+        <p class="ge-kicker">Catalogue</p>
+        <h2>{% if events %}Mes événements payants{% else %}Démarrez une vente{% endif %}</h2>
+      </div>
+      {% if events %}
+      <a class="ge-tk-section-cta" href="{% url 'ticketing_setup' %}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        Ajouter
+      </a>
+      {% endif %}
+    </header>
+
+    {% if not events %}
+    <div class="ge-empty ge-tk-empty">
+      <span class="ge-empty-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="6" width="18" height="13" rx="2.2"/><path d="M3 10.5h18"/></svg>
+      </span>
+      <h2>Aucune vente pour l’instant</h2>
+      <p>Créez un concert, un gala ou un mariage payant. Tarifs, affiche, puis publication en un geste.</p>
+      <a class="ok-btn-dark" href="{% url 'ticketing_setup' %}">Créer ma première vente</a>
+    </div>
+    {% else %}
+    <div class="ge-tk-grid">
+      {% for event in events %}
+      <a class="ge-tk-card" href="{% url 'ticketing_dashboard' event.id %}" style="--hub-delay: {{ forloop.counter0 }}">
+        <div class="ge-tk-card-cover">
+          <img src="{{ event.cover_url }}" alt="" decoding="async" loading="{% if forloop.first %}eager{% else %}lazy{% endif %}">
+          <span class="ge-tk-card-badge {% if event.invite_link_enabled %}is-live{% else %}is-draft{% endif %}">
+            {% if event.invite_link_enabled %}En vente{% else %}Brouillon{% endif %}
+          </span>
+        </div>
+        <div class="ge-tk-card-body">
+          <p class="ge-tk-card-kicker">{{ event.type_label|default:"Événement" }}</p>
+          <h3>{{ event.name }}</h3>
+          <p class="ge-tk-card-meta">
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+              {{ event.display_date|default:"Date à confirmer" }}
+            </span>
+            {% if event.venue %}
+            <span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21s7-6.2 7-11a7 7 0 10-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>
+              {{ event.venue }}
+            </span>
+            {% endif %}
+          </p>
+          <div class="ge-tk-card-stats">
+            <div>
+              <strong>{{ event.sold|default:0 }}</strong>
+              <span>vendu{{ event.sold|default:0|pluralize }}</span>
+            </div>
+            <div>
+              <strong>{{ event.collected|default:0|floatformat:0 }}</strong>
+              <span>F CFA · collectés</span>
+            </div>
           </div>
         </div>
-      </div>
-    </a>
-    {% endfor %}
+      </a>
+      {% endfor %}
+      <a class="ge-tk-card ge-tk-card-new" href="{% url 'ticketing_setup' %}" style="--hub-delay: {{ events|length }}">
+        <span class="ge-tk-card-new-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        <strong>Nouvel événement</strong>
+        <span>Affiche, tarifs, publication</span>
+      </a>
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
 </main>
 {% endblock %}

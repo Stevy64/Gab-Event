@@ -270,11 +270,19 @@ def ticketing_hub(request):
                 output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
         )
+        .order_by("-updated_at", "-id")
     )
+    event_list = list(events)
+    hub = {
+        "events": len(event_list),
+        "sold": sum(int(getattr(e, "sold", 0) or 0) for e in event_list),
+        "collected": sum((getattr(e, "collected", None) or Decimal("0")) for e in event_list),
+        "live": sum(1 for e in event_list if e.invite_link_enabled),
+    }
     return render(
         request,
         "ticketing/hub.html",
-        {"events": events, "nav_active": "hub"},
+        {"events": event_list, "hub": hub, "nav_active": "hub"},
     )
 
 
