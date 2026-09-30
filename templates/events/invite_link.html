@@ -1,15 +1,20 @@
 {% extends "base.html" %}
 {% block title %}Lien d’invitation — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event page-sheet-ui page-invite-link{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui page-invite-link{% if event.is_ticketing %} page-ticketing{% endif %}{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as invite_back %}
+{% include "partials/ticketing_nav.html" with nav_active="invite" back_url=invite_back back_label="Billetterie" %}
+{% else %}
 {% url 'event_dashboard' event.id as invite_back %}
 {% include "partials/event_nav.html" with nav_active="invite" back_url=invite_back back_label="Aperçu" %}
+{% endif %}
 <main class="ge-app ge-sheet-page ge-studio ge-invite-studio">
   <section class="ge-invite-sky">
     <div class="ge-invite-arc" aria-hidden="true">
       <img class="ge-invite-arc-img" src="{{ event.cover_url }}" alt="">
     </div>
-    <a class="ge-level-back ge-invite-back" href="{% url 'event_dashboard' event.id %}" aria-label="Retour à l’aperçu">
+    <a class="ge-level-back ge-invite-back" href="{{ invite_back }}" aria-label="Retour">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </a>
     <div class="ge-invite-hero">

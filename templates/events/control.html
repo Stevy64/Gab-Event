@@ -1,9 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Contrôle — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event page-sheet-ui page-control{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui page-control{% if event.is_ticketing %} page-ticketing{% endif %}{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as control_back %}
+{% include "partials/ticketing_nav.html" with nav_active="control" back_url=control_back back_label="Billetterie" %}
+{% else %}
 {% url 'event_dashboard' event.id as control_back %}
 {% include "partials/event_nav.html" with nav_active="control" back_url=control_back back_label="Aperçu" %}
+{% endif %}
 <main class="ge-app ge-sheet-page ge-control-page">
   <header class="ge-sheet-hero ge-control-hero">
     <p class="ge-kicker">Entrée</p>

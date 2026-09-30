@@ -1,14 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Invités — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event{% endblock %}
+{% block title %}{% if event.is_ticketing %}Acheteurs{% else %}Invités{% endif %} — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% if event.is_ticketing %} page-sheet-ui page-ticketing{% endif %}{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as guests_back %}
+{% include "partials/ticketing_nav.html" with nav_active="guests" back_url=guests_back back_label="Billetterie" %}
+{% else %}
 {% include "partials/event_nav.html" with nav_active="guests" %}
+{% endif %}
 <main class="ge-app ge-studio ge-guests">
   <header class="ge-studio-head ge-list-head">
     <div class="ge-list-head-top">
       <div>
         <p class="ge-kicker">Liste</p>
-        <h1>Invités</h1>
+        <h1>{% if event.is_ticketing %}Acheteurs{% else %}Invités{% endif %}</h1>
       </div>
       <div class="ge-tool-row" aria-label="Actions">
         <a class="ge-text-tool" href="{% url 'event_invite_link' event.id %}">

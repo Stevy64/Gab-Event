@@ -1,17 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Invitations — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event{% endblock %}
+{% block title %}{% if event.is_ticketing %}Billets{% else %}Invitations{% endif %} — {{ event.name }}{% endblock %}
+{% block body_class %}page-app page-event{% if event.is_ticketing %} page-sheet-ui page-ticketing{% endif %}{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as cards_back %}
+{% include "partials/ticketing_nav.html" with nav_active="invitations" back_url=cards_back back_label="Billetterie" %}
+{% else %}
 {% url 'event_dashboard' event.id as cards_back %}
 {% include "partials/event_nav.html" with nav_active="invitations" back_url=cards_back back_label="Aperçu" %}
+{% endif %}
 <main class="ge-app ge-cards-page">
   <header class="ge-page-head ge-cards-head">
-    <a class="ge-level-back" href="{% url 'event_dashboard' event.id %}" aria-label="Retour à l’aperçu">
+    <a class="ge-level-back" href="{{ cards_back }}" aria-label="Retour">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
     </a>
     <div>
       <p class="ge-kicker">Cartes</p>
-      <h1>Invitations</h1>
+      <h1>{% if event.is_ticketing %}Billets{% else %}Invitations{% endif %}</h1>
       <p class="ge-lead">{{ total_count }} carte{{ total_count|pluralize }} · recherchez, filtrez, sélectionnez.</p>
     </div>
     <div class="ge-tool-row" aria-label="Exports">

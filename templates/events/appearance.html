@@ -1,8 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Apparence — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event{% endblock %}
+{% block body_class %}page-app page-event{% if event.is_ticketing %} page-sheet-ui page-ticketing{% endif %}{% endblock %}
 {% block content %}
+{% if event.is_ticketing %}
+{% url 'ticketing_dashboard' event.id as appearance_back %}
+{% include "partials/ticketing_nav.html" with nav_active="appearance" back_url=appearance_back back_label="Billetterie" %}
+{% else %}
 {% include "partials/event_nav.html" with nav_active="appearance" %}
+{% endif %}
 <main class="ge-app ge-style" style="--event-color: {{ event.display_primary_color }};">
   <header class="ge-page-head">
     <div>
