@@ -266,7 +266,8 @@ def ticketing_hub(request):
                     collected_sq,
                     output_field=DecimalField(max_digits=12, decimal_places=2),
                 ),
-                Value(0),
+                Value(Decimal("0"), output_field=DecimalField(max_digits=12, decimal_places=2)),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
         )
     )
