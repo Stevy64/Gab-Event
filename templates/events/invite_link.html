@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block html_class %}{% if event.is_ticketing %} ge-loading-ticket{% endif %}{% endblock %}
 {% block title %}Lien d’invitation — {{ event.name }}{% endblock %}
 {% block body_class %}page-app page-event page-sheet-ui page-invite-link{% if event.is_ticketing %} page-ticketing{% endif %}{% endblock %}
 {% block content %}

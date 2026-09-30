@@ -496,11 +496,31 @@
     return /^\/evenements\/\d+(\/|$)/.test(pathname || '');
   }
 
+  function isTicketingPath(pathname) {
+    return /^\/billetterie(\/|$)/.test(pathname || '');
+  }
+
+  function isTicketingContext(opts) {
+    if (opts && opts.toTicket) return true;
+    try {
+      return document.body && document.body.classList.contains('page-ticketing');
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function setLoaderMode(opts) {
+    var toTicket = isTicketingContext(opts);
+    var toEvent = !toTicket && !!(opts && opts.toEvent);
+    document.documentElement.classList.toggle('ge-loading-ticket', toTicket);
+    document.documentElement.classList.toggle('ge-loading-event', toEvent);
+  }
+
   function showPageLoader(opts) {
     window.__gePageLeaving = true;
-    setLoaderText((opts && opts.message) || 'Chargement…');
+    setLoaderText((opts && opts.message) || (isTicketingContext(opts) ? 'Billetterie…' : 'Chargement…'));
     document.documentElement.classList.add('ge-loading');
-    document.documentElement.classList.toggle('ge-loading-event', !!(opts && opts.toEvent));
+    setLoaderMode(opts);
     var el = pageLoaderEl();
     if (el) el.classList.add('is-on');
   }
@@ -509,15 +529,15 @@
     if (window.__gePageLeaving && !force) return;
     window.__gePageLeaving = false;
     restoreLoaderText();
-    document.documentElement.classList.remove('ge-loading', 'ge-loading-event');
+    document.documentElement.classList.remove('ge-loading', 'ge-loading-event', 'ge-loading-ticket');
     var el = pageLoaderEl();
     if (el) el.classList.remove('is-on');
   }
 
   function showBusyLoader(message, opts) {
-    setLoaderText(message || 'Chargement…');
+    setLoaderText(message || (isTicketingContext(opts) ? 'Billetterie…' : 'Chargement…'));
     document.documentElement.classList.add('ge-loading');
-    document.documentElement.classList.toggle('ge-loading-event', !!(opts && opts.toEvent));
+    setLoaderMode(opts);
     var el = pageLoaderEl();
     if (el) {
       el.classList.add('is-on');
@@ -688,7 +708,10 @@
       var msg = a.getAttribute('data-ge-dl-msg') || (isTicket
         ? 'Préparation de votre billet…'
         : 'Téléchargement en cours…');
-      startDownloadProgress(msg, { toEvent: document.body.classList.contains('page-event') });
+      startDownloadProgress(msg, {
+        toTicket: document.body.classList.contains('page-ticketing'),
+        toEvent: document.body.classList.contains('page-event')
+      });
       a.classList.add('is-busy');
       a.setAttribute('aria-busy', 'true');
       markDownloadLabel(a, true);
@@ -723,7 +746,10 @@
       e.preventDefault();
       var btn = form.querySelector('[type="submit"]');
       var msg = form.getAttribute('data-ge-dl-msg') || 'Préparation des cartes…';
-      startDownloadProgress(msg, { toEvent: true });
+      startDownloadProgress(msg, {
+        toTicket: document.body.classList.contains('page-ticketing'),
+        toEvent: true
+      });
       if (btn) {
         btn.disabled = true;
         btn.setAttribute('aria-busy', 'true');
@@ -778,14 +804,26 @@
       var a = e.target.closest('a[href]');
       if (!shouldLoadForLink(a)) return;
       var toEvent = false;
-      try { toEvent = isEventPath(new URL(a.href, location.href).pathname); } catch (err) {}
-      showPageLoader({ toEvent: toEvent });
+      var toTicket = false;
+      try {
+        var path = new URL(a.href, location.href).pathname;
+        toTicket = isTicketingPath(path);
+        toEvent = !toTicket && isEventPath(path);
+      } catch (err) {}
+      if (!toTicket && document.body.classList.contains('page-ticketing') && !toEvent) {
+        toTicket = true;
+      }
+      showPageLoader({ toEvent: toEvent, toTicket: toTicket });
     });
     document.addEventListener('submit', function (e) {
       if (e.defaultPrevented) return;
       var form = e.target;
       if (!form || form.getAttribute('data-no-loader') != null || form.target === '_blank') return;
-      showPageLoader({ toEvent: document.body.classList.contains('page-event') });
+      var onTicket = document.body.classList.contains('page-ticketing');
+      showPageLoader({
+        toTicket: onTicket,
+        toEvent: !onTicket && document.body.classList.contains('page-event')
+      });
     });
     window.addEventListener('pageshow', function () { hidePageLoader(true); });
     window.addEventListener('pagehide', function (e) {
