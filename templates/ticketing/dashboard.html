@@ -3,7 +3,7 @@
 {% block body_class %}page-app page-event page-sheet-ui page-ticketing{% endblock %}
 {% block content %}
 {% url 'ticketing_hub' as tk_back %}
-{% include "partials/event_nav.html" with nav_active="ticketing" back_url=tk_back back_label="Billetterie" %}
+{% include "partials/ticketing_nav.html" with nav_active="hub" back_url=tk_back back_label="Billetterie" %}
 <main class="ge-app ge-sheet-page ge-tk-dash">
   <header class="ge-sheet-hero ge-tk-hero">
     <p class="ge-kicker">Billetterie</p>

@@ -1,4 +1,4 @@
-﻿/* ATC Graduation Check â€” Ceremony flyer Ã— Zanalyze admin */
+﻿/* ATC Graduation Check — Ceremony flyer × Zanalyze admin */
 
 :root {
   --bg: #F2F3F7;
@@ -149,7 +149,7 @@ a { color: inherit; text-decoration: none; }
 .flash-error { border-color: var(--err); background: var(--err-soft); }
 .flash-warning { border-color: var(--warn); background: var(--warn-soft); }
 
-/* Toast popup — success / error */
+/* Toast popup � success / error */
 .ge-toast-host {
   position: fixed;
   inset: 0;
@@ -345,7 +345,7 @@ code {
 
 .muted { color: var(--muted); }
 
-/* â€”â€” Home (invitation flyer) â€”â€” */
+/* —— Home (invitation flyer) —— */
 html:has(body.page-home) {
   height: 100%;
   overflow: hidden;
@@ -808,7 +808,7 @@ html:has(body.page-home) {
 
 body.no-scroll { overflow: hidden; touch-action: none; }
 
-/* â€”â€” Bottom sheet â€”â€” */
+/* —— Bottom sheet —— */
 .sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -1017,7 +1017,7 @@ body.no-scroll { overflow: hidden; touch-action: none; }
 }
 .manual-form { width: 100%; max-width: 360px; margin: 0 auto; }
 
-/* â€”â€” Result modal â€”â€” */
+/* —— Result modal —— */
 .result-backdrop {
   position: fixed;
   inset: 0;
@@ -1244,7 +1244,7 @@ body.no-scroll { overflow: hidden; touch-action: none; }
   font-size: 0.92rem;
 }
 
-/* â€”â€” Loader â€”â€” */
+/* —— Loader —— */
 .app-loader {
   position: fixed;
   inset: 0;
@@ -1286,7 +1286,7 @@ body.no-scroll { overflow: hidden; touch-action: none; }
   color: var(--ink);
 }
 
-/* —— Page loader (toutes les pages) —— */
+/* �� Page loader (toutes les pages) �� */
 .ge-page-loader {
   position: fixed;
   inset: 0;
@@ -1395,7 +1395,7 @@ body.page-event .ge-page-loader-ring {
   }
 }
 
-/* â€”â€” Dashboard / admin (Zanalyze-inspired soft UI) â€”â€” */
+/* —— Dashboard / admin (Zanalyze-inspired soft UI) —— */
 .page-admin,
 .page-dashboard,
 .page-login {
@@ -1968,7 +1968,7 @@ body.page-event .ge-page-loader-ring {
   to { transform: scale(1.1); }
 }
 
-/* Header — always visible, glass on scroll */
+/* Header � always visible, glass on scroll */
 .ok-nav {
   position: fixed; top: 0; left: 0; right: 0; z-index: 60;
   display: flex; align-items: center; justify-content: space-between;
@@ -2404,7 +2404,7 @@ body.ok-sheet-open { overflow: hidden; }
   color: rgba(255,255,255,0.55); font-weight: 600;
 }
 
-/* ===== BELOW FOLD — editorial ===== */
+/* ===== BELOW FOLD � editorial ===== */
 .ok-band { padding: 3.5rem 0; background: var(--ok-cream); }
 .ok-band-warm { background: var(--ok-sand); }
 .ok-wrap {
@@ -3109,7 +3109,7 @@ body.ok-sheet-open { overflow: hidden; }
   .ok-event-sheet { border-radius: 28px 28px 16px 16px; margin-bottom: 0.75rem; }
 }
 
-/* Grids & cards — mobile-first */
+/* Grids & cards � mobile-first */
 .ok-grid {
   display: grid;
   gap: 0.85rem;
@@ -3516,7 +3516,7 @@ body.ok-sheet-open { overflow: hidden; }
   .ok-grid-plans { grid-template-columns: repeat(5, 1fr); }
 }
 
-/* ===== AUTH (signup / login) — single viewport, no scroll ===== */
+/* ===== AUTH (signup / login) � single viewport, no scroll ===== */
 html:has(body.page-auth) {
   height: auto;
   overflow-x: hidden;
@@ -4303,7 +4303,7 @@ body.ge-sheet-open .ge-dock {
   color: #fff; background: var(--ok-ink); border-color: var(--ok-ink);
 }
 
-/* Floating bottom dock (smartphone) — pastille surélevée + halo */
+/* Floating bottom dock (smartphone) � pastille sur�lev�e + halo */
 .ge-dock {
   position: fixed;
   left: 0; right: 0;
@@ -4383,7 +4383,7 @@ body.ge-sheet-open .ge-dock {
   transition: color 0.25s ease, font-weight 0.2s ease;
 }
 
-/* Active / pressed = cercle marine qui dépasse + halo champagne */
+/* Active / pressed = cercle marine qui d�passe + halo champagne */
 .ge-dock-item.is-active,
 .ge-dock-item.is-pressed {
   color: var(--ok-ink);
@@ -5494,7 +5494,7 @@ body.ge-sheet-open .ge-dock {
   margin-bottom: 1rem;
 }
 
-/* Event dashboard — arc hero + live studio */
+/* Event dashboard � arc hero + live studio */
 html:has(body.page-event-dash) {
   overflow-x: hidden;
   max-width: 100%;
@@ -5869,7 +5869,7 @@ html:has(body.page-event-dash) {
 }
 .ge-dock-pill-5 .ge-dock-label { font-size: 0.6rem; }
 
-/* Depth pages — tables, lists, form sections */
+/* Depth pages � tables, lists, form sections */
 .ge-form-stack { display: grid; gap: 1rem; }
 .ge-form-section-title {
   margin: 0 0 0.85rem;
@@ -5894,7 +5894,7 @@ html:has(body.page-event-dash) {
   height: 44px; padding: 0.25rem; cursor: pointer;
 }
 
-/* Studio — settings & presence */
+/* Studio � settings & presence */
 .ge-studio { display: grid; gap: 0.15rem; min-width: 0; max-width: 100%; }
 .ge-studio-form,
 .ge-studio-card,
@@ -6903,7 +6903,7 @@ button.ge-sent-btn.is-go:focus-visible,
   .ge-app-top-title { max-width: min(68vw, 13rem); }
 }
 
-/* Scan-sheet language — white, cream shadows, animated blobs */
+/* Scan-sheet language � white, cream shadows, animated blobs */
 .page-sheet-ui {
   background: #fff;
 }
@@ -7554,7 +7554,7 @@ html:has(body.page-invite-link) {
   .page-sheet-ui .ge-type-ico { animation: none; }
 }
 
-/* Profil — smartphone : dock, overflow, stats, barre d'enregistrement */
+/* Profil � smartphone : dock, overflow, stats, barre d'enregistrement */
 .page-sheet-ui .ge-app-top.is-away {
   transform: none;
   opacity: 1;
@@ -7661,7 +7661,7 @@ html:has(body.page-invite-link) {
   }
 }
 
-/* Invitation publique + pages légales */
+/* Invitation publique + pages l�gales */
 .ge-invite-stage { width: min(560px, 100%); }
 .ge-auth-card.ge-invite-card {
   position: relative;
@@ -8342,88 +8342,123 @@ a[data-ge-download].is-busy::after {
 .ge-pub-back a { color: #1A2744; font-weight: 650; }
 
 .page-ticketing .ge-tk-hub {
-  padding-top: 0;
-  max-width: 1100px;
+  width: 100%;
+  max-width: none;
+  padding: 0 0 1.4rem;
+  animation: none;
+}
+.page-ticketing .ge-tk-hub-body {
+  width: min(1100px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding-top: 0.35rem;
 }
 .ge-tk-flaque {
   position: relative;
-  margin: -0.35rem -0.15rem 1.35rem;
-  padding: 1.35rem 1.15rem 1.25rem;
-  border-radius: 28px;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 12% 18%, rgba(21, 153, 71, 0.16), transparent 42%),
-    radial-gradient(circle at 88% 0%, rgba(201, 162, 74, 0.22), transparent 38%),
-    linear-gradient(165deg, #F7FBF8 0%, #FFF8EC 55%, #F4F0E6 100%);
-  border: 1px solid rgba(21, 153, 71, 0.12);
-  box-shadow: 0 18px 40px rgba(22, 19, 15, 0.06);
+  width: 100%;
+  margin: -4.85rem 0 0.35rem;
+  padding: 5.35rem 1.1rem 2.85rem;
+  text-align: center;
+  animation: ok-rise 0.5s ease-out both;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
-.ge-tk-flaque-glow {
+.ge-tk-flaque-bowl {
   position: absolute;
-  inset: auto -10% -40% 35%;
-  height: 70%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(21, 153, 71, 0.12), transparent 68%);
-  pointer-events: none;
+  left: 50%;
+  top: 0;
+  z-index: 0;
+  width: 132%;
+  height: 100%;
+  transform: translateX(-50%);
+  border-radius: 0 0 50% 50% / 0 0 22% 22%;
+  background:
+    radial-gradient(ellipse 58% 48% at 30% 16%, rgba(255, 255, 255, 0.2), transparent 60%),
+    linear-gradient(165deg, #2A3A5C 0%, #1A2744 52%, #121C33 100%);
+  box-shadow: 0 22px 44px rgba(18, 28, 51, 0.28);
 }
+.ge-tk-flaque-wave { display: none; }
+.ge-tk-flaque-glow { display: none; }
 .ge-tk-flaque-inner {
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  width: min(920px, 100%);
+  margin: 0 auto;
   display: grid;
-  gap: 1.1rem;
+  gap: 1.15rem;
+  justify-items: center;
+}
+.ge-tk-flaque-copy {
+  text-align: center;
 }
 .ge-tk-hello {
-  margin: 0 0 0.25rem;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #12853d;
+  margin: 0 0 0.22rem;
+  font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  font-style: italic;
+  font-size: clamp(1.15rem, 3.2vw, 1.4rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #9EC5E8;
 }
 .ge-tk-flaque-copy h1 {
   margin: 0;
   font-family: "Cormorant Garamond", "Playfair Display", Georgia, serif;
-  font-size: clamp(1.85rem, 5vw, 2.45rem);
+  font-size: clamp(2.05rem, 6.2vw, 2.9rem);
   font-weight: 600;
   letter-spacing: -0.03em;
-  line-height: 1.1;
-  color: #1A2744;
+  line-height: 1.08;
+  color: #fff;
 }
 .ge-tk-lede {
-  margin: 0.45rem 0 0;
-  max-width: 42ch;
-  color: #5c6780;
-  font-size: 0.95rem;
+  margin: 0.5rem auto 0;
+  max-width: 28ch;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.92rem;
   line-height: 1.45;
+  font-weight: 500;
 }
 .ge-tk-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
+  width: 100%;
+  margin-top: 0.1rem;
 }
 .ge-tk-stats .ge-dash-card {
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(232, 214, 168, 0.7);
-  box-shadow: 0 10px 22px rgba(22, 19, 15, 0.05);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 12px 28px rgba(12, 18, 34, 0.18);
 }
 .ge-tk-stats .ge-dash-card-ico.is-ok {
-  background: #ECFDF3;
-  color: #12853d;
+  background: #EEF2F8;
+  color: #1A2744;
 }
 .ge-tk-stats .ge-dash-card-ico.is-gold {
-  background: #FFF6E0;
-  color: #8A7040;
+  background: #E3EEF8;
+  color: #1A2744;
 }
 .ge-tk-stats .ge-dash-card-ico.is-live {
-  background: #E8F5EE;
-  color: #0f7a38;
+  background: #E8EEF8;
+  color: #1A2744;
 }
-.ge-tk-flaque-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-  margin: 0;
+.ge-tk-search {
+  width: min(420px, 100%);
+  margin: 0.1rem 0 0;
 }
+.ge-tk-results { margin: -0.25rem 0 0.15rem; }
+.ge-tk-flaque-actions { display: none; }
+@media (min-width: 720px) {
+  .ge-tk-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (min-width: 900px) {
+  .ge-tk-flaque { margin-top: -5.15rem; padding: 6rem 2rem 3.25rem; }
+  .ge-tk-flaque-bowl { width: 118%; }
+  .ge-tk-lede { max-width: 34ch; font-size: 1rem; }
+}
+.page-ticketing .ge-tk-hero { margin-bottom: 1.5rem; }
 .ge-tk-hub-body {
   display: grid;
   gap: 1rem;
@@ -8436,7 +8471,7 @@ a[data-ge-download].is-busy::after {
 }
 .ge-tk-section-head .ge-kicker {
   margin: 0 0 0.2rem;
-  color: #8A7040;
+  color: #3A5F8A;
 }
 .ge-tk-section-head h2 {
   margin: 0;
@@ -8451,16 +8486,15 @@ a[data-ge-download].is-busy::after {
   gap: 0.35rem;
   padding: 0.55rem 0.9rem;
   border-radius: 999px;
-  background: var(--ok);
+  background: #1A2744;
   color: #fff;
   text-decoration: none;
   font-size: 0.82rem;
   font-weight: 800;
-  box-shadow: 0 10px 22px rgba(21, 153, 71, 0.24);
+  box-shadow: 0 10px 22px rgba(26, 39, 68, 0.22);
 }
 .ge-tk-section-cta svg { width: 15px; height: 15px; }
-.ge-tk-section-cta:hover { background: #0f7a38; color: #fff; }
-.page-ticketing .ge-tk-hero { margin-bottom: 1.5rem; }
+.ge-tk-section-cta:hover { background: #121C33; color: #fff; }
 .ge-tk-hero-actions {
   display: flex;
   flex-wrap: wrap;
@@ -8473,9 +8507,9 @@ a[data-ge-download].is-busy::after {
   padding: 1.6rem 1.2rem;
   border-radius: 24px;
   background:
-    radial-gradient(circle at 80% 0%, rgba(21, 153, 71, 0.08), transparent 42%),
+    radial-gradient(circle at 80% 0%, rgba(26, 39, 68, 0.06), transparent 42%),
     #fff;
-  border: 1px dashed rgba(21, 153, 71, 0.28);
+  border: 1px dashed rgba(26, 39, 68, 0.2);
 }
 .ge-tk-empty p { max-width: 38ch; }
 .ge-tk-grid {
@@ -8508,7 +8542,7 @@ a[data-ge-download].is-busy::after {
   height: 168px;
   background:
     linear-gradient(160deg, rgba(255,255,255,0.18), transparent 50%),
-    linear-gradient(145deg, #FFF6E0, #E8D6A8);
+    linear-gradient(145deg, #3A4D72, #1A2744);
   overflow: hidden;
 }
 .ge-tk-card-cover img {
@@ -8536,16 +8570,16 @@ a[data-ge-download].is-busy::after {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   background: rgba(255, 255, 255, 0.94);
-  color: #8A7040;
+  color: #1A2744;
   box-shadow: 0 8px 18px rgba(22, 19, 15, 0.12);
 }
 .ge-tk-card-badge.is-live {
-  background: #ECFDF3;
-  color: #12853d;
+  background: #E3EEF8;
+  color: #1A2744;
 }
 .ge-tk-card-badge.is-draft {
-  background: #FFF4E0;
-  color: #9a6700;
+  background: #EEF2F8;
+  color: #5c6780;
 }
 .ge-tk-card-body {
   padding: 0.95rem 1.1rem 1.15rem;
@@ -8558,7 +8592,7 @@ a[data-ge-download].is-busy::after {
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #8A7040;
+  color: #3A5F8A;
 }
 .ge-tk-card-body h3 {
   margin: 0;
@@ -8585,7 +8619,7 @@ a[data-ge-download].is-busy::after {
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  color: #8A7040;
+  color: #3A5F8A;
 }
 .ge-tk-card-stats {
   display: grid;
@@ -8598,7 +8632,7 @@ a[data-ge-download].is-busy::after {
   gap: 0.08rem;
   padding: 0.65rem 0.75rem;
   border-radius: 14px;
-  background: linear-gradient(165deg, #F8F4EE, #F1E8D8);
+  background: linear-gradient(165deg, #F0F4FA, #E3EEF8);
 }
 .ge-tk-card-stats strong {
   font-size: 1.05rem;
@@ -8611,46 +8645,115 @@ a[data-ge-download].is-busy::after {
   font-weight: 650;
   color: var(--ok-muted);
 }
-.ge-tk-card-new {
-  min-height: 280px;
+.ge-create-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  padding: 1.5rem 1.2rem;
+  justify-content: flex-start;
+  min-height: 280px;
+  padding: 0 1.15rem 1.35rem;
   text-align: center;
-  background:
-    radial-gradient(circle at 50% 28%, rgba(21, 153, 71, 0.1), transparent 48%),
-    linear-gradient(165deg, #fff 40%, #ECFDF3);
-  border: 1.5px dashed rgba(21, 153, 71, 0.42);
-  box-shadow: none;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid rgba(232, 214, 168, 0.75);
+  box-shadow: 0 14px 34px rgba(22, 19, 15, 0.06);
+  animation: ok-rise 0.55s ease-out both;
+  animation-delay: calc(var(--hub-delay, 0) * 0.07s);
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
-.ge-tk-card-new-ico {
-  width: 54px;
-  height: 54px;
+.ge-create-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 42px rgba(22, 19, 15, 0.1);
+  border-color: #D4BC8E;
+}
+.ge-create-tile-cover {
+  position: relative;
+  display: block;
+  width: calc(100% + 2.3rem);
+  margin: 0 -1.15rem 0;
+  height: 6.6rem;
+  background:
+    radial-gradient(ellipse 70% 80% at 18% 20%, rgba(255, 255, 255, 0.35), transparent 55%),
+    linear-gradient(145deg, #4A6490 0%, #1A2744 55%, #121C33 100%);
+}
+.ge-create-tile-wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 36px;
+  color: #fff;
+  line-height: 0;
+}
+.ge-create-tile-wave svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: currentColor;
+}
+.ge-create-tile-ico {
+  width: 52px;
+  height: 52px;
+  margin-top: -1.35rem;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ECFDF3;
-  color: #12853d;
-  margin-bottom: 0.2rem;
+  position: relative;
+  z-index: 2;
+  background: #E3EEF8;
+  color: #1A2744;
+  box-shadow: 0 12px 26px rgba(26, 39, 68, 0.2);
+  transition: background 0.22s ease, color 0.22s ease, transform 0.22s ease;
 }
-.ge-tk-card-new-ico svg { width: 24px; height: 24px; }
-.ge-tk-card-new strong {
-  font-size: 1.05rem;
+.ge-create-tile-ico svg { width: 22px; height: 22px; }
+.ge-create-tile:hover .ge-create-tile-ico {
+  background: #1A2744;
+  color: #fff;
+  transform: scale(1.04);
+}
+.ge-create-tile strong {
+  display: block;
+  margin-top: 0.85rem;
+  font-size: 1.08rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
   color: #1A2744;
 }
-.ge-tk-card-new > span {
+.ge-create-tile > span:last-child {
+  display: block;
+  margin-top: 0.28rem;
   color: #5c6780;
   font-size: 0.86rem;
   font-weight: 600;
 }
-.ge-tk-card-new:hover {
+.ge-create-tile.is-ticket {
+  border-color: rgba(26, 39, 68, 0.16);
+}
+.ge-create-tile.is-ticket .ge-create-tile-cover {
   background:
-    radial-gradient(circle at 50% 28%, rgba(21, 153, 71, 0.16), transparent 48%),
-    linear-gradient(165deg, #fff 30%, #DCFCE7);
-  border-color: var(--ok);
+    radial-gradient(ellipse 70% 80% at 18% 20%, rgba(158, 197, 232, 0.35), transparent 55%),
+    linear-gradient(145deg, #3A4D72 0%, #1A2744 55%, #121C33 100%);
+}
+.ge-create-tile.is-ticket .ge-create-tile-ico {
+  background: #fff;
+  color: #1A2744;
+  box-shadow: 0 12px 26px rgba(18, 28, 51, 0.22);
+}
+.ge-create-tile.is-ticket:hover {
+  border-color: #1A2744;
+  box-shadow: 0 20px 42px rgba(18, 28, 51, 0.14);
+}
+.ge-create-tile.is-ticket:hover .ge-create-tile-ico {
+  background: #1A2744;
+  color: #fff;
+}
+.ge-hub-grid > .ge-create-tile {
+  min-height: 100%;
 }
 .ge-app-top-switch {
   justify-self: end;
@@ -8677,18 +8780,211 @@ a[data-ge-download].is-busy::after {
   transform: translateY(-1px);
 }
 .ge-tk-dock .ge-dock-item.is-active .ge-dock-bubble {
-  background: var(--ok);
+  background: #1A2744;
   color: #fff;
 }
 .ge-sheet-list a.ge-nav-switch {
   border-style: dashed;
 }
+
+/* Theme Billetterie: navy / sky / white (distinct from cream Events space) */
+.page-ticketing,
+.page-ticketing.page-app,
+.page-ticketing.page-sheet-ui,
+.page-ticketing.page-sheet-ui.page-app {
+  --ok-ink: #1A2744;
+  --ok-cream: #F0F4FA;
+  --ok-sand: #E3EEF8;
+  --ok-stone: #C5D4E8;
+  --ok-muted: #5c6780;
+  --accent: #3A5F8A;
+  --accent-soft: #E3EEF8;
+  --gold: #9EC5E8;
+  --gold-bright: #B8D4F0;
+  --cream-shadow: 0 16px 36px rgba(26, 39, 68, 0.1), 0 6px 16px rgba(26, 39, 68, 0.04);
+  background:
+    radial-gradient(ellipse 80% 50% at 100% -20%, rgba(26, 39, 68, 0.07), transparent 55%),
+    #F0F4FA !important;
+}
+.page-ticketing .ge-sheet-page {
+  --cream-shadow: 0 16px 36px rgba(26, 39, 68, 0.1), 0 6px 16px rgba(26, 39, 68, 0.04);
+}
+.page-ticketing .ge-app-top,
+.page-ticketing .ge-tk-top {
+  background: rgba(240, 244, 250, 0.92);
+  border-bottom-color: rgba(26, 39, 68, 0.08);
+}
+.page-ticketing .ge-app-brand-kicker,
+.page-ticketing .ge-kicker,
+.page-ticketing .ge-sheet-hero .ge-kicker,
+.page-ticketing .ge-tk-section-head .ge-kicker {
+  color: #3A5F8A;
+}
+.page-ticketing .ge-app-nav-desktop a.is-ticket-cta,
+.page-ticketing .ge-app-nav-desktop a.is-ticket-cta:hover,
+.page-ticketing .ge-app-nav-desktop a.is-ticket-cta.is-active,
+.page-ticketing .ge-app-nav-desktop a.is-active:not(.is-ticket-cta) {
+  background: #1A2744;
+  border-color: #1A2744;
+  color: #fff;
+}
+.page-ticketing .ge-tk-dock .ge-dock-item.is-active .ge-dock-bubble,
+.page-ticketing .ge-dock-item.is-active .ge-dock-bubble {
+  background: #1A2744;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(26, 39, 68, 0.28);
+}
+.page-ticketing .ge-sheet-list a.is-ticket-cta {
+  background: #1A2744;
+  color: #fff;
+  border-color: #1A2744;
+}
+.page-ticketing .ge-dash-card-ico,
+.page-ticketing .ge-studio-card-head .ge-dash-card-ico,
+.page-ticketing.page-sheet-ui .ge-dash-card-ico,
+.page-ticketing.page-sheet-ui .ge-hub-card-ico,
+.page-ticketing.page-sheet-ui .ge-dash-action-ico,
+.page-ticketing.page-sheet-ui .ge-studio-card .ge-dash-card-ico {
+  background: #E3EEF8 !important;
+  color: #1A2744 !important;
+  box-shadow: 0 8px 18px rgba(26, 39, 68, 0.1);
+}
+.page-ticketing .ge-dash-card:hover .ge-dash-card-ico,
+.page-ticketing .ge-studio-card:hover .ge-dash-card-ico,
+.page-ticketing.page-sheet-ui .ge-dash-card:hover .ge-dash-card-ico,
+.page-ticketing.page-sheet-ui .ge-studio-card:hover .ge-dash-card-ico {
+  background: #1A2744 !important;
+  color: #fff !important;
+}
+.page-ticketing .ge-form-card,
+.page-ticketing .ge-studio-card,
+.page-ticketing .ge-hub-search,
+.page-ticketing .ge-empty,
+.page-ticketing.page-sheet-ui .ge-form-card,
+.page-ticketing.page-sheet-ui .ge-studio-card,
+.page-ticketing.page-sheet-ui .ge-dash-card,
+.page-ticketing.page-sheet-ui .ge-hub-card,
+.page-ticketing.page-sheet-ui .ge-hub-search,
+.page-ticketing.page-sheet-ui .ge-dash-action {
+  border-color: rgba(26, 39, 68, 0.1);
+  box-shadow: var(--cream-shadow);
+}
+.page-ticketing .ge-hub-search {
+  background: #fff;
+  border: 1px solid rgba(26, 39, 68, 0.12);
+}
+.page-ticketing .ge-hub-search button {
+  background: #1A2744;
+  color: #fff;
+}
+.page-ticketing .ge-hub-search button:hover {
+  background: #121C33;
+}
+.page-ticketing .ok-btn-dark,
+.page-ticketing .ge-btn-primary {
+  background: #1A2744;
+  box-shadow: 0 12px 28px rgba(26, 39, 68, 0.22);
+}
+.page-ticketing .ok-btn-dark:hover,
+.page-ticketing .ge-btn-primary:hover {
+  background: #121C33;
+}
+.page-ticketing .ge-btn-ghost {
+  border-color: rgba(26, 39, 68, 0.18);
+  color: #1A2744;
+  background: #fff;
+}
+.page-ticketing .ge-btn-ghost:hover {
+  background: #E3EEF8;
+  border-color: #1A2744;
+}
+.page-ticketing .ge-level-back:hover,
+.page-ticketing .ge-level-back:focus-visible {
+  background: #E3EEF8;
+  color: #1A2744;
+}
+.page-ticketing .ge-field-wrap > svg {
+  color: #3A5F8A;
+}
+.page-ticketing .ge-tk-tier,
+.page-ticketing .ge-tk-ctrl {
+  background: #E8EEF6;
+  border: 1px solid rgba(26, 39, 68, 0.06);
+}
+.page-ticketing .ge-tk-card-badge,
+.page-ticketing .ge-tk-card-badge.is-live {
+  background: #E3EEF8;
+  color: #1A2744;
+}
+.page-ticketing .ge-tk-card-kicker,
+.page-ticketing .ge-tk-card-meta svg {
+  color: #3A5F8A;
+}
+.page-ticketing .ge-tk-card:hover {
+  border-color: rgba(26, 39, 68, 0.28);
+  box-shadow: 0 20px 42px rgba(26, 39, 68, 0.12);
+}
+.page-ticketing .ge-tk-card-stats div {
+  background: linear-gradient(165deg, #F0F4FA, #E3EEF8);
+}
+.page-ticketing .ge-tk-pick-price small,
+.page-ticketing .ge-sales-search svg,
+.page-ticketing .ge-sales-amount small {
+  color: #3A5F8A;
+}
+.page-ticketing .ge-tk-pick:has(input:checked) {
+  background: #E8EEF6;
+  border-color: #1A2744;
+}
+.page-ticketing .ge-sales-search input {
+  border-color: #C5D4E8;
+}
+.page-ticketing .ge-pay-status.is-pending,
+.page-ticketing .ge-status-draft,
+.page-ticketing .ge-banner-warn {
+  background: #E3EEF8;
+  color: #1A2744;
+  border-color: rgba(26, 39, 68, 0.12);
+}
+.page-ticketing .ge-field input:focus,
+.page-ticketing .ge-field textarea:focus,
+.page-ticketing .ge-field select:focus,
+.page-ticketing .ge-field-wrap:focus-within {
+  border-color: #1A2744;
+  box-shadow: 0 0 0 3px rgba(26, 39, 68, 0.12);
+}
+.page-ticketing .ge-blob,
+.page-ticketing.page-sheet-ui .ge-blob {
+  background: linear-gradient(145deg, #E3EEF8, #B8D4F0);
+  color: #1A2744;
+  box-shadow: 0 16px 36px rgba(26, 39, 68, 0.14);
+}
+.page-ticketing .ge-pay-request-status,
+.page-ticketing .ge-status-active,
+.page-ticketing .ge-hub-card-cover .ge-status-active {
+  background: #E3EEF8;
+  color: #1A2744;
+}
+.page-ticketing.page-sheet-ui .ge-type-card {
+  border-color: #C5D4E8;
+  box-shadow: 0 14px 32px rgba(26, 39, 68, 0.08);
+}
+.page-ticketing.page-sheet-ui .ge-type-card:hover {
+  border-color: #9EC5E8;
+  background: #F0F4FA;
+}
+.page-ticketing.page-sheet-ui .ge-type-ico {
+  background: linear-gradient(145deg, #E3EEF8, #B8D4F0);
+  color: #1A2744;
+}
+.page-ticketing.page-sheet-ui .ge-plan-card {
+  border-color: #C5D4E8;
+}
+.page-ticketing.page-sheet-ui .ge-plan-card.is-featured {
+  box-shadow: 0 0 0 1.5px #9EC5E8, 0 16px 34px rgba(26, 39, 68, 0.12);
+}
 @media (min-width: 640px) {
   .ge-tk-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (min-width: 720px) {
-  .ge-tk-flaque { padding: 1.6rem 1.55rem 1.45rem; margin-bottom: 1.55rem; }
-  .ge-tk-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (min-width: 900px) {
   .ge-app-top-switch { display: none; }
@@ -8706,7 +9002,7 @@ a[data-ge-download].is-busy::after {
 .ge-tk-tier {
   padding: 0.85rem 0.9rem;
   border-radius: 16px;
-  background: var(--ok-sand, #F6F1E8);
+  background: var(--ok-sand, #E8EEF6);
 }
 .ge-tk-ctrl-list { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.65rem; }
 .ge-tk-ctrl {
@@ -8714,7 +9010,7 @@ a[data-ge-download].is-busy::after {
   gap: 0.45rem;
   padding: 0.85rem 0.95rem;
   border-radius: 16px;
-  background: var(--ok-sand, #F6F1E8);
+  background: var(--ok-sand, #E8EEF6);
 }
 .ge-tk-ctrl input { width: 100%; margin-top: 0.35rem; }
 .ge-tk-ctrl-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
@@ -8747,10 +9043,10 @@ a[data-ge-download].is-busy::after {
   white-space: nowrap;
   line-height: 1.15;
 }
-.ge-tk-pick-price small { display: block; font-size: 0.68rem; font-weight: 650; color: #8A7040; }
+.ge-tk-pick-price small { display: block; font-size: 0.68rem; font-weight: 650; color: #3A5F8A; }
 .ge-tk-pick:has(input:checked) {
   border-color: #1A2744;
-  background: #F7F3EA;
+  background: #E8EEF6;
   box-shadow: 0 0 0 3px rgba(26, 39, 68, 0.08);
 }
 .ge-tk-pick.is-sold { opacity: 0.5; cursor: not-allowed; }
@@ -8790,7 +9086,7 @@ a[data-ge-download].is-busy::after {
 .ge-mock-card .ge-pay-rows { margin: 1rem 0; text-align: left; }
 .ge-mock-note { margin: 0 0 1.1rem; }
 
-/* ——— Billetterie dashboard tabs + dense sales list ——— */
+/* ��� Billetterie dashboard tabs + dense sales list ��� */
 .ge-tk-dash .ge-tk-tabs {
   display: flex;
   gap: 0.35rem;
@@ -8843,6 +9139,23 @@ a[data-ge-download].is-busy::after {
   box-shadow: 0 8px 20px rgba(22, 19, 15, 0.08);
 }
 .ge-tk-tab.is-active em { background: #1A2744; color: #fff; }
+.page-ticketing .ge-tk-dash .ge-tk-tabs {
+  background: rgba(26, 39, 68, 0.05);
+  border-color: rgba(26, 39, 68, 0.1);
+}
+.page-ticketing .ge-tk-tab:hover {
+  color: #1A2744;
+  background: rgba(227, 238, 248, 0.85);
+}
+.page-ticketing .ge-tk-tab.is-active {
+  background: #1A2744;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(26, 39, 68, 0.22);
+}
+.page-ticketing .ge-tk-tab.is-active em {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
 .ge-tk-panels { min-height: 18rem; }
 .ge-tk-panel[hidden] { display: none !important; }
 .ge-tk-panel.is-active { animation: ok-rise 0.28s ease-out; }
@@ -8865,13 +9178,13 @@ a[data-ge-download].is-busy::after {
   left: 0.78rem;
   width: 16px;
   height: 16px;
-  color: #8A7040;
+  color: #3A5F8A;
   pointer-events: none;
 }
 .ge-sales-search input {
   width: 100%;
   padding: 0.68rem 0.85rem 0.68rem 2.35rem;
-  border: 1px solid var(--ok-stone, #e8dfd0);
+  border: 1px solid var(--ok-stone, #C5D4E8);
   border-radius: 12px;
   background: #fff;
   font: inherit;
@@ -8967,11 +9280,11 @@ a[data-ge-download].is-busy::after {
   font-variant-numeric: tabular-nums;
   font-size: 0.9rem;
 }
-.ge-sales-amount small { font-weight: 650; color: #8A7040; font-size: 0.68rem; }
+.ge-sales-amount small { font-weight: 650; color: #3A5F8A; font-size: 0.68rem; }
 .ge-sales-net { color: #1B5E20; }
 .ge-sales-more-hint { margin: 0.7rem 0 0; }
 
-/* ——— Paiements invités ——— */
+/* ��� Paiements invit�s ��� */
 .page-guest-pay .ge-pay-metrics article.is-accent {
   background: #1B5E20;
   border-color: #1B5E20;
@@ -9058,7 +9371,7 @@ a[data-ge-download].is-busy::after {
 }
 .ge-pay-scroll { max-height: min(62vh, 36rem); }
 
-/* ——— Contrôle page ——— */
+/* ��� Contr�le page ��� */
 .ge-control-page .ge-control-stack {
   display: flex;
   flex-direction: column;
@@ -9142,7 +9455,7 @@ a[data-ge-download].is-busy::after {
   }
 }
 
-/* ——— Paiements: back + request + metric colors ——— */
+/* ��� Paiements: back + request + metric colors ��� */
 .ge-page-back {
   display: inline-flex;
   align-items: center;

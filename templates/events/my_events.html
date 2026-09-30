@@ -130,38 +130,20 @@
       {% endif %}
     </div>
     {% endfor %}
-  </div>
-
-  <div class="ge-dash-actions ge-hub-actions">
-    <a class="ge-dash-action is-primary" href="{% url 'event_create' %}">
-      <span class="ge-dash-action-ico" aria-hidden="true">
+    {% if events %}
+    <a class="ge-create-tile" href="{% url 'event_create' %}" style="--hub-delay: {{ events|length }}">
+      <span class="ge-create-tile-cover" aria-hidden="true">
+        <span class="ge-create-tile-wave">
+          <svg viewBox="0 0 400 36" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 C70 6 110 30 180 16 S280 4 340 20 S380 28 400 18 L400 36 L0 36 Z"/></svg>
+        </span>
+      </span>
+      <span class="ge-create-tile-ico" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/></svg>
       </span>
-      <span>
-        <strong>Créer</strong>
-        <small>Lancer un nouvel événement</small>
-      </span>
-    </a>
-    {% if scan_event %}
-    <a class="ge-dash-action" href="{% url 'home' %}?scan=1&event={{ scan_event.id }}">
-      <span class="ge-dash-action-ico" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>
-      </span>
-      <span>
-        <strong>Scanner</strong>
-        <small>{{ scan_event.name }}</small>
-      </span>
+      <strong>Nouvel événement</strong>
+      <span>Invitations, QR et contrôle</span>
     </a>
     {% endif %}
-    <a class="ge-dash-action" href="{% url 'profile' %}">
-      <span class="ge-dash-action-ico" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 21a8 8 0 10-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-      </span>
-      <span>
-        <strong>Profil</strong>
-        <small>Compte et préférences</small>
-      </span>
-    </a>
   </div>
   </div>
 </main>

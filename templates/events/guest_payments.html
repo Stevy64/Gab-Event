@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Paiements invités — {{ event.name }}{% endblock %}
-{% block body_class %}page-app page-event page-sheet-ui page-guest-pay{% endblock %}
+{% block body_class %}page-app page-event page-sheet-ui {% if event.is_ticketing %}page-ticketing{% else %}page-guest-pay{% endif %}{% endblock %}
 {% block content %}
 {% if event.is_ticketing %}
 {% url 'ticketing_dashboard' event.id as payments_back %}
-{% include "partials/event_nav.html" with nav_active="ticketing" back_url=payments_back back_label="Billetterie" %}
+{% include "partials/ticketing_nav.html" with nav_active="hub" back_url=payments_back back_label="Tableau de bord" %}
 {% else %}
 {% url 'event_invite_link' event.id as payments_back %}
 {% include "partials/event_nav.html" with nav_active="invite" back_url=payments_back back_label="Lien d’invitation" %}

@@ -242,6 +242,7 @@ def public_event_detail(request, slug):
 @require_http_methods(["GET", "POST"])
 def ticketing_hub(request):
     """Liste des événements billetterie de l’organisateur connecté."""
+    q = (request.GET.get("q") or "").strip()
     collected_sq = (
         GuestPayment.objects.filter(
             event_id=OuterRef("pk"),
@@ -272,6 +273,14 @@ def ticketing_hub(request):
         )
         .order_by("-updated_at", "-id")
     )
+    if q:
+        events = events.filter(
+            Q(name__icontains=q)
+            | Q(city__icontains=q)
+            | Q(venue__icontains=q)
+            | Q(organizer_name__icontains=q)
+            | Q(event_type_custom__icontains=q)
+        )
     event_list = list(events)
     hub = {
         "events": len(event_list),
@@ -282,7 +291,7 @@ def ticketing_hub(request):
     return render(
         request,
         "ticketing/hub.html",
-        {"events": event_list, "hub": hub, "nav_active": "hub"},
+        {"events": event_list, "hub": hub, "q": q, "nav_active": "hub"},
     )
 
 
