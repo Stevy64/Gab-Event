@@ -1,6 +1,8 @@
 # Livrer Gab Event sur OVH Cloud
 
-Guide pas à pas, sans jargon inutile. Objectif : un site en ligne sur **votre nom de domaine**, avec Docker.
+Guide pas à pas, sans jargon inutile. Objectif : un site en ligne sur **votre nom de domaine**, avec Docker, sur une machine vide.
+
+Si le VPS fait déjà tourner le cluster k3s de Wayizé, suivez [ovh-cluster.md](ovh-cluster.md). Le sous-domaine est `gabevent.gabomazone.com`, la base est celle du cluster, et les variables sont dans `deploy/cluster.env.example`.
 
 Vous aurez besoin :
 
@@ -25,14 +27,18 @@ ssh root@ADRESSE_IP_DU_VPS
 
 ---
 
+
+
 ## 2. Pointer le nom de domaine
 
 Dans la zone DNS du domaine, créez :
 
-| Type | Nom | Cible |
-|------|-----|--------|
-| A | `@` | `ADRESSE_IP_DU_VPS` |
-| A | `www` | `ADRESSE_IP_DU_VPS` |
+
+| Type | Nom   | Cible               |
+| ---- | ----- | ------------------- |
+| A    | `@`   | `ADRESSE_IP_DU_VPS` |
+| A    | `www` | `ADRESSE_IP_DU_VPS` |
+
 
 Attendez 5 à 30 minutes. Vérifiez :
 
@@ -43,6 +49,8 @@ ping votredomaine.com
 L’IP affichée doit être celle du VPS.
 
 ---
+
+
 
 ## 3. Préparer le serveur
 
@@ -63,6 +71,8 @@ bash /opt/gab-event/deploy/ovh-setup.sh
 Le script installe **Docker**, ouvre les ports **22 / 80 / 443**.
 
 ---
+
+
 
 ## 4. Installer l’application
 
@@ -111,6 +121,8 @@ docker compose exec gabevent-web python manage.py createsuperuser
 Ouvrez `http://ADRESSE_IP_DU_VPS/` dans le navigateur. La page d’accueil doit s’afficher.
 
 ---
+
+
 
 ## 5. Activer le HTTPS (certificat gratuit)
 
@@ -183,6 +195,8 @@ Ajoutez :
 
 ---
 
+
+
 ## 6. Premier jour en production
 
 - [ ] `DEBUG=False` dans `.env`
@@ -193,6 +207,8 @@ Ajoutez :
 - [ ] Scan d’un QR sur téléphone en HTTPS
 
 ---
+
+
 
 ## 7. Mettre à jour (livraison suivante)
 
@@ -212,6 +228,8 @@ Ou, depuis GitHub : **Actions → Déployer OVH → Run workflow**
 
 ---
 
+
+
 ## 8. Sauvegardes
 
 Base Postgres :
@@ -224,15 +242,19 @@ Médias (flyers, logos) : le volume Docker `media_files`. Copiez-le régulièrem
 
 ---
 
+
+
 ## 9. Problèmes fréquents
 
-| Symptôme | Cause probable | Action |
-|----------|----------------|--------|
-| Page blanche, pas de CSS | `collectstatic` pas lancé | Relancer la commande ci-dessus |
-| 400 CSRF | Mauvais `CSRF_TRUSTED_ORIGINS` | Doit commencer par `https://` + le domaine exact |
-| DisallowedHost | `ALLOWED_HOSTS` incomplet | Ajouter le domaine, sans `https://` |
-| 502 Bad Gateway | Django pas encore prêt | `docker compose ps` puis `docker compose logs gabevent-web` |
-| Caméra scan bloquée | Site en HTTP | Activer le HTTPS |
+
+| Symptôme                 | Cause probable                 | Action                                                      |
+| ------------------------ | ------------------------------ | ----------------------------------------------------------- |
+| Page blanche, pas de CSS | `collectstatic` pas lancé      | Relancer la commande ci-dessus                              |
+| 400 CSRF                 | Mauvais `CSRF_TRUSTED_ORIGINS` | Doit commencer par `https://` + le domaine exact            |
+| DisallowedHost           | `ALLOWED_HOSTS` incomplet      | Ajouter le domaine, sans `https://`                         |
+| 502 Bad Gateway          | Django pas encore prêt         | `docker compose ps` puis `docker compose logs gabevent-web` |
+| Caméra scan bloquée      | Site en HTTP                   | Activer le HTTPS                                            |
+
 
 Logs :
 
@@ -242,6 +264,8 @@ docker compose logs -f gabevent-web
 
 ---
 
+
+
 ## 10. Commandes utiles
 
 ```bash
@@ -250,3 +274,4 @@ docker compose logs --tail=100 gabevent-web
 docker compose restart gabevent-web
 docker compose exec gabevent-web python manage.py check --deploy
 ```
+

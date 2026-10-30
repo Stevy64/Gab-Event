@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gabevent-worker
+  namespace: gabevent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gabevent-worker
+  template:
+    metadata:
+      labels:
+        app: gabevent-worker
+    spec:
+      containers:
+        - name: worker
+          image: ghcr.io/stevy64/gabevent:main
+          imagePullPolicy: Always
+          workingDir: /app
+          command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency=1"]
+          envFrom:
+            - secretRef:
+                name: gabevent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gabevent-beat
+  namespace: gabevent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gabevent-beat
+  template:
+    metadata:
+      labels:
+        app: gabevent-beat
+    spec:
+      containers:
+        - name: beat
+          image: ghcr.io/stevy64/gabevent:main
+          imagePullPolicy: Always
+          workingDir: /app
+          command: ["celery", "-A", "config", "beat", "-l", "info", "--schedule", "/tmp/celerybeat-schedule"]
+          envFrom:
+            - secretRef:
+                name: gabevent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            allowPrivilegeEscalation: false

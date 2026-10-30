@@ -56,6 +56,7 @@ python manage.py runserver
 | [docs/README.md](docs/README.md) | Index documentation |
 | [docs/guides/01_Guide_Utilisateur_Partenaires.docx](docs/guides/01_Guide_Utilisateur_Partenaires.docx) | Formation partenaires |
 | [docs/guides/02_Guide_Technique_Admin.docx](docs/guides/02_Guide_Technique_Admin.docx) | Admin / maintenance |
+| [docs/ovh-cluster.md](docs/ovh-cluster.md) | Cluster k3s du VPS Wayizé |
 | [docs/guides/03_Guide_Installation_Microservices_OVH.docx](docs/guides/03_Guide_Installation_Microservices_OVH.docx) | DevOps VPS + Actions |
 | [DEPLOY_PYTHONANYWHERE.md](DEPLOY_PYTHONANYWHERE.md) | Prod actuelle PA |
 | [docs/DEPLOY_OVH.md](docs/DEPLOY_OVH.md) | VPS OVH pas-à-pas |

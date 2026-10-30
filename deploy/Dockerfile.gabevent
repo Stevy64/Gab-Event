@@ -1,0 +1,31 @@
+# Image Gab Event pour le cluster k3s (web, worker Celery, beat).
+# Le workflow deploy/gabevent-image.yml la publie sur GHCR.
+# La clé ci-dessous ne sert qu'à collectstatic pendant la construction.
+# Elle n'est pas conservée dans l'image. Les vraies clés sont un Secret Kubernetes.
+
+FROM python:3.11-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DJANGO_SETTINGS_MODULE=config.settings \
+    DEBUG=0
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libjpeg62-turbo \
+        zlib1g \
+        libpng16-16 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --uid 10001 --shell /usr/sbin/nologin app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+RUN SECRET_KEY=construction-de-limage-seulement-pas-la-cle-reelle \
+    python manage.py collectstatic --noinput \
+    && rm -f db.sqlite3 \
+    && chown -R app:app /app
+
+USER app

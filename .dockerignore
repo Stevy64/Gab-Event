@@ -9,6 +9,8 @@ __pycache__
 .Python
 *.sqlite3
 db.sqlite3
+celerybeat-schedule
+celerybeat-schedule.*
 media
 staticfiles
 .env
