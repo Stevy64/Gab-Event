@@ -230,29 +230,89 @@ kubectl -n gabevent logs deploy/gabevent-beat
 
 ## 9. Mettre à jour
 
-### Si vous aviez choisi A
+On refait seulement cette étape à chaque publication. Les étapes 1 à 8 ne se rejouent pas. Le Secret `gabevent`, la base et les disques restent en place.
 
-Quand le job Actions est vert :
+La lettre notée à l'étape 4 ne change pas d'une publication à l'autre.
+
+### 9.1 Récupérer le code
+
+Sur le VPS :
 
 ```bash
 cd /srv/gabevent
 git pull --ff-only
-gabevent-deploy
-curl -fsS https://gabevent.gabomazone.com/health/
 ```
 
-Pour revenir à un commit, remplacez `:main` par le SHA du job, dans le Job de migration et dans chaque conteneur de l'image, puis appliquez les manifests.
+Ça a marché si git affiche `Already up to date` ou `Fast-forward`. S'il affiche `Not possible to fast-forward`, ne forcez rien : le dossier `/srv/gabevent` a été modifié à la main.
 
-### Si vous aviez choisi B
+### 9.2 Image
+
+#### Choix A
+
+Attendez que l'onglet Actions soit vert. L'étiquette `main` de `ghcr.io/stevy64/gabevent` est alors prête. Rien ne se construit sur le VPS.
+
+#### Choix B
 
 ```bash
 cd /srv/gabevent
-git pull --ff-only
 sudo docker build -f deploy/Dockerfile.gabevent -t gabevent:1 .
 sudo docker save gabevent:1 | sudo k3s ctr images import -
+sudo k3s ctr images ls | grep gabevent
+```
+
+Ça a marché si `grep` affiche `docker.io/library/gabevent:1`.
+
+### 9.3 Appliquer
+
+Le script attend Redis, joue la migration, puis redémarre le site, le worker et beat. Si la migration échoue, il s'arrête et les pods déjà en service restent.
+
+Choix A :
+
+```bash
+gabevent-deploy
+```
+
+Choix B :
+
+```bash
 gabevent-deploy local
+```
+
+Si la commande s'arrête sur le Job :
+
+```bash
+kubectl -n gabevent logs job/gabevent-migrate
+```
+
+Corrigez la cause, puis relancez la même commande `gabevent-deploy`. Ne supprimez pas les disques pour recommencer.
+
+Ça a marché si la commande se termine sans erreur.
+
+### 9.4 Vérifier
+
+```bash
+kubectl -n gabevent rollout status deployment/gabevent-web
+kubectl -n gabevent rollout status deployment/gabevent-worker
+kubectl -n gabevent rollout status deployment/gabevent-beat
 curl -fsS https://gabevent.gabomazone.com/health/
 ```
+
+Ça a marché si chaque rollout affiche `successfully rolled out` et si `curl` répond.
+
+Ouvrez `https://gabevent.gabomazone.com/` puis `https://gabevent.gabomazone.com/admin/`.
+
+### 9.5 Revenir à la version d'avant
+
+Le SHA est celui du job Actions précédent. Ceci remet les pods sur cette image. Cela ne défait pas une migration déjà jouée : si le schéma a changé, restaurez la sauvegarde de la base pendant une fenêtre de maintenance.
+
+```bash
+kubectl -n gabevent set image deployment/gabevent-web gunicorn=ghcr.io/stevy64/gabevent:SHA
+kubectl -n gabevent set image deployment/gabevent-worker worker=ghcr.io/stevy64/gabevent:SHA
+kubectl -n gabevent set image deployment/gabevent-beat beat=ghcr.io/stevy64/gabevent:SHA
+kubectl -n gabevent rollout status deployment/gabevent-web
+```
+
+Le prochain `gabevent-deploy` reprend l'étiquette `main`, parce que les manifests disent `:main`. Pour rester sur l'ancienne version, ne relancez pas `gabevent-deploy` tant que `main` n'est pas revenu au bon commit.
 
 ## À ne pas faire
 
